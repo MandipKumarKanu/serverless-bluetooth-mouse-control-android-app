@@ -142,13 +142,14 @@ fun SplashScreen(navController: NavController) {
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.scale(scale.value)
         ) {
+            val primaryColor = MaterialTheme.colorScheme.primary
             Box(
                 modifier = Modifier
                     .size(120.dp)
                     .drawBehind {
                         drawCircle(
                             Brush.radialGradient(
-                                colors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), Color.Transparent),
+                                colors = listOf(primaryColor.copy(alpha = 0.3f), Color.Transparent),
                                 center = center,
                                 radius = size.minDimension * 0.9f
                             )
@@ -335,7 +336,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                 val isBluetoothPowerOn by viewModel.isBluetoothPowerOn.collectAsState()
                 val cardColor = when {
                     !isBluetoothPowerOn -> MaterialTheme.colorScheme.errorContainer
-                    isConnected -> MaterialTheme.colorScheme.successContainer
+                    isConnected -> MaterialTheme.colorScheme.primaryContainer
                     else -> MaterialTheme.colorScheme.surfaceVariant
                 }
                 val statusText = when {
@@ -348,7 +349,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                 val statusIcon = if (isConnected) Icons.Filled.BluetoothConnected else Icons.Filled.BluetoothDisabled
                 val tintColor = when {
                     !isBluetoothPowerOn -> MaterialTheme.colorScheme.error
-                    isConnected -> MaterialTheme.colorScheme.success
+                    isConnected -> MaterialTheme.colorScheme.primary
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
 
@@ -1153,9 +1154,9 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .background(
                             Brush.sweepGradient(
                                 colors = listOf(
-                                    if (isStreaming) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.surfaceVariant,
+                                    if (isStreaming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                                     MaterialTheme.colorScheme.primary,
-                                    if (isStreaming) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.surfaceVariant
+                                    if (isStreaming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
                         )
@@ -1180,7 +1181,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             Icon(
                                 imageVector = if (isFreeMode) Icons.Default.Mouse else Icons.Default.ScreenRotation,
                                 contentDescription = "Gyroscope Status",
-                                tint = if (isStreaming) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = if (isStreaming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(56.dp)
                             )
                             Spacer(modifier = Modifier.height(10.dp))
@@ -1188,7 +1189,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 text = if (isStreaming) "STREAMING" else if (isFreeMode) "TAP TO START" else "READY",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isStreaming) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isStreaming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -1253,7 +1254,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .testTag("air_mouse_free_toggle"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFreeStreaming) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.surface
+                            containerColor = if (isFreeStreaming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
                         ),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
@@ -1280,7 +1281,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .testTag("air_mouse_hold_move"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isHoldPressed) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.surface
+                            containerColor = if (isHoldPressed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
                         ),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
@@ -2438,7 +2439,7 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                             timerRunning = !timerRunning
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (timerRunning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.success
+                            containerColor = if (timerRunning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                         )
                     ) {
                         Text(if (timerRunning) "Pause" else "Start", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
@@ -3063,14 +3064,14 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
 
     val backgroundColor = when {
         !isBluetoothPowerOn -> MaterialTheme.colorScheme.errorContainer
-        isConnected -> MaterialTheme.colorScheme.successContainer
+        isConnected -> MaterialTheme.colorScheme.primaryContainer
         isConnecting -> MaterialTheme.colorScheme.surfaceVariant
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
 
     val contentColor = when {
         !isBluetoothPowerOn -> MaterialTheme.colorScheme.error
-        isConnected -> MaterialTheme.colorScheme.success
+        isConnected -> MaterialTheme.colorScheme.primary
         isConnecting -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
