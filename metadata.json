@@ -1,5 +1,5 @@
 {
   "name": "AirMouse",
   "description": "Serverless Bluetooth Air Mouse, Touchpad, Keyboard, and Presentation Remote using official Bluetooth HID Profile.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": []
 }
