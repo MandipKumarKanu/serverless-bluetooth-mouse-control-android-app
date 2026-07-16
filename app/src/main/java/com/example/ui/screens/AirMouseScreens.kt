@@ -134,11 +134,7 @@ fun SplashScreen(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFF0F172A), Color(0xFF020617))
-                )
-            ),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -152,7 +148,7 @@ fun SplashScreen(navController: NavController) {
                     .drawBehind {
                         drawCircle(
                             Brush.radialGradient(
-                                colors = listOf(Color(0x4D06B6D4), Color(0x00000000)),
+                                colors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), Color.Transparent),
                                 center = center,
                                 radius = size.minDimension * 0.9f
                             )
@@ -171,7 +167,7 @@ fun SplashScreen(navController: NavController) {
                 text = "AirMouse",
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 letterSpacing = 1.5.sp,
                 fontFamily = FontFamily.SansSerif
             )
@@ -179,7 +175,7 @@ fun SplashScreen(navController: NavController) {
                 text = "Serverless Bluetooth Controller",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFF64748B),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
@@ -221,13 +217,13 @@ fun PermissionsScreen(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF020617))
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
         Card(
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
@@ -248,14 +244,14 @@ fun PermissionsScreen(navController: NavController) {
                     text = "Bluetooth & Sensors Required",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "AirMouse functions 100% serverless by registering directly as a hardware device over standard Bluetooth HID.\n\nTo establish connections and stream motion data, we require Bluetooth discovery, connection, and motion sensor permissions.",
                     fontSize = 14.sp,
-                    color = Color(0xFF94A3B8),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     lineHeight = 20.sp
                 )
@@ -269,7 +265,7 @@ fun PermissionsScreen(navController: NavController) {
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Grant Permissions", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Grant Permissions", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }
@@ -306,11 +302,11 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFF020617),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("AirMouse Console", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF0F172A)),
+                title = { Text("AirMouse Console", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                 actions = {
                     IconButton(
                         onClick = {
@@ -319,7 +315,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         },
                         modifier = Modifier.testTag("refresh_devices")
                     ) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh Paired", tint = Color.White)
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh Paired", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 }
             )
@@ -338,9 +334,9 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
             item {
                 val isBluetoothPowerOn by viewModel.isBluetoothPowerOn.collectAsState()
                 val cardColor = when {
-                    !isBluetoothPowerOn -> Color(0xFF450A0A)
-                    isConnected -> Color(0xFF064E3B)
-                    else -> Color(0xFF1E293B)
+                    !isBluetoothPowerOn -> MaterialTheme.colorScheme.errorContainer
+                    isConnected -> MaterialTheme.colorScheme.successContainer
+                    else -> MaterialTheme.colorScheme.surfaceVariant
                 }
                 val statusText = when {
                     !isBluetoothPowerOn -> "Bluetooth is Off - Tap to turn on"
@@ -351,9 +347,9 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                 }
                 val statusIcon = if (isConnected) Icons.Filled.BluetoothConnected else Icons.Filled.BluetoothDisabled
                 val tintColor = when {
-                    !isBluetoothPowerOn -> Color(0xFFF87171)
-                    isConnected -> Color(0xFF34D399)
-                    else -> Color(0xFF94A3B8)
+                    !isBluetoothPowerOn -> MaterialTheme.colorScheme.error
+                    isConnected -> MaterialTheme.colorScheme.success
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
 
                 Card(
@@ -375,7 +371,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
-                                .background(if (isConnected) Color(0x3334D399) else if (!isBluetoothPowerOn) Color(0x33EF4444) else Color(0x3394A3B8), CircleShape),
+                                .background(tintColor.copy(alpha = 0.2f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -390,13 +386,13 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                             Text(
                                 text = "Bluetooth Serverless HID",
                                 fontSize = 12.sp,
-                                color = Color(0xFFCBD5E1),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
                                 text = statusText,
                                 fontSize = 18.sp,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(top = 2.dp)
                             )
@@ -409,7 +405,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Disconnect",
-                                    tint = Color(0xFFF87171),
+                                    tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -425,7 +421,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         text = "Control Modes",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                     )
                 }
@@ -460,7 +456,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                         }
                                         .testTag("tile_${tile1.route}"),
                                     shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                                 ) {
                                     Column(
                                         modifier = Modifier
@@ -487,7 +483,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                             text = tile1.title,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.White
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }
@@ -504,7 +500,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                             }
                                             .testTag("tile_${tile2.route}"),
                                         shape = RoundedCornerShape(16.dp),
-                                        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                                     ) {
                                         Column(
                                             modifier = Modifier
@@ -531,7 +527,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                                 text = tile2.title,
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color.White
+                                                color = MaterialTheme.colorScheme.onSurface
                                             )
                                         }
                                     }
@@ -555,7 +551,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         text = "Paired Host Devices",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(start = 4.dp)
                     )
                     TextButton(onClick = { viewModel.refreshPairedDevices() }) {
@@ -569,7 +565,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(
                             modifier = Modifier
@@ -580,14 +576,14 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                             Icon(
                                 imageVector = Icons.Default.Info,
                                 contentDescription = "No Devices",
-                                tint = Color(0xFF64748B),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(32.dp)
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 text = "No paired devices found.\nPlease pair your target PC/TV in your phone's system Bluetooth settings first.",
                                 fontSize = 14.sp,
-                                color = Color(0xFF94A3B8),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
                                 lineHeight = 20.sp
                             )
@@ -612,7 +608,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                             .testTag("device_card_${device.address}"),
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isThisConnected) Color(0xFF0F172A) else Color(0xFF1E293B)
+                            containerColor = if (isThisConnected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
                         ),
                         border = if (isThisConnected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
                     ) {
@@ -625,7 +621,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                             Icon(
                                 imageVector = if (device.bluetoothClass?.majorDeviceClass == 256) Icons.Default.Computer else Icons.Default.Tv,
                                 contentDescription = "Device Type",
-                                tint = if (isThisConnected) MaterialTheme.colorScheme.primary else Color.White,
+                                tint = if (isThisConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
@@ -634,12 +630,12 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                     text = device.getSafeName(),
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = device.address,
                                     fontSize = 12.sp,
-                                    color = Color(0xFF94A3B8),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
                             }
@@ -647,14 +643,14 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
                             } else if (isThisConnected) {
                                 Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                                    Text("ACTIVE", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.padding(2.dp))
+                                    Text("ACTIVE", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.padding(2.dp))
                                 }
                             } else if (device.address == lastConnectedDeviceAddress) {
-                                Badge(containerColor = Color(0xFF0284C7)) {
-                                    Text("LAST ACTIVE", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.padding(2.dp))
+                                Badge(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)) {
+                                    Text("LAST ACTIVE", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.padding(2.dp))
                                 }
                             } else {
-                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = "Connect", tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
+                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = "Connect", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -668,7 +664,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         .fillMaxWidth()
                         .clickable { navController.navigate(Routes.SETTINGS) },
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Row(
                         modifier = Modifier
@@ -678,11 +674,11 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = Color.White)
+                            Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurface)
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Configure Mouse & Scroll Speeds", color = Color.White, fontWeight = FontWeight.Medium, fontSize = 15.sp)
+                            Text("Configure Mouse & Scroll Speeds", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium, fontSize = 15.sp)
                         }
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Go", tint = Color(0xFF64748B))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Go", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -693,7 +689,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         .fillMaxWidth()
                         .clickable { navController.navigate(Routes.ABOUT) },
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Row(
                         modifier = Modifier
@@ -703,11 +699,11 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Info, contentDescription = "About", tint = Color.White)
+                            Icon(imageVector = Icons.Default.Info, contentDescription = "About", tint = MaterialTheme.colorScheme.onSurface)
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Pairing Guide & Documentation", color = Color.White, fontWeight = FontWeight.Medium, fontSize = 15.sp)
+                            Text("Pairing Guide & Documentation", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium, fontSize = 15.sp)
                         }
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Go", tint = Color(0xFF64748B))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Go", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -739,15 +735,15 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFF020617),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column {
                 CenterAlignedTopAppBar(
-                    title = { Text("Laptop Touchpad", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF0F172A)),
+                    title = { Text("Laptop Touchpad", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                         }
                     }
                 )
@@ -761,11 +757,11 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
-            
+
             // Touchpad Instruction Alert
             Text(
                 text = "Tap for Left-Click • Double Tap for Double-Click • Swipe Scroll bar to Scroll",
-                color = Color(0xFF64748B),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
@@ -785,8 +781,8 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF0F172A))
-                        .border(1.dp, Color(0xFF334155), RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
                         .testTag("touchpad_area")
                         .pointerInput(Unit) {
                             awaitPointerEventScope {
@@ -846,7 +842,7 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             y += step
                         }
                     }
-                    Text("Touchpad Canvas", color = Color(0x33FFFFFF), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("Touchpad Canvas", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -857,8 +853,8 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .width(48.dp)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF1E293B))
-                        .border(1.dp, Color(0xFF334155), RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
                         .testTag("touchpad_scroll_bar")
                         .pointerInput(Unit) {
                             detectDragGestures(
@@ -909,14 +905,14 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .fillMaxHeight()
                             .padding(vertical = 24.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Scroll Up", tint = Color.White)
+                        Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Scroll Up", tint = MaterialTheme.colorScheme.onSurface)
                         Icon(
                             imageVector = Icons.Default.UnfoldMore,
                             contentDescription = "Scroll Indicators",
-                            tint = if (isRightScrollActive) MaterialTheme.colorScheme.primary else Color(0xFF64748B),
+                            tint = if (isRightScrollActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(24.dp)
                         )
-                        Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "Scroll Down", tint = Color.White)
+                        Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "Scroll Down", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -938,10 +934,10 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .clickable { viewModel.sendMouseClick(1) }
                         .testTag("mouse_left_click"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Left Click", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Left Click", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
 
@@ -953,10 +949,10 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .clickable { viewModel.sendMouseClick(4) }
                         .testTag("mouse_middle_click"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(imageVector = Icons.Default.CenterFocusStrong, contentDescription = "Middle Click", tint = Color.White)
+                        Icon(imageVector = Icons.Default.CenterFocusStrong, contentDescription = "Middle Click", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
 
@@ -968,10 +964,10 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .clickable { viewModel.sendMouseClick(2) }
                         .testTag("mouse_right_click"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Right Click", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Right Click", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
             }
@@ -1017,20 +1013,20 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFF020617),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column {
                 CenterAlignedTopAppBar(
-                    title = { Text("Air Mouse Controller", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF0F172A)),
+                    title = { Text("Air Mouse Controller", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                         }
                     },
                     actions = {
                         IconButton(onClick = { showSensitivityDialog = true }) {
-                            Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = Color.White)
+                            Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onBackground)
                         }
                     }
                 )
@@ -1046,17 +1042,17 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly
         ) {
-            
+
             // Connection alert check
             if (connectionState != BluetoothProfile.STATE_CONNECTED) {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF3F1A1A)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = "Device not connected. Connect to a host in the home screen to stream movement reports.",
-                        color = Color(0xFFFCA5A5),
+                        color = MaterialTheme.colorScheme.error,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center,
@@ -1069,7 +1065,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF0F172A), RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
@@ -1081,7 +1077,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .weight(1f)
                         .height(40.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isHoldSelected) Color(0xFF06B6D4) else Color.Transparent)
+                        .background(if (isHoldSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                         .clickable {
                             if (isFreeMode) {
                                 viewModel.vibrate(25)
@@ -1098,13 +1094,13 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         Icon(
                             imageVector = Icons.Default.BackHand,
                             contentDescription = "Hold Mode",
-                            tint = if (isHoldSelected) Color.Black else Color(0xFF94A3B8),
+                            tint = if (isHoldSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Hold Mode",
-                            color = if (isHoldSelected) Color.Black else Color(0xFF94A3B8),
+                            color = if (isHoldSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -1118,7 +1114,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .weight(1f)
                         .height(40.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isFreeSelected) Color(0xFF06B6D4) else Color.Transparent)
+                        .background(if (isFreeSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                         .clickable {
                             if (!isFreeMode) {
                                 viewModel.vibrate(25)
@@ -1134,13 +1130,13 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         Icon(
                             imageVector = Icons.Default.Mouse,
                             contentDescription = "Free Mode",
-                            tint = if (isFreeSelected) Color.Black else Color(0xFF94A3B8),
+                            tint = if (isFreeSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Free Mode",
-                            color = if (isFreeSelected) Color.Black else Color(0xFF94A3B8),
+                            color = if (isFreeSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -1157,9 +1153,9 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .background(
                             Brush.sweepGradient(
                                 colors = listOf(
-                                    if (isStreaming) Color(0xFF10B981) else Color(0xFF1E293B),
-                                    Color(0xFF3B82F6),
-                                    if (isStreaming) Color(0xFF10B981) else Color(0xFF1E293B)
+                                    if (isStreaming) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.surfaceVariant,
+                                    MaterialTheme.colorScheme.primary,
+                                    if (isStreaming) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
                         )
@@ -1177,14 +1173,14 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     Box(
                         modifier = Modifier
                             .size(208.dp)
-                            .background(Color(0xFF020617), CircleShape),
+                            .background(MaterialTheme.colorScheme.background, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
                                 imageVector = if (isFreeMode) Icons.Default.Mouse else Icons.Default.ScreenRotation,
                                 contentDescription = "Gyroscope Status",
-                                tint = if (isStreaming) Color(0xFF10B981) else Color(0xFF64748B),
+                                tint = if (isStreaming) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(56.dp)
                             )
                             Spacer(modifier = Modifier.height(10.dp))
@@ -1192,7 +1188,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 text = if (isStreaming) "STREAMING" else if (isFreeMode) "TAP TO START" else "READY",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isStreaming) Color(0xFF10B981) else Color(0xFF64748B)
+                                color = if (isStreaming) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -1200,7 +1196,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = if (isFreeMode) "Tap center circle or bottom button to toggle motion streaming" else "Calibrate sensor if mouse cursor drifts automatically",
-                    color = Color(0xFF64748B),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 16.dp)
@@ -1225,9 +1221,9 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .height(64.dp)
                             .testTag("air_mouse_left_click"),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Text("Left Click", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                        Text("Left Click", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
 
                     // Right Click Trigger
@@ -1238,9 +1234,9 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .height(64.dp)
                             .testTag("air_mouse_right_click"),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Text("Right Click", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                        Text("Right Click", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
 
@@ -1257,21 +1253,21 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .testTag("air_mouse_free_toggle"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFreeStreaming) Color(0xFF10B981) else Color(0xFF0F172A)
+                            containerColor = if (isFreeStreaming) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.surface
                         ),
-                        border = BorderStroke(1.dp, Color(0xFF334155))
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Icon(
                             imageVector = if (isFreeStreaming) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = "Toggle Free Mouse",
-                            tint = if (isFreeStreaming) Color.Black else Color.White,
+                            tint = if (isFreeStreaming) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(end = 8.dp)
                         )
                         Text(
                             text = if (isFreeStreaming) "Stop Streaming Motion" else "Start Free Mouse Stream",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isFreeStreaming) Color.Black else Color.White
+                            color = if (isFreeStreaming) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 } else {
@@ -1284,21 +1280,21 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .testTag("air_mouse_hold_move"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isHoldPressed) Color(0xFF10B981) else Color(0xFF0F172A)
+                            containerColor = if (isHoldPressed) MaterialTheme.colorScheme.success else MaterialTheme.colorScheme.surface
                         ),
-                        border = BorderStroke(1.dp, Color(0xFF334155))
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Icon(
                             imageVector = Icons.Default.BackHand,
                             contentDescription = "Hold to Move",
-                            tint = if (isHoldPressed) Color.Black else Color.White,
+                            tint = if (isHoldPressed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(end = 8.dp)
                         )
                         Text(
                             text = if (isHoldPressed) "Streaming Gyro Motion..." else "Hold to Move Cursor",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isHoldPressed) Color.Black else Color.White
+                            color = if (isHoldPressed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -1311,10 +1307,10 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .height(56.dp)
                         .testTag("air_mouse_calibrate"),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(0xFF334155)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
                 ) {
-                    Icon(imageVector = Icons.Default.FilterCenterFocus, contentDescription = "Calibrate", tint = Color.White)
+                    Icon(imageVector = Icons.Default.FilterCenterFocus, contentDescription = "Calibrate", tint = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Calibrate Gyro Scope", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
@@ -1326,7 +1322,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
     if (showSensitivityDialog) {
         AlertDialog(
             onDismissRequest = { showSensitivityDialog = false },
-            containerColor = Color(0xFF0F172A),
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1335,12 +1331,12 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     Icon(
                         imageVector = Icons.Default.Tune,
                         contentDescription = "Sensitivity Icon",
-                        tint = Color(0xFF06B6D4),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
                         text = "Gyro Sensitivity",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     )
@@ -1353,10 +1349,10 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 ) {
                     Text(
                         text = "Adjust the speed of the Air Mouse cursor pointer motion relative to physical device rotation.",
-                        color = Color(0xFF94A3B8),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1364,26 +1360,26 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     ) {
                         Text(
                             text = "Current Value",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
                             text = String.format("%.1fx", settings.sensitivity),
-                            color = Color(0xFF06B6D4),
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    
+
                     Slider(
                         value = settings.sensitivity,
                         onValueChange = { viewModel.updateSettings(settings.copy(sensitivity = it)) },
                         valueRange = 0.2f..3.0f,
                         colors = SliderDefaults.colors(
-                            thumbColor = Color(0xFF06B6D4),
-                            activeTrackColor = Color(0xFF06B6D4),
-                            inactiveTrackColor = Color(0xFF334155)
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.outline
                         ),
                         modifier = Modifier.testTag("air_mouse_gyro_sensitivity")
                     )
@@ -1392,10 +1388,10 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
             confirmButton = {
                 Button(
                     onClick = { showSensitivityDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF06B6D4)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Done", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text("Done", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -1480,15 +1476,15 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFF020617),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column {
                 CenterAlignedTopAppBar(
-                    title = { Text("Keyboard Input", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF0F172A)),
+                    title = { Text("Keyboard Input", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                         }
                     }
                 )
@@ -1507,11 +1503,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
             // Text Input Box for full string transmissions
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                border = BorderStroke(1.dp, Color(0xFF1E293B))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Type Text to Transmit", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Type Text to Transmit", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = textInput,
@@ -1519,12 +1515,12 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("keyboard_text_field"),
-                        placeholder = { Text("Enter sentence here...", color = Color(0xFF64748B)) },
+                        placeholder = { Text("Enter sentence here...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color(0xFF334155),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         keyboardOptions = KeyboardOptions(
                             imeAction = ImeAction.Send,
@@ -1550,15 +1546,15 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .testTag("send_text_button"),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.Black)
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.onPrimary)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Send String to Host", color = Color.Black, fontWeight = FontWeight.Bold)
+                        Text("Send String to Host", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
             // Keyboard Modifier Switches Row (Mechanical style toggles)
-            Text("Modifiers (Toggles)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp))
+            Text("Modifiers (Toggles)", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1581,15 +1577,15 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .testTag("modifier_${mod.label}"),
                         shape = RoundedCornerShape(10.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (mod.active) MaterialTheme.colorScheme.primary else Color(0xFF0F172A)
+                            containerColor = if (mod.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
                         ),
-                        border = BorderStroke(1.dp, if (mod.active) MaterialTheme.colorScheme.primary else Color(0xFF1E293B))
+                        border = BorderStroke(1.dp, if (mod.active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                                 Text(
                                     text = mod.label,
-                                    color = if (mod.active) Color.Black else Color.White,
+                                    color = if (mod.active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp
                                 )
@@ -1597,7 +1593,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 Box(
                                     modifier = Modifier
                                         .size(6.dp)
-                                        .background(if (mod.active) Color.Black else Color(0xFF334155), CircleShape)
+                                        .background(if (mod.active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.outline, CircleShape)
                                 )
                             }
                         }
@@ -1608,15 +1604,15 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
             // Modern Virtual QWERTY Keyboard
             Text(
                 text = "Interactive Virtual Keyboard",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
                 modifier = Modifier.padding(start = 4.dp, top = 4.dp)
             )
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                border = BorderStroke(1.dp, Color(0xFF1E293B)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -2032,10 +2028,10 @@ fun KeycapButton(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(6.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E293B),
-            contentColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
-        border = BorderStroke(1.dp, Color(0xFF334155))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -2043,7 +2039,7 @@ fun KeycapButton(
         ) {
             Text(
                 text = text,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -2064,15 +2060,15 @@ data class ModifierTile(
 fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFF020617),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column {
                 CenterAlignedTopAppBar(
-                    title = { Text("Media Remote", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF0F172A)),
+                    title = { Text("Media Remote", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                         }
                     }
                 )
@@ -2101,11 +2097,11 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         .height(56.dp)
                         .testTag("media_power"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F1A1A))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
-                    Icon(imageVector = Icons.Default.PowerSettingsNew, contentDescription = "Power", tint = Color(0xFFFCA5A5), modifier = Modifier.size(20.dp))
+                    Icon(imageVector = Icons.Default.PowerSettingsNew, contentDescription = "Power", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Power", color = Color(0xFFFCA5A5), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Power", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
 
                 // Home Key
@@ -2116,11 +2112,11 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         .height(56.dp)
                         .testTag("media_home"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(imageVector = Icons.Default.Home, contentDescription = "Home", tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(imageVector = Icons.Default.Home, contentDescription = "Home", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Home", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Home", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
             }
 
@@ -2128,8 +2124,8 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
             Box(
                 modifier = Modifier
                     .size(220.dp)
-                    .background(Color(0xFF0F172A), CircleShape)
-                    .border(2.dp, Color(0xFF1E293B), CircleShape),
+                    .background(MaterialTheme.colorScheme.surface, CircleShape)
+                    .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 // Center SELECT/OK button
@@ -2144,7 +2140,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                 ) {
                     Text(
                         text = "OK",
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
@@ -2159,7 +2155,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         .size(48.dp)
                         .testTag("media_dpad_up")
                 ) {
-                    Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Up", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Up", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(32.dp))
                 }
 
                 // Down Arrow
@@ -2171,7 +2167,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         .size(48.dp)
                         .testTag("media_dpad_down")
                 ) {
-                    Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "Down", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "Down", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(32.dp))
                 }
 
                 // Left Arrow
@@ -2183,7 +2179,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         .size(48.dp)
                         .testTag("media_dpad_left")
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Left", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Left", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(32.dp))
                 }
 
                 // Right Arrow
@@ -2195,7 +2191,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         .size(48.dp)
                         .testTag("media_dpad_right")
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Right", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Right", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(32.dp))
                 }
             }
 
@@ -2213,11 +2209,11 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         .height(52.dp)
                         .testTag("media_back_key"),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White, modifier = Modifier.size(18.dp))
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Back", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text("Back", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
 
                 // Direct Select / Enter key
@@ -2228,11 +2224,11 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         .height(52.dp)
                         .testTag("media_enter_key"),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardReturn, contentDescription = "Enter", tint = Color.White, modifier = Modifier.size(18.dp))
+                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardReturn, contentDescription = "Enter", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Enter", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text("Enter", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -2240,8 +2236,8 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                border = BorderStroke(1.dp, Color(0xFF1E293B))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Row(
                     modifier = Modifier
@@ -2255,10 +2251,10 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         onClick = { viewModel.sendMediaAction(0x20) }, // Bit 5
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Color(0xFF1E293B), CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                             .testTag("media_prev")
                     ) {
-                        Icon(imageVector = Icons.Default.SkipPrevious, contentDescription = "Prev Track", tint = Color.White, modifier = Modifier.size(24.dp))
+                        Icon(imageVector = Icons.Default.SkipPrevious, contentDescription = "Prev Track", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
                     }
 
                     // Fast Rewind / Skip Backward
@@ -2266,10 +2262,10 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         onClick = { viewModel.sendKeyboardKey(0, 0x50.toByte()) }, // Left Arrow (universal Rewind)
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Color(0xFF1E293B), CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                             .testTag("media_rewind")
                     ) {
-                        Icon(imageVector = Icons.Default.FastRewind, contentDescription = "Rewind", tint = Color.White, modifier = Modifier.size(24.dp))
+                        Icon(imageVector = Icons.Default.FastRewind, contentDescription = "Rewind", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
                     }
 
                     // Play/Pause Playback
@@ -2280,7 +2276,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                             .background(MaterialTheme.colorScheme.primary, CircleShape)
                             .testTag("media_play_pause")
                     ) {
-                        Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Play Pause", tint = Color.Black, modifier = Modifier.size(32.dp))
+                        Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Play Pause", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(32.dp))
                     }
 
                     // Fast Forward / Skip Forward
@@ -2288,10 +2284,10 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         onClick = { viewModel.sendKeyboardKey(0, 0x4F.toByte()) }, // Right Arrow (universal Fast Forward)
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Color(0xFF1E293B), CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                             .testTag("media_fast_forward")
                     ) {
-                        Icon(imageVector = Icons.Default.FastForward, contentDescription = "Fast Forward", tint = Color.White, modifier = Modifier.size(24.dp))
+                        Icon(imageVector = Icons.Default.FastForward, contentDescription = "Fast Forward", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
                     }
 
                     // Next Track
@@ -2299,10 +2295,10 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         onClick = { viewModel.sendMediaAction(0x10) }, // Bit 4
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Color(0xFF1E293B), CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                             .testTag("media_next")
                     ) {
-                        Icon(imageVector = Icons.Default.SkipNext, contentDescription = "Next Track", tint = Color.White, modifier = Modifier.size(24.dp))
+                        Icon(imageVector = Icons.Default.SkipNext, contentDescription = "Next Track", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
                     }
                 }
             }
@@ -2311,8 +2307,8 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                border = BorderStroke(1.dp, Color(0xFF1E293B))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Row(
                     modifier = Modifier
@@ -2326,10 +2322,10 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         onClick = { viewModel.sendMediaAction(0x02) }, // Bit 1
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Color(0xFF1E293B), CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                             .testTag("media_vol_down")
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.VolumeDown, contentDescription = "Volume Down", tint = Color.White, modifier = Modifier.size(24.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.VolumeDown, contentDescription = "Volume Down", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
                     }
 
                     // Mute
@@ -2340,11 +2336,11 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                             .width(120.dp)
                             .testTag("media_mute"),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F1A1A))
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.VolumeMute, contentDescription = "Mute", tint = Color(0xFFFCA5A5), modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.VolumeMute, contentDescription = "Mute", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Mute", color = Color(0xFFFCA5A5), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text("Mute", color = MaterialTheme.colorScheme.error, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
 
                     // Vol Up
@@ -2352,10 +2348,10 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         onClick = { viewModel.sendMediaAction(0x01) }, // Bit 0
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Color(0xFF1E293B), CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                             .testTag("media_vol_up")
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Volume Up", tint = Color.White, modifier = Modifier.size(24.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Volume Up", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
                     }
                 }
             }
@@ -2388,15 +2384,15 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFF020617),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column {
                 CenterAlignedTopAppBar(
-                    title = { Text("Presentation Controller", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF0F172A)),
+                    title = { Text("Presentation Controller", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                         }
                     }
                 )
@@ -2412,11 +2408,11 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            
+
             // Visual presentation active timer
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Row(
                     modifier = Modifier
@@ -2426,10 +2422,10 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Active Slide Timer", color = Color(0xFF64748B), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Active Slide Timer", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         Text(
                             text = formatTime(timerSeconds),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
@@ -2442,10 +2438,10 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                             timerRunning = !timerRunning
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (timerRunning) Color(0xFFEF4444) else Color(0xFF10B981)
+                            containerColor = if (timerRunning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.success
                         )
                     ) {
-                        Text(if (timerRunning) "Pause" else "Start", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(if (timerRunning) "Pause" else "Start", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }
@@ -2473,8 +2469,8 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.NavigateNext, contentDescription = "Next", tint = Color.Black, modifier = Modifier.size(72.dp))
-                        Text("Next Slide", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Icon(imageVector = Icons.AutoMirrored.Filled.NavigateNext, contentDescription = "Next", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(72.dp))
+                        Text("Next Slide", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     }
                 }
 
@@ -2489,17 +2485,17 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                         }
                         .testTag("pres_prev_slide"),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                    border = BorderStroke(1.dp, Color(0xFF334155))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.NavigateBefore, contentDescription = "Prev", tint = Color.White, modifier = Modifier.size(36.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.NavigateBefore, contentDescription = "Prev", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(36.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Previous Slide", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Previous Slide", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
             }
@@ -2517,11 +2513,11 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                         .height(56.dp)
                         .testTag("pres_full_screen"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(imageVector = Icons.Default.Fullscreen, contentDescription = "Full Screen", tint = Color.White)
+                    Icon(imageVector = Icons.Default.Fullscreen, contentDescription = "Full Screen", tint = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Play (F5)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("Play (F5)", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
 
                 // Black Screen: B Key (0x05)
@@ -2532,12 +2528,12 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                         .height(56.dp)
                         .testTag("pres_black_screen"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A)),
-                    border = BorderStroke(1.dp, Color(0xFF334155))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
-                    Icon(imageVector = Icons.Default.VisibilityOff, contentDescription = "Black Screen", tint = Color.White)
+                    Icon(imageVector = Icons.Default.VisibilityOff, contentDescription = "Black Screen", tint = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Black Screen", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("Black Screen", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }
@@ -2561,15 +2557,15 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFF020617),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column {
                 CenterAlignedTopAppBar(
-                    title = { Text("Custom Shortcuts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF0F172A)),
+                    title = { Text("Custom Shortcuts", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                     navigationIcon = {
                         IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                         }
                     },
                     actions = {
@@ -2580,7 +2576,7 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                             },
                             modifier = Modifier.testTag("add_shortcut_button")
                         ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = "Add Shortcut", tint = Color.White)
+                            Icon(imageVector = Icons.Default.Add, contentDescription = "Add Shortcut", tint = MaterialTheme.colorScheme.onBackground)
                         }
                     }
                 )
@@ -2601,12 +2597,12 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(imageVector = Icons.Default.Keyboard, contentDescription = "No Shortcuts", tint = Color(0xFF64748B), modifier = Modifier.size(64.dp))
+                    Icon(imageVector = Icons.Default.Keyboard, contentDescription = "No Shortcuts", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(64.dp))
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("No Custom Shortcuts Added", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("No Custom Shortcuts Added", color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Text(
                         text = "Press the + icon on top to create customized hotkey macros.",
-                        color = Color(0xFF94A3B8),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 8.dp)
@@ -2626,7 +2622,7 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                 .clickable { viewModel.triggerCustomShortcut(shortcut) }
                                 .testTag("shortcut_card_${shortcut.id}"),
                             shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -2646,7 +2642,7 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                     }
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Column {
-                                        Text(shortcut.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                        Text(shortcut.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                                         val modLabel = buildString {
                                             if (shortcut.modifiers and 0x01 != 0) append("Ctrl ")
                                             if (shortcut.modifiers and 0x02 != 0) append("Shift ")
@@ -2655,7 +2651,7 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                         }
                                         Text(
                                             text = "Keys: $modLabel+ HID_CODE ${shortcut.keyCodes}",
-                                            color = Color(0xFF64748B),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontSize = 11.sp,
                                             modifier = Modifier.padding(top = 2.dp)
                                         )
@@ -2668,7 +2664,7 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                     },
                                     modifier = Modifier.testTag("delete_shortcut_${shortcut.id}")
                                 ) {
-                                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFEF4444))
+                                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
                                 }
                             }
                         }
@@ -2680,26 +2676,26 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
             if (showAddDialog) {
                 AlertDialog(
                     onDismissRequest = { showAddDialog = false },
-                    containerColor = Color(0xFF0F172A),
-                    title = { Text("Add Shortcut Macro", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    title = { Text("Add Shortcut Macro", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedTextField(
                                 value = shortcutName,
                                 onValueChange = { shortcutName = it },
-                                label = { Text("Shortcut Name", color = Color(0xFF94A3B8)) },
+                                label = { Text("Shortcut Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("dialog_name_field"),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = Color(0xFF334155),
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 )
                             )
-                            
-                            Text("Select Modifiers", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+
+                            Text("Select Modifiers", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 CheckboxLabel("Ctrl", ctrlSelected) { ctrlSelected = it }
                                 CheckboxLabel("Shift", shiftSelected) { shiftSelected = it }
@@ -2710,16 +2706,16 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                             OutlinedTextField(
                                 value = selectedKeyCodeStr,
                                 onValueChange = { selectedKeyCodeStr = it },
-                                label = { Text("HID Key ScanCode (Integer, standard C is 6)", color = Color(0xFF94A3B8)) },
+                                label = { Text("HID Key ScanCode (Integer, standard C is 6)", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("dialog_code_field"),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = Color(0xFF334155),
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 )
                             )
                         }
@@ -2733,9 +2729,9 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                     if (shiftSelected) modifiers = modifiers or 0x02
                                     if (altSelected) modifiers = modifiers or 0x04
                                     if (guiSelected) modifiers = modifiers or 0x08
-                                    
+
                                     viewModel.addCustomShortcut(shortcutName, modifiers, selectedKeyCodeStr)
-                                    
+
                                     // Reset Dialog variables
                                     shortcutName = ""
                                     ctrlSelected = false
@@ -2753,7 +2749,7 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                     },
                     dismissButton = {
                         TextButton(onClick = { showAddDialog = false }) {
-                            Text("Cancel", color = Color.White)
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 )
@@ -2770,7 +2766,7 @@ fun CheckboxLabel(label: String, checked: Boolean, onCheckedChange: (Boolean) ->
             onCheckedChange = onCheckedChange,
             colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
         )
-        Text(label, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -2783,14 +2779,14 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFF020617),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Settings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF0F172A)),
+                title = { Text("Settings", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 }
             )
@@ -2804,12 +2800,12 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Text("Pointer Speeds & Calibration", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text("Pointer Speeds & Calibration", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 15.sp)
 
             // Cursor Sensitivity Slider
             Column {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Cursor Sensitivity", color = Color(0xFFCBD5E1), fontSize = 14.sp)
+                    Text("Cursor Sensitivity", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     Text(String.format("%.1fx", settings.sensitivity), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
                 Slider(
@@ -2823,7 +2819,7 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
             // Motion Smoothing Slider
             Column {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Motion Smoothing (Low Pass)", color = Color(0xFFCBD5E1), fontSize = 14.sp)
+                    Text("Motion Smoothing (Low Pass)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     Text(String.format("%.1fx", settings.smoothing), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
                 Slider(
@@ -2837,7 +2833,7 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
             // Gyro Dead Zone Slider
             Column {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Gyro Dead Zone", color = Color(0xFFCBD5E1), fontSize = 14.sp)
+                    Text("Gyro Dead Zone", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     Text(String.format("%.2f", settings.deadZone), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
                 Slider(
@@ -2848,9 +2844,9 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 )
             }
 
-            HorizontalDivider(color = Color(0xFF1E293B))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-            Text("Feedback & Device", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text("Feedback & Device", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 15.sp)
 
             // Vibration switch
             Row(
@@ -2859,8 +2855,8 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Haptic Touch Feedback", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Vibrate phone during mouse clicks and taps", color = Color(0xFF64748B), fontSize = 12.sp)
+                    Text("Haptic Touch Feedback", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Vibrate phone during mouse clicks and taps", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Switch(
                     checked = settings.vibrationFeedback,
@@ -2877,8 +2873,8 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Invert Horizontal (X) Motion", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Inverts mouse left and right pointer actions", color = Color(0xFF64748B), fontSize = 12.sp)
+                    Text("Invert Horizontal (X) Motion", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Inverts mouse left and right pointer actions", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Switch(
                     checked = settings.invertX,
@@ -2895,8 +2891,8 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Invert Vertical (Y) Motion", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Inverts mouse up and down pointer actions", color = Color(0xFF64748B), fontSize = 12.sp)
+                    Text("Invert Vertical (Y) Motion", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Inverts mouse up and down pointer actions", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Switch(
                     checked = settings.invertY,
@@ -2914,8 +2910,8 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Auto Reconnect Device", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Automatically reconnect to your last active device when Bluetooth starts up", color = Color(0xFF64748B), fontSize = 12.sp)
+                    Text("Auto Reconnect Device", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Automatically reconnect to your last active device when Bluetooth starts up", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Switch(
@@ -2926,9 +2922,9 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 )
             }
 
-            HorizontalDivider(color = Color(0xFF1E293B))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-            Text("Appearance", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text("Appearance", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 15.sp)
 
             // Dark Theme Toggle
             Row(
@@ -2937,8 +2933,8 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Dark Theme", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Switch between dark and light theme", color = Color(0xFF64748B), fontSize = 12.sp)
+                    Text("Dark Theme", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Switch between dark and light theme", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Switch(
@@ -2956,8 +2952,8 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Keep Screen Awake", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Prevent screen from turning off while using the app", color = Color(0xFF64748B), fontSize = 12.sp)
+                    Text("Keep Screen Awake", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Prevent screen from turning off while using the app", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Switch(
@@ -2978,14 +2974,14 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
 fun AboutScreen(navController: NavController) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFF020617),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("About & Help", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFF0F172A)),
+                title = { Text("About & Help", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 }
             )
@@ -3001,54 +2997,54 @@ fun AboutScreen(navController: NavController) {
         ) {
             Text(
                 text = "AirMouse Guide",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Text(
                 text = "Thank you for using AirMouse! This application turns your Android phone into an ultra-low latency, highly responsive, serverless Bluetooth controller.",
-                color = Color(0xFF94A3B8),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 14.sp,
                 lineHeight = 22.sp
             )
 
-            HorizontalDivider(color = Color(0xFF1E293B))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-            Text("Setup Instructions", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Setup Instructions", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
             Text(
                 text = "1. Turn ON Bluetooth on your phone and target device (PC, Tablet, macOS, or Smart TV).\n" +
                         "2. Go to your phone's system settings and Pair your target host device via standard Bluetooth settings.\n" +
                         "3. Return to the AirMouse app console, refresh, and click on your host under 'Paired Host Devices'.\n" +
                         "4. Your phone will register securely as a combined hardware mouse and keyboard. Once connected, open any control screen to begin!",
-                color = Color(0xFFCBD5E1),
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 14.sp,
                 lineHeight = 24.sp
             )
 
-            HorizontalDivider(color = Color(0xFF1E293B))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-            Text("Troubleshooting", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Troubleshooting", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
             Text(
                 text = "• Connection Rejected: If your PC/TV fails to connect, unpair (forget) the AirMouse phone on both devices, restart Bluetooth, and pair again.\n" +
                         "• Drift: If the Air Mouse cursor wanders around automatically without moving, place the phone flat on a table and click 'Calibrate Gyro Scope' inside the Air Mouse screen.",
-                color = Color(0xFFCBD5E1),
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 14.sp,
                 lineHeight = 22.sp
             )
 
-            HorizontalDivider(color = Color(0xFF1E293B))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-            Text("Specifications", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Specifications", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
             Text(
                 text = "• Platform: Native Android (Kotlin & Jetpack Compose)\n" +
                         "• Bluetooth HID API Level: 28 (Android 9.0+) Required\n" +
                         "• Profile: official Android BluetoothHidDevice (SDP Combo)\n" +
-                        "• Version: 1.0.0",
-                color = Color(0xFF94A3B8),
+                        "• Version: 1.2.0",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 lineHeight = 20.sp
             )
@@ -3066,17 +3062,17 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
     val isConnecting = connectionState == BluetoothProfile.STATE_CONNECTING
 
     val backgroundColor = when {
-        !isBluetoothPowerOn -> Color(0xFF450A0A) // Highly subtle dark red background for disabled bluetooth
-        isConnected -> Color(0xFF022C22) // Highly subtle dark teal background
-        isConnecting -> Color(0xFF451A03) // Subtle dark amber background
-        else -> Color(0xFF1E293B) // Dark slate
+        !isBluetoothPowerOn -> MaterialTheme.colorScheme.errorContainer
+        isConnected -> MaterialTheme.colorScheme.successContainer
+        isConnecting -> MaterialTheme.colorScheme.surfaceVariant
+        else -> MaterialTheme.colorScheme.surfaceVariant
     }
 
     val contentColor = when {
-        !isBluetoothPowerOn -> Color(0xFFF87171) // Light red accent
-        isConnected -> Color(0xFF34D399) // Emerald accent
-        isConnecting -> Color(0xFFF59E0B) // Amber accent
-        else -> Color(0xFF94A3B8) // Slate secondary
+        !isBluetoothPowerOn -> MaterialTheme.colorScheme.error
+        isConnected -> MaterialTheme.colorScheme.success
+        isConnecting -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     val statusText = when {
@@ -3123,19 +3119,14 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
                     .size(8.dp)
                     .scale(if (isConnected || isConnecting || !isBluetoothPowerOn) pulseAlpha else 1f)
                     .background(
-                        color = when {
-                            !isBluetoothPowerOn -> Color(0xFFEF4444)
-                            isConnected -> Color(0xFF10B981)
-                            isConnecting -> Color(0xFFF59E0B)
-                            else -> Color(0xFFEF4444)
-                        },
+                        color = contentColor,
                         shape = CircleShape
                     )
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = statusText,
-                color = if (isConnected) Color.White else contentColor,
+                color = if (isConnected) MaterialTheme.colorScheme.onPrimary else contentColor,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,

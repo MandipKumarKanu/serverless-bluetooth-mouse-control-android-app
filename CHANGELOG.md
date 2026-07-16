@@ -5,6 +5,18 @@ All notable changes to AirMouse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-01-16
+
+### Added
+- **Complete Dark/Light Theme** — Full theme support across all screens with proper color schemes
+- Theme-aware backgrounds, surfaces, text colors, buttons, and UI elements
+- Material 3 color system integration for consistent theming
+
+### Changed
+- All screens now use `MaterialTheme.colorScheme` instead of hardcoded colors
+- Splash screen, Dashboard, Touchpad, Air Mouse, Keyboard, Media Remote, Presentation, Shortcuts, Settings, and About screens updated
+- Improved visual consistency between dark and light modes
+
 ## [1.2.0] - 2025-01-16
 
 ### Added
