@@ -1,0 +1,104 @@
+package com.example.data
+
+import android.content.Context
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
+
+@Entity(tableName = "settings")
+data class SettingsEntity(
+    @PrimaryKey val id: Int = 1,
+    val sensitivity: Float = 1.0f,
+    val smoothing: Float = 0.3f,
+    val deadZone: Float = 0.05f,
+    val acceleration: Float = 1.2f,
+    val invertX: Boolean = false,
+    val invertY: Boolean = false,
+    val scrollSpeed: Float = 1.0f,
+    val vibrationFeedback: Boolean = true,
+    val soundFeedback: Boolean = false,
+    val keepScreenAwake: Boolean = true,
+    val themeDark: Boolean = true
+)
+
+@Entity(tableName = "shortcuts")
+data class ShortcutEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val name: String,
+    val modifiers: Int, // Modifier flags (bitmask: Ctrl=0x01, Shift=0x02, Alt=0x04, GUI=0x08)
+    val keyCodes: String // Comma-separated list of key scan codes (e.g. "6" for C, "25" for V)
+)
+
+@Dao
+interface AirMouseDao {
+    @Query("SELECT * FROM settings WHERE id = 1 LIMIT 1")
+    fun getSettingsFlow(): Flow<SettingsEntity?>
+
+    @Query("SELECT * FROM settings WHERE id = 1 LIMIT 1")
+    suspend fun getSettingsDirect(): SettingsEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun updateSettings(settings: SettingsEntity)
+
+    @Query("SELECT * FROM shortcuts ORDER BY id ASC")
+    fun getAllShortcutsFlow(): Flow<List<ShortcutEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertShortcut(shortcut: ShortcutEntity)
+
+    @Query("DELETE FROM shortcuts WHERE id = :id")
+    suspend fun deleteShortcut(id: Int)
+}
+
+@Database(entities = [SettingsEntity::class, ShortcutEntity::class], version = 1, exportSchema = false)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun airMouseDao(): AirMouseDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "air_mouse_database"
+                )
+                .addCallback(object : RoomDatabase.Callback() {
+                    override fun onCreate(db: SupportSQLiteDatabase) {
+                        super.onCreate(db)
+                        // Pre-populate with default data
+                        scope.launch(Dispatchers.IO) {
+                            val dao = INSTANCE?.airMouseDao()
+                            dao?.updateSettings(SettingsEntity())
+                            
+                            // Insert standard useful shortcuts
+                            dao?.insertShortcut(ShortcutEntity(name = "Copy (Ctrl+C)", modifiers = 0x01, keyCodes = "6"))
+                            dao?.insertShortcut(ShortcutEntity(name = "Paste (Ctrl+V)", modifiers = 0x01, keyCodes = "25"))
+                            dao?.insertShortcut(ShortcutEntity(name = "Undo (Ctrl+Z)", modifiers = 0x01, keyCodes = "29"))
+                            dao?.insertShortcut(ShortcutEntity(name = "Switch App (Alt+Tab)", modifiers = 0x04, keyCodes = "43"))
+                            dao?.insertShortcut(ShortcutEntity(name = "Show Desktop (Win+D)", modifiers = 0x08, keyCodes = "7"))
+                            dao?.insertShortcut(ShortcutEntity(name = "Lock Device (Win+L)", modifiers = 0x08, keyCodes = "15"))
+                            dao?.insertShortcut(ShortcutEntity(name = "Task Manager (Ctrl+Alt+Del)", modifiers = 0x05, keyCodes = "76"))
+                        }
+                    }
+                })
+                .build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+}

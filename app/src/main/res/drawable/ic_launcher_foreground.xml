@@ -1,0 +1,37 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Centered adaptive icon group -->
+    <group
+        android:scaleX="0.75"
+        android:scaleY="0.75"
+        android:translateX="16.5"
+        android:translateY="16.5">
+        
+        <!-- Outer blue ring -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#0EA5E9"
+            android:strokeWidth="2.5"
+            android:pathData="M 50,50 m -44,0 a 44,44 0 1,1 88,0 a 44,44 0 1,1 -88,0" />
+
+        <!-- Segmented Mouse Icon -->
+        <!-- Left click button (Top-Left block) -->
+        <path
+            android:fillColor="#06B6D4"
+            android:pathData="M 49,32 L 46,32 A 10,10 0 0,0 36,42 L 36,47 L 49,47 Z" />
+
+        <!-- Right click button (Top-Right block) -->
+        <path
+            android:fillColor="#06B6D4"
+            android:pathData="M 51,32 L 54,32 A 10,10 0 0,1 64,42 L 64,47 L 51,47 Z" />
+
+        <!-- Mouse bottom body (U-shape block) -->
+        <path
+            android:fillColor="#06B6D4"
+            android:pathData="M 36,49 L 64,49 L 64,54 A 14,14 0 0,1 36,54 Z" />
+    </group>
+</vector>
