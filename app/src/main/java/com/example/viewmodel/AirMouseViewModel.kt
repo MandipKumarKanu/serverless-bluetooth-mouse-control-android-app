@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 class AirMouseViewModel(application: Application) : AndroidViewModel(application) {
@@ -112,10 +111,9 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         }
 
         // Auto-reconnect: Only trigger when profile becomes ready AND bluetooth is on
-        // Use distinctUntilChanged to prevent repeated triggers
+        // StateFlow already deduplicates, no need for distinctUntilChanged
         viewModelScope.launch {
             isProfileReady
-                .distinctUntilChanged()
                 .collect { isReady ->
                     if (isReady && isBluetoothPowerOn.value && autoReconnectEnabled.value) {
                         delay(500) // Small delay to let connection stabilize
@@ -127,7 +125,6 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         // Also trigger auto-reconnect when bluetooth is turned on (if profile is already ready)
         viewModelScope.launch {
             isBluetoothPowerOn
-                .distinctUntilChanged()
                 .collect { isOn ->
                     if (isOn && isProfileReady.value && autoReconnectEnabled.value) {
                         delay(500) // Small delay to let bluetooth stabilize
