@@ -330,14 +330,21 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     }
 
     // --- MULTI-TOUCH TOUCHPAD ACTIONS ---
+    // Track current mouse button state for drag operations
+    private val _currentMouseButtons = MutableStateFlow<Byte>(0)
+    val currentMouseButtons: StateFlow<Byte> = _currentMouseButtons.asStateFlow()
+
     // Sends touch moves relative
     fun sendTouchMove(dx: Float, dy: Float, buttons: Byte = 0, scroll: Byte = 0) {
         val sensitivity = settingsState.value.sensitivity
         val finalDx = (dx * sensitivity).coerceIn(-127f, 127f).toInt().toByte()
         val finalDy = (dy * sensitivity).coerceIn(-127f, 127f).toInt().toByte()
 
+        // Use current mouse buttons if not specified
+        val actualButtons = if (buttons == 0.toByte()) _currentMouseButtons.value else buttons
+
         if (finalDx != 0.toByte() || finalDy != 0.toByte() || scroll != 0.toByte()) {
-            hidManager.sendMouseInput(buttons, finalDx, finalDy, scroll)
+            hidManager.sendMouseInput(actualButtons, finalDx, finalDy, scroll)
         }
     }
 
@@ -353,10 +360,14 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun sendMouseDown(button: Byte) {
+        _currentMouseButtons.value = button
         hidManager.sendMouseInput(button, 0, 0, 0)
     }
 
     fun sendMouseUp() {
+        _currentMouseButtons.value = 0
+        hidManager.sendMouseInput(0, 0, 0, 0)
+    }
         hidManager.sendMouseInput(0, 0, 0, 0)
     }
 

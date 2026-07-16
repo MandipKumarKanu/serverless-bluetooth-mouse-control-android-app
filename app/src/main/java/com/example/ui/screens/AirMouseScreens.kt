@@ -1095,6 +1095,8 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Drag & Drop Mode
             var isDragMode by remember { mutableStateOf(false) }
 
