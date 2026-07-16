@@ -57,18 +57,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // Show update dialog
-            if (showUpdateDialog && updateInfo != null) {
-                UpdateDialog(
-                    updateInfo = updateInfo!!,
-                    onDismiss = { showUpdateDialog = false }
-                )
-            }
-
             MyApplicationTheme(
                 darkTheme = settings.themeDark,
                 dynamicColor = settings.useDynamicColors
             ) {
+                // Show update dialog (inside theme for proper colors)
+                if (showUpdateDialog && updateInfo != null) {
+                    UpdateDialog(
+                        updateInfo = updateInfo!!,
+                        onDismiss = { showUpdateDialog = false }
+                    )
+                }
+
                 val navController = rememberNavController()
 
                 // Keep screen awake setting observer
