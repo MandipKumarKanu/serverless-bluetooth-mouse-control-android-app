@@ -38,12 +38,12 @@ fun UpdateDialog(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Update Icon
@@ -51,39 +51,39 @@ fun UpdateDialog(
                     imageVector = Icons.Default.SystemUpdate,
                     contentDescription = "Update Available",
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier.size(56.dp)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Title
                 Text(
                     text = "Update Available",
-                    fontSize = 22.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // Version info
                 Text(
-                    text = "Version ${updateInfo.latestVersion} is now available",
+                    text = "v${updateInfo.latestVersion}",
                     fontSize = 14.sp,
-                    color = Color(0xFF94A3B8),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Changelog
                 if (updateInfo.changelog.isNotBlank()) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 200.dp),
+                            .heightIn(max = 150.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B))
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Column(
                             modifier = Modifier
@@ -93,38 +93,28 @@ fun UpdateDialog(
                         ) {
                             Text(
                                 text = "What's New:",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = updateInfo.changelog.take(500), // Limit changelog length
-                                fontSize = 12.sp,
-                                color = Color(0xFFCBD5E1),
-                                lineHeight = 18.sp
+                                text = updateInfo.changelog.take(300),
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 16.sp
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Buttons
-                Row(
+                // Buttons - Stack vertically on small screens
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Later button
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = ButtonDefaults.outlinedButtonBorder(enabled = true)
-                    ) {
-                        Text("Later", color = Color.White)
-                    }
-
                     // Download button
                     Button(
                         onClick = {
@@ -132,11 +122,25 @@ fun UpdateDialog(
                             context.startActivity(intent)
                             onDismiss()
                         },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Text("Download", color = Color.Black, fontWeight = FontWeight.Bold)
+                        Text("Download Update", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+
+                    // Later button
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+                    ) {
+                        Text("Later", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                     }
                 }
             }

@@ -336,7 +336,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                 val isBluetoothPowerOn by viewModel.isBluetoothPowerOn.collectAsState()
                 val cardColor = when {
                     !isBluetoothPowerOn -> MaterialTheme.colorScheme.errorContainer
-                    isConnected -> MaterialTheme.colorScheme.primaryContainer
+                    isConnected -> Color(0xFF064E3B) // Dark green for connected
                     else -> MaterialTheme.colorScheme.surfaceVariant
                 }
                 val statusText = when {
@@ -349,7 +349,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                 val statusIcon = if (isConnected) Icons.Filled.BluetoothConnected else Icons.Filled.BluetoothDisabled
                 val tintColor = when {
                     !isBluetoothPowerOn -> MaterialTheme.colorScheme.error
-                    isConnected -> MaterialTheme.colorScheme.primary
+                    isConnected -> Color(0xFF10B981) // Green for connected
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
 
@@ -1154,9 +1154,9 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .background(
                             Brush.sweepGradient(
                                 colors = listOf(
-                                    if (isStreaming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    if (isStreaming) Color(0xFF10B981) else MaterialTheme.colorScheme.surfaceVariant,
                                     MaterialTheme.colorScheme.primary,
-                                    if (isStreaming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                                    if (isStreaming) Color(0xFF10B981) else MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
                         )
@@ -1181,7 +1181,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             Icon(
                                 imageVector = if (isFreeMode) Icons.Default.Mouse else Icons.Default.ScreenRotation,
                                 contentDescription = "Gyroscope Status",
-                                tint = if (isStreaming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = if (isStreaming) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(56.dp)
                             )
                             Spacer(modifier = Modifier.height(10.dp))
@@ -1189,7 +1189,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 text = if (isStreaming) "STREAMING" else if (isFreeMode) "TAP TO START" else "READY",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isStreaming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isStreaming) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -1254,21 +1254,21 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .testTag("air_mouse_free_toggle"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFreeStreaming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+                            containerColor = if (isFreeStreaming) Color(0xFF10B981) else MaterialTheme.colorScheme.surface
                         ),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Icon(
                             imageVector = if (isFreeStreaming) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = "Toggle Free Mouse",
-                            tint = if (isFreeStreaming) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                            tint = if (isFreeStreaming) Color.White else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(end = 8.dp)
                         )
                         Text(
-                            text = if (isFreeStreaming) "Stop Streaming Motion" else "Start Free Mouse Stream",
-                            fontSize = 16.sp,
+                            text = if (isFreeStreaming) "Stop Streaming" else "Start Free Mouse",
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isFreeStreaming) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                            color = if (isFreeStreaming) Color.White else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 } else {
@@ -1281,21 +1281,21 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .testTag("air_mouse_hold_move"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isHoldPressed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+                            containerColor = if (isHoldPressed) Color(0xFF10B981) else MaterialTheme.colorScheme.surface
                         ),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Icon(
                             imageVector = Icons.Default.BackHand,
                             contentDescription = "Hold to Move",
-                            tint = if (isHoldPressed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                            tint = if (isHoldPressed) Color.White else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(end = 8.dp)
                         )
                         Text(
-                            text = if (isHoldPressed) "Streaming Gyro Motion..." else "Hold to Move Cursor",
-                            fontSize = 16.sp,
+                            text = if (isHoldPressed) "Streaming..." else "Hold to Move",
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isHoldPressed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                            color = if (isHoldPressed) Color.White else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -2439,10 +2439,10 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                             timerRunning = !timerRunning
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (timerRunning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            containerColor = if (timerRunning) MaterialTheme.colorScheme.error else Color(0xFF10B981)
                         )
                     ) {
-                        Text(if (timerRunning) "Pause" else "Start", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                        Text(if (timerRunning) "Pause" else "Start", fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
@@ -2862,7 +2862,12 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 Switch(
                     checked = settings.vibrationFeedback,
                     onCheckedChange = { viewModel.updateSettings(settings.copy(vibrationFeedback = it)) },
-                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
                     modifier = Modifier.testTag("setting_vibrate")
                 )
             }
@@ -2880,7 +2885,12 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 Switch(
                     checked = settings.invertX,
                     onCheckedChange = { viewModel.updateSettings(settings.copy(invertX = it)) },
-                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
                     modifier = Modifier.testTag("setting_invert_x")
                 )
             }
@@ -2898,7 +2908,12 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 Switch(
                     checked = settings.invertY,
                     onCheckedChange = { viewModel.updateSettings(settings.copy(invertY = it)) },
-                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
                     modifier = Modifier.testTag("setting_invert_y")
                 )
             }
@@ -2918,7 +2933,12 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 Switch(
                     checked = autoReconnectEnabled,
                     onCheckedChange = { viewModel.setAutoReconnectEnabled(it) },
-                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
                     modifier = Modifier.testTag("setting_auto_reconnect")
                 )
             }
@@ -2941,7 +2961,12 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 Switch(
                     checked = settings.themeDark,
                     onCheckedChange = { viewModel.updateSettings(settings.copy(themeDark = it)) },
-                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
                     modifier = Modifier.testTag("setting_dark_theme")
                 )
             }
@@ -2960,7 +2985,12 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 Switch(
                     checked = settings.keepScreenAwake,
                     onCheckedChange = { viewModel.updateSettings(settings.copy(keepScreenAwake = it)) },
-                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
                     modifier = Modifier.testTag("setting_keep_screen_awake")
                 )
             }
@@ -3064,15 +3094,15 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
 
     val backgroundColor = when {
         !isBluetoothPowerOn -> MaterialTheme.colorScheme.errorContainer
-        isConnected -> MaterialTheme.colorScheme.primaryContainer
-        isConnecting -> MaterialTheme.colorScheme.surfaceVariant
+        isConnected -> Color(0xFF064E3B) // Dark green for connected
+        isConnecting -> Color(0xFF451A03) // Dark amber for connecting
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
 
     val contentColor = when {
         !isBluetoothPowerOn -> MaterialTheme.colorScheme.error
-        isConnected -> MaterialTheme.colorScheme.primary
-        isConnecting -> MaterialTheme.colorScheme.primary
+        isConnected -> Color(0xFF10B981) // Green for connected
+        isConnecting -> Color(0xFFF59E0B) // Amber for connecting
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
