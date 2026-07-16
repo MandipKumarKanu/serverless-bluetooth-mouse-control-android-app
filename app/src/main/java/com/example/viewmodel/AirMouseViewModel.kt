@@ -238,6 +238,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
             } else {
                 @Suppress("DEPRECATION")
                 val adapter = BluetoothAdapter.getDefaultAdapter()
+                @Suppress("DEPRECATION")
                 adapter?.enable()
             }
         } catch (e: SecurityException) {
