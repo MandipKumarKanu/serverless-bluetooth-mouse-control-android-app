@@ -1144,8 +1144,6 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     }
                 }
             }
-                }
-            }
         }
     }
 }
