@@ -5,7 +5,14 @@ All notable changes to AirMouse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.5.0] - 2025-01-16
+## [1.4.1] - 2025-01-16
+
+### Added
+- **Laser Pointer** — Touch area in Presentation mode for pointing during slides
+- **F1-F12 Function Keys** — Added to Keyboard screen for quick access
+- **Drag & Drop Mode** — Toggle in Touchpad to hold/release mouse button for dragging
+
+## [1.4.0] - 2025-01-16
 
 ### Added
 - **Gamepad Mode** — New control mode that turns your phone into a game controller
@@ -15,10 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Start/Select buttons
 - Home button for media control
 - Color-coded action buttons (A=Green, B=Red, X=Blue, Y=Yellow)
-
-## [1.4.0] - 2025-01-16
-
-### Added
 - **Quick Settings Tile** — Access AirMouse from Android notification shade
 - **Home Screen Widget** — Quick access widget with app launch button
 - **Connection History** — Shows last 5 connected devices with timestamps

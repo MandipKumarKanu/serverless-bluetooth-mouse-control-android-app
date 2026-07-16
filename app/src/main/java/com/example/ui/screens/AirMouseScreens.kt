@@ -1094,6 +1094,58 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     }
                 }
             }
+
+            // Drag & Drop Mode
+            var isDragMode by remember { mutableStateOf(false) }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Drag Mode Toggle
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clickable {
+                            isDragMode = !isDragMode
+                            viewModel.vibrate(20)
+                            if (isDragMode) {
+                                viewModel.sendMouseDown(1) // Press left button
+                            } else {
+                                viewModel.sendMouseUp() // Release
+                            }
+                        }
+                        .testTag("drag_mode_toggle"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isDragMode) Color(0xFF10B981) else MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    border = BorderStroke(1.dp, if (isDragMode) Color(0xFF10B981) else MaterialTheme.colorScheme.outline)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DragIndicator,
+                            contentDescription = "Drag Mode",
+                            tint = if (isDragMode) Color.White else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isDragMode) "DRAGGING" else "Drag & Drop",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDragMode) Color.White else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+                }
+            }
         }
     }
 }
@@ -2132,6 +2184,75 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 }
             }
 
+            // Function Keys (F1-F12)
+            Text(
+                text = "Function Keys",
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // F1-F6 Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        val fRow1 = listOf("F1" to 0x3A, "F2" to 0x3B, "F3" to 0x3C, "F4" to 0x3D, "F5" to 0x3E, "F6" to 0x3F)
+                        fRow1.forEach { (label, keyCode) ->
+                            Button(
+                                onClick = {
+                                    viewModel.vibrate(15)
+                                    viewModel.sendKeyboardKey(0, keyCode.toByte())
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(36.dp),
+                                shape = RoundedCornerShape(6.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                    }
+                    // F7-F12 Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        val fRow2 = listOf("F7" to 0x40, "F8" to 0x41, "F9" to 0x42, "F10" to 0x43, "F11" to 0x44, "F12" to 0x45)
+                        fRow2.forEach { (label, keyCode) ->
+                            Button(
+                                onClick = {
+                                    viewModel.vibrate(15)
+                                    viewModel.sendKeyboardKey(0, keyCode.toByte())
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(36.dp),
+                                shape = RoundedCornerShape(6.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -2620,6 +2741,56 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Previous Slide", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
+                }
+            }
+
+            // Laser Pointer Area
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "LASER POINTER",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    // Send small mouse movements for laser pointing
+                                    val sensitivity = 0.5f
+                                    viewModel.sendTouchMove(dragAmount.x * sensitivity, dragAmount.y * sensitivity)
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lens,
+                            contentDescription = "Laser Pointer",
+                            tint = Color(0xFFEF4444),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    Text(
+                        text = "Move finger to point",
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
 

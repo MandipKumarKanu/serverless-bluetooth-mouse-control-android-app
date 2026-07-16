@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,12 +22,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
-    var isVibrateOn by remember { mutableStateOf(true) }
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -111,10 +113,10 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     ActionButtons(
-                        onTop = { viewModel.sendKeyboardKey(0, 0x1A.toByte()) },    // Y → W
-                        onBottom = { viewModel.sendKeyboardKey(0, 0x07.toByte()) }, // A → G
-                        onLeft = { viewModel.sendKeyboardKey(0, 0x04.toByte()) },   // X → D
-                        onRight = { viewModel.sendKeyboardKey(0, 0x0D.toByte()) }   // B → J
+                        onTop = { viewModel.sendKeyboardKey(0, 0x1A.toByte()) },    // Y -> W
+                        onBottom = { viewModel.sendKeyboardKey(0, 0x07.toByte()) }, // A -> G
+                        onLeft = { viewModel.sendKeyboardKey(0, 0x04.toByte()) },   // X -> D
+                        onRight = { viewModel.sendKeyboardKey(0, 0x0D.toByte()) }   // B -> J
                     )
                 }
             }
@@ -129,7 +131,7 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 GamepadButton(
                     label = "SELECT",
                     modifier = Modifier.weight(0.8f).height(45.dp),
-                    onClick = { viewModel.sendKeyboardKey(0x04, 0x16.toByte()) } // Alt + S (Save)
+                    onClick = { viewModel.sendKeyboardKey(0x04, 0x16.toByte()) } // Alt + S
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 // Home Button
