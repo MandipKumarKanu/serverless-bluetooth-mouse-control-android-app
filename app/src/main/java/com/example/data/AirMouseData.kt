@@ -42,6 +42,14 @@ data class ShortcutEntity(
     val keyCodes: String // Comma-separated list of key scan codes (e.g. "6" for C, "25" for V)
 )
 
+@Entity(tableName = "connection_history")
+data class ConnectionHistoryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val deviceName: String,
+    val deviceAddress: String,
+    val connectedAt: Long = System.currentTimeMillis()
+)
+
 @Dao
 interface AirMouseDao {
     @Query("SELECT * FROM settings WHERE id = 1 LIMIT 1")
@@ -61,9 +69,22 @@ interface AirMouseDao {
 
     @Query("DELETE FROM shortcuts WHERE id = :id")
     suspend fun deleteShortcut(id: Int)
+
+    @Query("SELECT * FROM connection_history ORDER BY connectedAt DESC LIMIT 10")
+    fun getRecentConnectionsFlow(): Flow<List<ConnectionHistoryEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertConnection(connection: ConnectionHistoryEntity)
+
+    @Query("DELETE FROM connection_history")
+    suspend fun clearConnectionHistory()
 }
 
-@Database(entities = [SettingsEntity::class, ShortcutEntity::class], version = 2, exportSchema = false)
+@Database(
+    entities = [SettingsEntity::class, ShortcutEntity::class, ConnectionHistoryEntity::class],
+    version = 3,
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun airMouseDao(): AirMouseDao
 
@@ -77,6 +98,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS connection_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        deviceName TEXT NOT NULL,
+                        deviceAddress TEXT NOT NULL,
+                        connectedAt INTEGER NOT NULL
+                    )
+                """)
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -84,7 +118,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "air_mouse_database"
                 )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

@@ -57,6 +57,13 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
             initialValue = emptyList()
         )
 
+    val connectionHistory: StateFlow<List<ConnectionHistoryEntity>> = dao.getRecentConnectionsFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     // Bluetooth States from native service
     val bluetoothState: StateFlow<Int> = hidManager.connectionState
     val connectedDevice: StateFlow<BluetoothDevice?> = hidManager.connectedDevice
@@ -67,6 +74,10 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     // Dynamic paired devices list
     private val _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val pairedDevices: StateFlow<List<BluetoothDevice>> = _pairedDevices.asStateFlow()
+
+    // Battery level
+    private val _batteryLevel = MutableStateFlow(0)
+    val batteryLevel: StateFlow<Int> = _batteryLevel.asStateFlow()
 
     // SharedPreferences for safe storage of auto-reconnect settings
     private val prefs = application.getSharedPreferences("air_mouse_prefs", Context.MODE_PRIVATE)
@@ -103,6 +114,9 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     }
 
     init {
+        // Fetch battery level
+        fetchBatteryLevel()
+
         // Sync settings to sensor manager on database emission
         viewModelScope.launch {
             settingsState.collect { settings ->
@@ -133,7 +147,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                 }
         }
 
-        // Flow collector for Bluetooth state feedback Toasts
+        // Flow collector for Bluetooth state feedback Toasts and connection history
         viewModelScope.launch(Dispatchers.Main) {
             var lastState: Int? = null
             var lastDevice: BluetoothDevice? = null
@@ -148,6 +162,15 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                             Toast.makeText(application, "Connected to $deviceName", Toast.LENGTH_SHORT).show()
                             currentDevice?.let {
                                 setLastConnectedDeviceAddress(it.address)
+                                // Save to connection history
+                                viewModelScope.launch(Dispatchers.IO) {
+                                    dao.insertConnection(
+                                        ConnectionHistoryEntity(
+                                            deviceName = deviceName,
+                                            deviceAddress = it.address
+                                        )
+                                    )
+                                }
                             }
                         }
                         BluetoothProfile.STATE_CONNECTING -> {
@@ -222,6 +245,18 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     fun disconnectDevice() {
         vibrate(50)
         hidManager.disconnectHost()
+    }
+
+    fun fetchBatteryLevel() {
+        val batteryManager = app.getSystemService(Context.BATTERY_SERVICE) as android.os.BatteryManager
+        val batteryLevel = batteryManager.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        _batteryLevel.value = batteryLevel
+    }
+
+    fun clearConnectionHistory() {
+        viewModelScope.launch(Dispatchers.IO) {
+            dao.clearConnectionHistory()
+        }
     }
 
     fun isBluetoothEnabled(): Boolean = hidManager.isBluetoothEnabled()

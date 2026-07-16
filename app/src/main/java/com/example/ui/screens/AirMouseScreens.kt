@@ -285,6 +285,8 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
     val isProfileReady by viewModel.isProfileReady.collectAsState()
     val pairedDevices by viewModel.pairedDevices.collectAsState()
     val lastConnectedDeviceAddress by viewModel.lastConnectedDeviceAddress.collectAsState()
+    val connectionHistory by viewModel.connectionHistory.collectAsState()
+    val batteryLevel by viewModel.batteryLevel.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -647,6 +649,128 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                             } else {
                                 Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos, contentDescription = "Connect", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                             }
+                        }
+                    }
+                }
+            }
+
+            // Battery Indicator
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (batteryLevel > 20) Icons.Default.BatteryStd else Icons.Default.BatteryAlert,
+                            contentDescription = "Battery",
+                            tint = if (batteryLevel > 20) Color(0xFF10B981) else Color(0xFFEF4444),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Phone Battery",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "$batteryLevel%",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        // Battery bar
+                        Box(
+                            modifier = Modifier
+                                .width(80.dp)
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth(fraction = batteryLevel / 100f)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(
+                                        when {
+                                            batteryLevel > 60 -> Color(0xFF10B981)
+                                            batteryLevel > 20 -> Color(0xFFF59E0B)
+                                            else -> Color(0xFFEF4444)
+                                        }
+                                    )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Connection History
+            if (connectionHistory.isNotEmpty()) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Recent Connections",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                        TextButton(onClick = { viewModel.clearConnectionHistory() }) {
+                            Text("Clear", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                items(connectionHistory.take(5)) { history ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.History,
+                                contentDescription = "History",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = history.deviceName,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = history.deviceAddress,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Text(
+                                text = formatTimestamp(history.connectedAt),
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -3181,6 +3305,25 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
                 letterSpacing = 1.sp,
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+
+fun formatTimestamp(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+    val minutes = diff / (1000 * 60)
+    val hours = diff / (1000 * 60 * 60)
+    val days = diff / (1000 * 60 * 60 * 24)
+
+    return when {
+        minutes < 1 -> "Just now"
+        minutes < 60 -> "${minutes}m ago"
+        hours < 24 -> "${hours}h ago"
+        days < 7 -> "${days}d ago"
+        else -> {
+            val sdf = java.text.SimpleDateFormat("MMM dd", java.util.Locale.getDefault())
+            sdf.format(java.util.Date(timestamp))
         }
     }
 }

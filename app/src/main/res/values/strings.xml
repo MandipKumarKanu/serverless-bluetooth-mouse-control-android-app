@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">AirMouse</string>
+    <string name="widget_description">Quick access to AirMouse controller</string>
 </resources>
