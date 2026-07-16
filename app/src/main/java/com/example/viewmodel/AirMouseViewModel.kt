@@ -230,17 +230,15 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     fun enableBluetooth() {
         vibrate(40)
         try {
-            val adapter = BluetoothAdapter.getDefaultAdapter()
-            if (adapter != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    app.startActivity(intent)
-                } else {
-                    @Suppress("DEPRECATION")
-                    adapter.enable()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
+                app.startActivity(intent)
+            } else {
+                @Suppress("DEPRECATION")
+                val adapter = BluetoothAdapter.getDefaultAdapter()
+                adapter?.enable()
             }
         } catch (e: SecurityException) {
             try {

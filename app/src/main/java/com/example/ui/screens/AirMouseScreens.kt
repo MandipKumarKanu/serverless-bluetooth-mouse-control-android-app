@@ -236,7 +236,7 @@ fun PermissionsScreen(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
-                    imageVector = Icons.Filled.BluetoothSearching,
+                    imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,
                     contentDescription = "Bluetooth Permission Required",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(72.dp)
@@ -1516,7 +1516,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .testTag("send_text_button"),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.Black)
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.Black)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Send String to Host", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
@@ -1711,7 +1711,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         ) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.Backspace,
+                                    imageVector = Icons.AutoMirrored.Filled.Backspace,
                                     contentDescription = "Backspace",
                                     tint = Color(0xFFFCA5A5),
                                     modifier = Modifier.size(16.dp)
@@ -2196,7 +2196,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
                 ) {
-                    Icon(imageVector = Icons.Default.KeyboardReturn, contentDescription = "Enter", tint = Color.White, modifier = Modifier.size(18.dp))
+                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardReturn, contentDescription = "Enter", tint = Color.White, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Enter", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
@@ -2295,7 +2295,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                             .background(Color(0xFF1E293B), CircleShape)
                             .testTag("media_vol_down")
                     ) {
-                        Icon(imageVector = Icons.Default.VolumeDown, contentDescription = "Volume Down", tint = Color.White, modifier = Modifier.size(24.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.VolumeDown, contentDescription = "Volume Down", tint = Color.White, modifier = Modifier.size(24.dp))
                     }
 
                     // Mute
@@ -2308,7 +2308,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F1A1A))
                     ) {
-                        Icon(imageVector = Icons.Default.VolumeMute, contentDescription = "Mute", tint = Color(0xFFFCA5A5), modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.VolumeMute, contentDescription = "Mute", tint = Color(0xFFFCA5A5), modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Mute", color = Color(0xFFFCA5A5), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
@@ -2321,7 +2321,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                             .background(Color(0xFF1E293B), CircleShape)
                             .testTag("media_vol_up")
                     ) {
-                        Icon(imageVector = Icons.Default.VolumeUp, contentDescription = "Volume Up", tint = Color.White, modifier = Modifier.size(24.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Volume Up", tint = Color.White, modifier = Modifier.size(24.dp))
                     }
                 }
             }
@@ -2439,7 +2439,7 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(imageVector = Icons.Default.NavigateNext, contentDescription = "Next", tint = Color.Black, modifier = Modifier.size(72.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.NavigateNext, contentDescription = "Next", tint = Color.Black, modifier = Modifier.size(72.dp))
                         Text("Next Slide", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     }
                 }
@@ -2463,7 +2463,7 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(imageVector = Icons.Default.NavigateBefore, contentDescription = "Prev", tint = Color.White, modifier = Modifier.size(36.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.NavigateBefore, contentDescription = "Prev", tint = Color.White, modifier = Modifier.size(36.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Previous Slide", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
@@ -2814,7 +2814,7 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 )
             }
 
-            Divider(color = Color(0xFF1E293B))
+            HorizontalDivider(color = Color(0xFF1E293B))
 
             Text("Feedback & Device", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
 
@@ -2937,7 +2937,7 @@ fun AboutScreen(navController: NavController) {
                 lineHeight = 22.sp
             )
 
-            Divider(color = Color(0xFF1E293B))
+            HorizontalDivider(color = Color(0xFF1E293B))
 
             Text("Setup Instructions", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
@@ -2951,7 +2951,7 @@ fun AboutScreen(navController: NavController) {
                 lineHeight = 24.sp
             )
 
-            Divider(color = Color(0xFF1E293B))
+            HorizontalDivider(color = Color(0xFF1E293B))
 
             Text("Troubleshooting", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
@@ -2963,7 +2963,7 @@ fun AboutScreen(navController: NavController) {
                 lineHeight = 22.sp
             )
 
-            Divider(color = Color(0xFF1E293B))
+            HorizontalDivider(color = Color(0xFF1E293B))
 
             Text("Specifications", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
