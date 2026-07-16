@@ -5,6 +5,13 @@ All notable changes to AirMouse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-01-16
+
+### Added
+- **OTA Update Checker** — Automatic update notifications on app launch via GitHub Releases
+- Shows update dialog with changelog when new version is available
+- "Download" button opens GitHub release page
+
 ## [1.1.0] - 2025-01-16
 
 ### Added

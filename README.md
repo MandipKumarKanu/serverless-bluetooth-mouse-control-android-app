@@ -28,6 +28,7 @@ Turn your Android phone into a full-featured wireless input device — no server
 
 ### Additional Features
 
+- **OTA Update Checker** — Automatic update notifications on app launch
 - **Dark/Light Theme** — Toggle between dark and light themes in Settings
 - **Scroll Inertia** — Momentum-based scrolling like a real trackpad
 - **Auto-Reconnect** — Automatically reconnect to last paired device

@@ -7,9 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,8 +26,12 @@ import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.ShortcutsScreen
 import com.example.ui.screens.SplashScreen
 import com.example.ui.screens.TouchpadScreen
+import com.example.ui.screens.UpdateDialog
 import com.example.ui.theme.MyApplicationTheme
+import com.example.update.UpdateChecker
+import com.example.update.UpdateInfo
 import com.example.viewmodel.AirMouseViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +40,29 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel: AirMouseViewModel = viewModel()
             val settings by viewModel.settingsState.collectAsState()
+            val coroutineScope = rememberCoroutineScope()
+
+            // Update check state
+            var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+            var showUpdateDialog by remember { mutableStateOf(false) }
+
+            // Check for updates on launch
+            LaunchedEffect(Unit) {
+                val currentVersion = BuildConfig.VERSION_NAME
+                val info = UpdateChecker.checkForUpdate(currentVersion)
+                if (info.isUpdateAvailable) {
+                    updateInfo = info
+                    showUpdateDialog = true
+                }
+            }
+
+            // Show update dialog
+            if (showUpdateDialog && updateInfo != null) {
+                UpdateDialog(
+                    updateInfo = updateInfo!!,
+                    onDismiss = { showUpdateDialog = false }
+                )
+            }
 
             MyApplicationTheme(darkTheme = settings.themeDark) {
                 val navController = rememberNavController()
