@@ -64,7 +64,10 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            MyApplicationTheme(darkTheme = settings.themeDark) {
+            MyApplicationTheme(
+                darkTheme = settings.themeDark,
+                dynamicColor = settings.useDynamicColors
+            ) {
                 val navController = rememberNavController()
 
                 // Keep screen awake setting observer

@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +30,8 @@ data class SettingsEntity(
     val vibrationFeedback: Boolean = true,
     val soundFeedback: Boolean = false,
     val keepScreenAwake: Boolean = true,
-    val themeDark: Boolean = true
+    val themeDark: Boolean = true,
+    val useDynamicColors: Boolean = false
 )
 
 @Entity(tableName = "shortcuts")
@@ -61,13 +63,19 @@ interface AirMouseDao {
     suspend fun deleteShortcut(id: Int)
 }
 
-@Database(entities = [SettingsEntity::class, ShortcutEntity::class], version = 1, exportSchema = false)
+@Database(entities = [SettingsEntity::class, ShortcutEntity::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun airMouseDao(): AirMouseDao
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE settings ADD COLUMN useDynamicColors INTEGER NOT NULL DEFAULT 0")
+            }
+        }
 
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -76,6 +84,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "air_mouse_database"
                 )
+                .addMigrations(MIGRATION_1_2)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
@@ -83,7 +92,7 @@ abstract class AppDatabase : RoomDatabase() {
                         scope.launch(Dispatchers.IO) {
                             val dao = INSTANCE?.airMouseDao()
                             dao?.updateSettings(SettingsEntity())
-                            
+
                             // Insert standard useful shortcuts
                             dao?.insertShortcut(ShortcutEntity(name = "Copy (Ctrl+C)", modifiers = 0x01, keyCodes = "6"))
                             dao?.insertShortcut(ShortcutEntity(name = "Paste (Ctrl+V)", modifiers = 0x01, keyCodes = "25"))

@@ -2971,6 +2971,30 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 )
             }
 
+            // Material You Toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Material You", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Use wallpaper-based dynamic colors (Android 12+)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Switch(
+                    checked = settings.useDynamicColors,
+                    onCheckedChange = { viewModel.updateSettings(settings.copy(useDynamicColors = it)) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    modifier = Modifier.testTag("setting_dynamic_colors")
+                )
+            }
+
             // Keep Screen Awake Toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
