@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 
 @SuppressLint("MissingPermission")
 fun BluetoothDevice.getSafeName(): String {
@@ -36,6 +38,14 @@ class BluetoothHidManager private constructor(context: Context) {
 
     private var hidDeviceProfile: BluetoothHidDevice? = null
     private var isRegistered = false
+
+    // Single executor for all scheduled tasks (prevents executor leak)
+    private val scheduledExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
+
+    // Connection state guards
+    private var isConnecting = false
+    private var lastConnectAttemptTime = 0L
+    private val connectCooldownMs = 2000L // Minimum time between connect attempts
 
     // State flows for UI mapping
     private val _connectionState = MutableStateFlow(BluetoothProfile.STATE_DISCONNECTED)
@@ -60,6 +70,13 @@ class BluetoothHidManager private constructor(context: Context) {
                 _isBluetoothEnabled.value = (state == BluetoothAdapter.STATE_ON)
                 if (state == BluetoothAdapter.STATE_ON) {
                     initializeHidProfile()
+                } else if (state == BluetoothAdapter.STATE_OFF) {
+                    // Reset state when Bluetooth is turned off
+                    _isProfileReady.value = false
+                    _isAppRegistered.value = false
+                    _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
+                    _connectedDevice.value = null
+                    isConnecting = false
                 }
             }
         }
@@ -106,22 +123,22 @@ class BluetoothHidManager private constructor(context: Context) {
             0x75.toByte(), 0x01.toByte(),       //   REPORT_SIZE (1)
             0x95.toByte(), 0x08.toByte(),       //   REPORT_COUNT (8)
             0x81.toByte(), 0x02.toByte(),       //   INPUT (Data,Var,Abs) - Modifiers
-            
+
             0x95.toByte(), 0x01.toByte(),       //   REPORT_COUNT (1)
             0x75.toByte(), 0x08.toByte(),       //   REPORT_SIZE (8)
             0x81.toByte(), 0x03.toByte(),       //   INPUT (Cnst,Var,Abs) - Reserved
-            
+
             0x95.toByte(), 0x05.toByte(),       //   REPORT_COUNT (5)
             0x75.toByte(), 0x01.toByte(),       //   REPORT_SIZE (1)
             0x05.toByte(), 0x08.toByte(),       //   USAGE_PAGE (LEDs)
             0x19.toByte(), 0x01.toByte(),       //   USAGE_MINIMUM (Num Lock)
             0x29.toByte(), 0x05.toByte(),       //   USAGE_MAXIMUM (Kana)
             0x91.toByte(), 0x02.toByte(),       //   OUTPUT (Data,Var,Abs) - LEDs
-            
+
             0x95.toByte(), 0x01.toByte(),       //   REPORT_COUNT (1)
             0x75.toByte(), 0x03.toByte(),       //   REPORT_SIZE (3)
             0x91.toByte(), 0x03.toByte(),       //   OUTPUT (Cnst,Var,Abs) - LED Padding
-            
+
             0x95.toByte(), 0x06.toByte(),       //   REPORT_COUNT (6)
             0x75.toByte(), 0x08.toByte(),       //   REPORT_SIZE (8)
             0x15.toByte(), 0x00.toByte(),       //   LOGICAL_MINIMUM (0)
@@ -131,7 +148,7 @@ class BluetoothHidManager private constructor(context: Context) {
             0x29.toByte(), 0x65.toByte(),       //   USAGE_MAXIMUM (Keyboard Application)
             0x81.toByte(), 0x00.toByte(),       //   INPUT (Data,Ary,Abs) - Key codes
             0xc0.toByte(),                      // END_COLLECTION
-            
+
             // Mouse (Report ID 2)
             0x05.toByte(), 0x01.toByte(),       // USAGE_PAGE (Generic Desktop)
             0x09.toByte(), 0x02.toByte(),       // USAGE (Mouse)
@@ -139,7 +156,7 @@ class BluetoothHidManager private constructor(context: Context) {
             0x09.toByte(), 0x01.toByte(),       //   USAGE (Pointer)
             0xa1.toByte(), 0x00.toByte(),       //   COLLECTION (Physical)
             0x85.toByte(), 0x02.toByte(),       //     REPORT_ID (2)
-            
+
             // Buttons
             0x05.toByte(), 0x09.toByte(),       //     USAGE_PAGE (Button)
             0x19.toByte(), 0x01.toByte(),       //     USAGE_MINIMUM (Button 1 - Left)
@@ -149,12 +166,12 @@ class BluetoothHidManager private constructor(context: Context) {
             0x75.toByte(), 0x01.toByte(),       //     REPORT_SIZE (1)
             0x95.toByte(), 0x05.toByte(),       //     REPORT_COUNT (5)
             0x81.toByte(), 0x02.toByte(),       //     INPUT (Data,Var,Abs)
-            
+
             // Padding
             0x95.toByte(), 0x01.toByte(),       //     REPORT_COUNT (1)
             0x75.toByte(), 0x03.toByte(),       //     REPORT_SIZE (3)
             0x81.toByte(), 0x03.toByte(),       //     INPUT (Cnst,Var,Abs)
-            
+
             // Movement (X, Y)
             0x05.toByte(), 0x01.toByte(),       //     USAGE_PAGE (Generic Desktop)
             0x09.toByte(), 0x30.toByte(),       //     USAGE (X)
@@ -164,7 +181,7 @@ class BluetoothHidManager private constructor(context: Context) {
             0x75.toByte(), 0x08.toByte(),       //     REPORT_SIZE (8)
             0x95.toByte(), 0x02.toByte(),       //     REPORT_COUNT (2)
             0x81.toByte(), 0x06.toByte(),       //     INPUT (Data,Var,Rel)
-            
+
             // Wheel scroll
             0x09.toByte(), 0x38.toByte(),       //     USAGE (Wheel)
             0x15.toByte(), 0x81.toByte(),       //     LOGICAL_MINIMUM (-127)
@@ -172,10 +189,10 @@ class BluetoothHidManager private constructor(context: Context) {
             0x75.toByte(), 0x08.toByte(),       //     REPORT_SIZE (8)
             0x95.toByte(), 0x01.toByte(),       //     REPORT_COUNT (1)
             0x81.toByte(), 0x06.toByte(),       //     INPUT (Data,Var,Rel)
-            
+
             0xc0.toByte(),                      //   END_COLLECTION
             0xc0.toByte(),                      // END_COLLECTION
-            
+
             // Consumer Control (Report ID 3 - Volume/Media Keys)
             0x05.toByte(), 0x0c.toByte(),       // USAGE_PAGE (Consumer Devices)
             0x09.toByte(), 0x01.toByte(),       // USAGE (Consumer Control)
@@ -184,7 +201,7 @@ class BluetoothHidManager private constructor(context: Context) {
             0x15.toByte(), 0x00.toByte(),       //   LOGICAL_MINIMUM (0)
             0x25.toByte(), 0x01.toByte(),       //   LOGICAL_MAXIMUM (1)
             0x75.toByte(), 0x01.toByte(),       //   REPORT_SIZE (1)
-            
+
             // Key Definitions: Volume Up, Down, Mute, Play/Pause, Next Track, Prev Track, Power, Home
             0x09.toByte(), 0xe9.toByte(),       //   USAGE (Volume Up)
             0x09.toByte(), 0xea.toByte(),       //   USAGE (Volume Down)
@@ -194,7 +211,7 @@ class BluetoothHidManager private constructor(context: Context) {
             0x09.toByte(), 0xb6.toByte(),       //   USAGE (Scan Previous Track)
             0x09.toByte(), 0x30.toByte(),       //   USAGE (Power)
             0x09.toByte(), 0x40.toByte(),       //   USAGE (Menu) - fallback home/menu
-            
+
             0x95.toByte(), 0x08.toByte(),       //   REPORT_COUNT (8)
             0x81.toByte(), 0x02.toByte(),       //   INPUT (Data,Var,Abs)
             0xc0.toByte()                       // END_COLLECTION
@@ -202,53 +219,80 @@ class BluetoothHidManager private constructor(context: Context) {
     }
 
     fun initializeHidProfile(onReady: () -> Unit = {}) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val currentProfile = hidDeviceProfile
-            if (currentProfile != null) {
-                if (!isRegistered) {
-                    registerApp()
-                }
-                onReady()
-                return
-            }
-            bluetoothAdapter?.getProfileProxy(appContext, object : BluetoothProfile.ServiceListener {
-                override fun onServiceConnected(profile: Int, proxy: BluetoothProfile?) {
-                    if (profile == BluetoothProfile.HID_DEVICE) {
-                        Log.d(TAG, "HID Device Profile Connected")
-                        hidDeviceProfile = proxy as BluetoothHidDevice
-                        _isProfileReady.value = true
-                        registerApp()
-                        onReady()
-                    }
-                }
-
-                override fun onServiceDisconnected(profile: Int) {
-                    if (profile == BluetoothProfile.HID_DEVICE) {
-                        Log.d(TAG, "HID Device Profile Disconnected")
-                        hidDeviceProfile = null
-                        _isProfileReady.value = false
-                        _isAppRegistered.value = false
-                    }
-                }
-            }, BluetoothProfile.HID_DEVICE)
-        } else {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
             Log.e(TAG, "Bluetooth HID Device Profile requires Android 9 (API 28) or higher!")
+            return
         }
+
+        val currentProfile = hidDeviceProfile
+        if (currentProfile != null) {
+            if (!isRegistered) {
+                registerApp()
+            }
+            onReady()
+            return
+        }
+
+        bluetoothAdapter?.getProfileProxy(appContext, object : BluetoothProfile.ServiceListener {
+            override fun onServiceConnected(profile: Int, proxy: BluetoothProfile?) {
+                if (profile == BluetoothProfile.HID_DEVICE) {
+                    Log.d(TAG, "HID Device Profile Connected")
+                    hidDeviceProfile = proxy as BluetoothHidDevice
+                    _isProfileReady.value = true
+                    registerApp()
+                    onReady()
+                }
+            }
+
+            override fun onServiceDisconnected(profile: Int) {
+                if (profile == BluetoothProfile.HID_DEVICE) {
+                    Log.d(TAG, "HID Device Profile Disconnected")
+                    hidDeviceProfile = null
+                    _isProfileReady.value = false
+                    _isAppRegistered.value = false
+                    isRegistered = false
+                    // Attempt to reconnect profile after a delay
+                    scheduledExecutor.schedule({
+                        Log.d(TAG, "Attempting to reconnect HID profile...")
+                        initializeHidProfile()
+                    }, 1, TimeUnit.SECONDS)
+                }
+            }
+        }, BluetoothProfile.HID_DEVICE)
     }
 
     private val mCallback = @SuppressLint("NewApi") object : BluetoothHidDevice.Callback() {
         override fun onAppStatusChanged(pluggedDevice: BluetoothDevice?, registered: Boolean) {
             super.onAppStatusChanged(pluggedDevice, registered)
-            Log.d(TAG, "onAppStatusChanged: registered=$registered")
+            Log.d(TAG, "onAppStatusChanged: registered=$registered, device=${pluggedDevice?.getSafeName()}")
             _isAppRegistered.value = registered
             isRegistered = registered
         }
 
         override fun onConnectionStateChanged(device: BluetoothDevice?, state: Int) {
             super.onConnectionStateChanged(device, state)
-            Log.d(TAG, "onConnectionStateChanged: device=${device?.name}, state=$state")
+            Log.d(TAG, "onConnectionStateChanged: device=${device?.getSafeName()}, state=$state")
             _connectionState.value = state
-            _connectedDevice.value = if (state == BluetoothProfile.STATE_CONNECTED) device else null
+
+            when (state) {
+                BluetoothProfile.STATE_CONNECTED -> {
+                    _connectedDevice.value = device
+                    isConnecting = false
+                    Log.d(TAG, "Connected to: ${device?.getSafeName()}")
+                }
+                BluetoothProfile.STATE_CONNECTING -> {
+                    isConnecting = true
+                    Log.d(TAG, "Connecting to: ${device?.getSafeName()}")
+                }
+                BluetoothProfile.STATE_DISCONNECTED -> {
+                    _connectedDevice.value = null
+                    isConnecting = false
+                    Log.d(TAG, "Disconnected from: ${device?.getSafeName()}")
+                }
+                BluetoothProfile.STATE_DISCONNECTING -> {
+                    Log.d(TAG, "Disconnecting from: ${device?.getSafeName()}")
+                }
+            }
         }
     }
 
@@ -265,7 +309,7 @@ class BluetoothHidManager private constructor(context: Context) {
         val sdpSettings = BluetoothHidDeviceAppSdpSettings(
             "AirMouse",
             "Serverless Air Mouse Remote",
-            "Google AI Studio",
+            "Android HID Device",
             0xC0.toByte(), // Subclass: Peripheral (Combo Keyboard/Pointer)
             HID_DESCRIPTOR
         )
@@ -275,7 +319,7 @@ class BluetoothHidManager private constructor(context: Context) {
                 sdpSettings,
                 null,
                 null,
-                Executors.newSingleThreadExecutor(),
+                scheduledExecutor, // Reuse single executor
                 mCallback
             )
             Log.d(TAG, "registerApp attempt: success=$registered")
@@ -313,19 +357,50 @@ class BluetoothHidManager private constructor(context: Context) {
     }
 
     @SuppressLint("NewApi")
-    fun connectHost(device: BluetoothDevice) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+    fun connectHost(device: BluetoothDevice): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
+
+        val currentState = _connectionState.value
+
+        // Guard: Don't connect if already connected to this device
+        if (currentState == BluetoothProfile.STATE_CONNECTED && _connectedDevice.value?.address == device.address) {
+            Log.d(TAG, "Already connected to ${device.getSafeName()}")
+            return true
+        }
+
+        // Guard: Don't connect if already connecting
+        if (currentState == BluetoothProfile.STATE_CONNECTING || isConnecting) {
+            Log.d(TAG, "Already connecting, skipping")
+            return false
+        }
+
+        // Guard: Cooldown between connect attempts
+        val now = System.currentTimeMillis()
+        if (now - lastConnectAttemptTime < connectCooldownMs) {
+            Log.d(TAG, "Connect cooldown active, skipping")
+            return false
+        }
+
+        lastConnectAttemptTime = now
+        isConnecting = true
         Log.d(TAG, "Connecting to host: ${device.getSafeName()} [${device.address}]")
+
         initializeHidProfile {
             try {
                 val connected = hidDeviceProfile?.connect(device)
                 Log.d(TAG, "connectHost result: $connected")
+                if (connected != true) {
+                    isConnecting = false
+                }
             } catch (e: SecurityException) {
                 Log.e(TAG, "SecurityException connecting to host", e)
+                isConnecting = false
             } catch (e: Exception) {
                 Log.e(TAG, "Error connecting to host", e)
+                isConnecting = false
             }
         }
+        return true
     }
 
     @SuppressLint("NewApi")
@@ -335,6 +410,7 @@ class BluetoothHidManager private constructor(context: Context) {
         Log.d(TAG, "Disconnecting from host: ${device.getSafeName()}")
         try {
             hidDeviceProfile?.disconnect(device)
+            isConnecting = false
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException disconnecting from host", e)
         } catch (e: Exception) {
@@ -344,6 +420,14 @@ class BluetoothHidManager private constructor(context: Context) {
 
     fun isBluetoothEnabled(): Boolean {
         return bluetoothAdapter?.isEnabled ?: false
+    }
+
+    fun isConnected(): Boolean {
+        return _connectionState.value == BluetoothProfile.STATE_CONNECTED && _connectedDevice.value != null
+    }
+
+    fun isCurrentlyConnecting(): Boolean {
+        return _connectionState.value == BluetoothProfile.STATE_CONNECTING || isConnecting
     }
 
     // --- MOUSE TRANSMISSION ---
@@ -370,12 +454,12 @@ class BluetoothHidManager private constructor(context: Context) {
         val fullReport = ByteArray(8)
         fullReport[0] = modifiers
         fullReport[1] = 0 // Reserved byte
-        
+
         // Populate key codes (up to 6)
         for (i in 0 until minOf(6, keyCodes.size)) {
             fullReport[2 + i] = keyCodes[i]
         }
-        
+
         return profile.sendReport(device, 1, fullReport)
     }
 
@@ -396,13 +480,21 @@ class BluetoothHidManager private constructor(context: Context) {
 
         val data = byteArrayOf(keys)
         val success = profile.sendReport(device, 3, data)
-        
+
         // Release immediate key-press after volume or control command to mimic keyboard tap release
         if (keys != 0.toByte()) {
-            Executors.newSingleThreadScheduledExecutor().schedule({
-                profile.sendReport(device, 3, byteArrayOf(0))
-            }, 50, java.util.concurrent.TimeUnit.MILLISECONDS)
+            scheduledExecutor.schedule({
+                try {
+                    profile.sendReport(device, 3, byteArrayOf(0))
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error releasing consumer input", e)
+                }
+            }, 50, TimeUnit.MILLISECONDS)
         }
         return success
+    }
+
+    fun destroy() {
+        scheduledExecutor.shutdownNow()
     }
 }

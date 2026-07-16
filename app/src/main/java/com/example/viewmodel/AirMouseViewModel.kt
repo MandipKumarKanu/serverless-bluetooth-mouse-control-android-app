@@ -22,13 +22,15 @@ import com.example.data.ShortcutEntity
 import com.example.sensor.MotionSensorManager
 import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 class AirMouseViewModel(application: Application) : AndroidViewModel(application) {
@@ -36,7 +38,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     private val app = application
     private val db = AppDatabase.getDatabase(application, viewModelScope)
     private val dao = db.airMouseDao()
-    
+
     val hidManager = BluetoothHidManager.getInstance(application)
     private val sensorManager = MotionSensorManager(application)
 
@@ -76,6 +78,13 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     private val _lastConnectedDeviceAddress = MutableStateFlow(prefs.getString("last_connected_device_address", null))
     val lastConnectedDeviceAddress: StateFlow<String?> = _lastConnectedDeviceAddress.asStateFlow()
 
+    // Auto-reconnect job to prevent multiple concurrent reconnect attempts
+    private var autoReconnectJob: Job? = null
+
+    // Debounce state for auto-reconnect
+    private var lastAutoReconnectTime = 0L
+    private val autoReconnectDebounceMs = 3000L
+
     fun setAutoReconnectEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("auto_reconnect_enabled", enabled).apply()
         _autoReconnectEnabled.value = enabled
@@ -102,26 +111,40 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
-        // Trigger auto reconnect when bluetooth is enabled, profile is ready, and stored setting is enabled
+        // Auto-reconnect: Only trigger when profile becomes ready AND bluetooth is on
+        // Use distinctUntilChanged to prevent repeated triggers
         viewModelScope.launch {
-            combine(isProfileReady, isBluetoothPowerOn, autoReconnectEnabled) { ready, enabled, autoEnabled ->
-                ready && enabled && autoEnabled
-            }.collect { canAutoConnect ->
-                if (canAutoConnect) {
-                    triggerAutoReconnect()
+            isProfileReady
+                .distinctUntilChanged()
+                .collect { isReady ->
+                    if (isReady && isBluetoothPowerOn.value && autoReconnectEnabled.value) {
+                        delay(500) // Small delay to let connection stabilize
+                        triggerAutoReconnect()
+                    }
                 }
-            }
         }
-        
+
+        // Also trigger auto-reconnect when bluetooth is turned on (if profile is already ready)
+        viewModelScope.launch {
+            isBluetoothPowerOn
+                .distinctUntilChanged()
+                .collect { isOn ->
+                    if (isOn && isProfileReady.value && autoReconnectEnabled.value) {
+                        delay(500) // Small delay to let bluetooth stabilize
+                        triggerAutoReconnect()
+                    }
+                }
+        }
+
         // Flow collector for Bluetooth state feedback Toasts
         viewModelScope.launch(Dispatchers.Main) {
             var lastState: Int? = null
             var lastDevice: BluetoothDevice? = null
-            
+
             bluetoothState.collect { state ->
                 val currentDevice = connectedDevice.value
                 val deviceName = currentDevice?.getSafeName() ?: lastDevice?.getSafeName() ?: "Device"
-                
+
                 if (lastState != null && lastState != state) {
                     when (state) {
                         BluetoothProfile.STATE_CONNECTED -> {
@@ -151,25 +174,42 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun triggerAutoReconnect() {
-        val lastAddress = lastConnectedDeviceAddress.value ?: return
-        if (!autoReconnectEnabled.value) return
+        // Cancel any existing reconnect job
+        autoReconnectJob?.cancel()
 
-        // Only try if not connected or connecting
-        val currentState = bluetoothState.value
-        if (currentState == BluetoothProfile.STATE_CONNECTED || currentState == BluetoothProfile.STATE_CONNECTING) {
-            return
-        }
+        autoReconnectJob = viewModelScope.launch {
+            val lastAddress = lastConnectedDeviceAddress.value ?: return@launch
+            if (!autoReconnectEnabled.value) return@launch
 
-        // Must have bluetooth enabled and profile ready
-        if (!isBluetoothEnabled() || !isProfileReady.value) {
-            return
-        }
+            // Debounce: Don't reconnect too frequently
+            val now = System.currentTimeMillis()
+            if (now - lastAutoReconnectTime < autoReconnectDebounceMs) {
+                Log.d(TAG, "Auto-reconnect debounce active, skipping")
+                return@launch
+            }
 
-        val bonded = hidManager.getBondedDevices()
-        val deviceToConnect = bonded.find { it.address == lastAddress }
-        if (deviceToConnect != null) {
-            Log.d("AirMouseVM", "Auto reconnecting to last connected device: ${deviceToConnect.getSafeName()} [${deviceToConnect.address}]")
-            connectToDevice(deviceToConnect)
+            // Only try if not connected or connecting
+            if (hidManager.isConnected() || hidManager.isCurrentlyConnecting()) {
+                Log.d(TAG, "Already connected or connecting, skipping auto-reconnect")
+                return@launch
+            }
+
+            // Must have bluetooth enabled and profile ready
+            if (!isBluetoothEnabled() || !isProfileReady.value) {
+                Log.d(TAG, "Bluetooth not ready, skipping auto-reconnect")
+                return@launch
+            }
+
+            lastAutoReconnectTime = System.currentTimeMillis()
+
+            val bonded = hidManager.getBondedDevices()
+            val deviceToConnect = bonded.find { it.address == lastAddress }
+            if (deviceToConnect != null) {
+                Log.d(TAG, "Auto reconnecting to last connected device: ${deviceToConnect.getSafeName()} [${deviceToConnect.address}]")
+                connectToDevice(deviceToConnect)
+            } else {
+                Log.d(TAG, "Last connected device not found in bonded devices")
+            }
         }
     }
 
@@ -263,7 +303,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         val sensitivity = settingsState.value.sensitivity
         val finalDx = (dx * sensitivity).coerceIn(-127f, 127f).toInt().toByte()
         val finalDy = (dy * sensitivity).coerceIn(-127f, 127f).toInt().toByte()
-        
+
         if (finalDx != 0.toByte() || finalDy != 0.toByte() || scroll != 0.toByte()) {
             hidManager.sendMouseInput(buttons, finalDx, finalDy, scroll)
         }
@@ -273,7 +313,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         vibrate(30)
         // Click Down
         hidManager.sendMouseInput(button, 0, 0, 0)
-        // Release immediately (20ms delay)
+        // Release immediately (25ms delay)
         viewModelScope.launch(Dispatchers.IO) {
             kotlinx.coroutines.delay(25)
             hidManager.sendMouseInput(0, 0, 0, 0)
@@ -324,7 +364,16 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                 vibrator.vibrate(durationMs)
             }
         } catch (e: Exception) {
-            Log.e("AirMouseViewModel", "Vibration failed", e)
+            Log.e(TAG, "Vibration failed", e)
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        autoReconnectJob?.cancel()
+    }
+
+    companion object {
+        private const val TAG = "AirMouseViewModel"
     }
 }
