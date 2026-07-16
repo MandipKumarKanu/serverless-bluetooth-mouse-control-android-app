@@ -385,17 +385,10 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Bluetooth Serverless HID",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
                                 text = statusText,
-                                fontSize = 18.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(top = 2.dp)
+                                fontSize = 16.sp,
+                                color = if (isConnected || !isBluetoothPowerOn) Color.White else MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                         if (isConnected) {
@@ -457,7 +450,8 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                         }
                                         .testTag("tile_${tile1.route}"),
                                     shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                                 ) {
                                     Column(
                                         modifier = Modifier

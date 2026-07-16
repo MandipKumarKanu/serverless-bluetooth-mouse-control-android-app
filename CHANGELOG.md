@@ -5,6 +5,14 @@ All notable changes to AirMouse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2025-01-16
+
+### Fixed
+- Control mode tiles now have visible background in Material You mode
+- Connected status text is white on green background (both dark and light themes)
+- Removed redundant "Bluetooth Serverless HID" text from connection card
+- Added subtle border to control mode tiles for better visibility
+
 ## [1.3.2] - 2025-01-16
 
 ### Added
