@@ -65,6 +65,7 @@ import androidx.navigation.NavController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
 import com.example.R
+import com.example.data.ConnectionHistoryEntity
 import com.example.data.SettingsEntity
 import com.example.data.ShortcutEntity
 import com.example.viewmodel.AirMouseViewModel
@@ -86,6 +87,7 @@ object Routes {
     const val SHORTCUTS = "shortcuts"
     const val SETTINGS = "settings"
     const val ABOUT = "about"
+    const val GAMEPAD = "gamepad"
 }
 
 // ==========================================
@@ -429,7 +431,8 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         ControlScreenTile(Routes.KEYBOARD, "Keyboard", Icons.Outlined.Keyboard, Color(0xFFF59E0B)),
                         ControlScreenTile(Routes.MEDIA_REMOTE, "Media Remote", Icons.Outlined.PlayCircle, Color(0xFFEF4444)),
                         ControlScreenTile(Routes.PRESENTATION, "Presentation", Icons.Outlined.CoPresent, Color(0xFF8B5CF6)),
-                        ControlScreenTile(Routes.SHORTCUTS, "Shortcuts", Icons.Outlined.SettingsApplications, Color(0xFFEC4899))
+                        ControlScreenTile(Routes.SHORTCUTS, "Shortcuts", Icons.Outlined.SettingsApplications, Color(0xFFEC4899)),
+                        ControlScreenTile(Routes.GAMEPAD, "Gamepad", Icons.Outlined.Gamepad, Color(0xFF06B6D4))
                     )
 
                     Column(
@@ -497,7 +500,8 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                             }
                                             .testTag("tile_${tile2.route}"),
                                         shape = RoundedCornerShape(16.dp),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                                     ) {
                                         Column(
                                             modifier = Modifier
@@ -734,7 +738,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                     }
                 }
 
-                items(connectionHistory.take(5)) { history ->
+                items(connectionHistory.take(5)) { history: ConnectionHistoryEntity ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),

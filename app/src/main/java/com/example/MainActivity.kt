@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.ui.screens.AboutScreen
 import com.example.ui.screens.AirMouseScreen
 import com.example.ui.screens.DashboardScreen
+import com.example.ui.screens.GamepadScreen
 import com.example.ui.screens.KeyboardScreen
 import com.example.ui.screens.MediaRemoteScreen
 import com.example.ui.screens.PermissionsScreen
@@ -110,6 +111,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Routes.PRESENTATION) {
                             PresentationScreen(navController, viewModel)
+                        }
+                        composable(Routes.GAMEPAD) {
+                            GamepadScreen(navController, viewModel)
                         }
                         composable(Routes.SHORTCUTS) {
                             ShortcutsScreen(navController, viewModel)

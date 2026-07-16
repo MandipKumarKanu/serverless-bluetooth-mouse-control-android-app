@@ -17,6 +17,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.bluetooth.BluetoothHidManager
 import com.example.bluetooth.getSafeName
 import com.example.data.AppDatabase
+import com.example.data.ConnectionHistoryEntity
 import com.example.data.SettingsEntity
 import com.example.data.ShortcutEntity
 import com.example.sensor.MotionSensorManager
