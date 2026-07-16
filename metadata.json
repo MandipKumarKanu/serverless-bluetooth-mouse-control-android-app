@@ -2,5 +2,4 @@
   "name": "AirMouse",
   "description": "Serverless Bluetooth Air Mouse, Touchpad, Keyboard, and Presentation Remote using official Bluetooth HID Profile.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
