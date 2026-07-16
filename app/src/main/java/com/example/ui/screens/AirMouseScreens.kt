@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,6 +69,7 @@ import com.example.data.SettingsEntity
 import com.example.data.ShortcutEntity
 import com.example.viewmodel.AirMouseViewModel
 import com.example.bluetooth.getSafeName
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -728,6 +730,12 @@ data class ControlScreenTile(
 @Composable
 fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
     var isRightScrollActive by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Scroll inertia state
+    var scrollVelocity by remember { mutableFloatStateOf(0f) }
+    var isInertiaScrolling by remember { mutableStateOf(false) }
+    var inertiaJob by remember { mutableStateOf<Job?>(null) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -843,7 +851,7 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Scroll Bar Area on the right
+                // Scroll Bar Area on the right (with inertia)
                 Box(
                     modifier = Modifier
                         .width(48.dp)
@@ -854,11 +862,37 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .testTag("touchpad_scroll_bar")
                         .pointerInput(Unit) {
                             detectDragGestures(
-                                onDragStart = { isRightScrollActive = true },
-                                onDragEnd = { isRightScrollActive = false },
-                                onDragCancel = { isRightScrollActive = false },
+                                onDragStart = {
+                                    isRightScrollActive = true
+                                    inertiaJob?.cancel()
+                                    isInertiaScrolling = false
+                                },
+                                onDragEnd = {
+                                    isRightScrollActive = false
+                                    // Apply inertia based on final velocity
+                                    if (kotlin.math.abs(scrollVelocity) > 0.5f) {
+                                        isInertiaScrolling = true
+                                        inertiaJob = coroutineScope.launch {
+                                            var velocity = scrollVelocity
+                                            while (kotlin.math.abs(velocity) > 0.1f) {
+                                                val tick = if (velocity > 0) 1 else -1
+                                                viewModel.hidManager.sendMouseInput(0, 0, 0, tick.toByte())
+                                                delay(30)
+                                                velocity *= 0.9f // Deceleration factor
+                                            }
+                                            isInertiaScrolling = false
+                                        }
+                                    }
+                                    scrollVelocity = 0f
+                                },
+                                onDragCancel = {
+                                    isRightScrollActive = false
+                                    scrollVelocity = 0f
+                                },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
+                                    // Track velocity for inertia
+                                    scrollVelocity = dragAmount.y
                                     // Send scroll relative ticks
                                     val tick = if (dragAmount.y > 0) -1 else 1
                                     viewModel.hidManager.sendMouseInput(0, 0, 0, tick.toByte())
@@ -2889,6 +2923,48 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     onCheckedChange = { viewModel.setAutoReconnectEnabled(it) },
                     colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary),
                     modifier = Modifier.testTag("setting_auto_reconnect")
+                )
+            }
+
+            HorizontalDivider(color = Color(0xFF1E293B))
+
+            Text("Appearance", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+
+            // Dark Theme Toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Dark Theme", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Switch between dark and light theme", color = Color(0xFF64748B), fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Switch(
+                    checked = settings.themeDark,
+                    onCheckedChange = { viewModel.updateSettings(settings.copy(themeDark = it)) },
+                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.testTag("setting_dark_theme")
+                )
+            }
+
+            // Keep Screen Awake Toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Keep Screen Awake", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Prevent screen from turning off while using the app", color = Color(0xFF64748B), fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Switch(
+                    checked = settings.keepScreenAwake,
+                    onCheckedChange = { viewModel.updateSettings(settings.copy(keepScreenAwake = it)) },
+                    colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.testTag("setting_keep_screen_awake")
                 )
             }
         }

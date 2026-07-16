@@ -36,10 +36,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
+            val viewModel: AirMouseViewModel = viewModel()
+            val settings by viewModel.settingsState.collectAsState()
+
+            MyApplicationTheme(darkTheme = settings.themeDark) {
                 val navController = rememberNavController()
-                val viewModel: AirMouseViewModel = viewModel()
-                val settings by viewModel.settingsState.collectAsState()
 
                 // Keep screen awake setting observer
                 LaunchedEffect(settings.keepScreenAwake) {
@@ -52,7 +53,7 @@ class MainActivity : ComponentActivity() {
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFF020617) // Sleek luxury dark theme canvas
+                    color = if (settings.themeDark) Color(0xFF020617) else Color(0xFFF8FAFC)
                 ) {
                     NavHost(
                         navController = navController,

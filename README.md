@@ -20,11 +20,19 @@ Turn your Android phone into a full-featured wireless input device — no server
 | Mode | Description |
 |------|-------------|
 | **Air Mouse** | Gyroscope-based cursor control — wave your phone to move the pointer. Hold-to-move or free streaming modes with adjustable sensitivity, dead zone, smoothing, and acceleration. |
-| **Touchpad** | Multi-touch laptop-style touchpad with tap-to-click, double-tap for double-click, drag for cursor movement, and a dedicated scroll bar. |
+| **Touchpad** | Multi-touch laptop-style touchpad with tap-to-click, double-tap for double-click, drag for cursor movement, and a dedicated scroll bar with **inertia scrolling**. |
 | **Keyboard** | Full QWERTY virtual keyboard with modifier toggles (Ctrl, Shift, Alt, Win), D-Pad navigation, and text string transmission. |
 | **Media Remote** | Circular D-Pad controller with volume, playback, track navigation, power, and home buttons. |
 | **Presentation Remote** | Slide navigation with prev/next, fullscreen toggle, and laser pointer simulation. |
 | **Custom Shortcuts** | Create and save custom keyboard shortcuts (e.g., Ctrl+C, Alt+Tab, Win+L) for quick access. |
+
+### Additional Features
+
+- **Dark/Light Theme** — Toggle between dark and light themes in Settings
+- **Scroll Inertia** — Momentum-based scrolling like a real trackpad
+- **Auto-Reconnect** — Automatically reconnect to last paired device
+- **Haptic Feedback** — Vibration on tap/click interactions
+- **Keep Screen Awake** — Prevent screen timeout during use
 
 ## How It Works
 
