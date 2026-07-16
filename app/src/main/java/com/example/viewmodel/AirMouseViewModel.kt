@@ -368,8 +368,6 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         _currentMouseButtons.value = 0
         hidManager.sendMouseInput(0, 0, 0, 0)
     }
-        hidManager.sendMouseInput(0, 0, 0, 0)
-    }
 
     // --- KEYBOARD ACTIONS ---
     fun sendKeyboardKey(modifiers: Byte, keyCode: Byte) {
