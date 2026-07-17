@@ -86,10 +86,10 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
         ) {
             // Instructions
             Text(
-                text = "Draw a gesture to trigger or assign action",
-                fontSize = 14.sp,
+                text = "Draw a gesture → It triggers if matched, or save as new",
+                fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
             // Recognition status feedback
@@ -100,9 +100,9 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .padding(bottom = 12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (lastMatchedAction != null)
-                            Color(0xFF064E3B) // Green for success
+                            Color(0xFF064E3B)
                         else
-                            Color(0xFF451A03) // Amber for no match
+                            Color(0xFF451A03)
                     )
                 ) {
                     Text(
@@ -120,7 +120,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(250.dp),
+                    .height(200.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = CardDefaults.outlinedCardBorder()
@@ -150,7 +150,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                             val matchedGesture = savedGestures.find { it.name == result.first }
                                             if (matchedGesture != null) {
                                                 lastMatchedAction = matchedGesture.actionData
-                                                recognitionStatus = "Matched: ${matchedGesture.name} (${(result.second * 100).toInt()}%)"
+                                                recognitionStatus = "✓ Matched: ${matchedGesture.name}"
                                                 viewModel.executeGestureAction(matchedGesture.actionData)
                                             }
                                         } else {
@@ -195,26 +195,35 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
                     // Placeholder text
                     if (recordedPoints.isEmpty()) {
-                        Text(
-                            text = "Draw here",
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Gesture,
+                                contentDescription = "Draw",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Draw gesture here",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Recording indicator
             if (isRecording) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(8.dp)
+                    modifier = Modifier.padding(4.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(12.dp)
+                            .size(10.dp)
                             .clip(CircleShape)
                             .background(Color.Red)
                     )
@@ -227,38 +236,145 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Clear button
-            if (recordedPoints.isNotEmpty() && !isRecording) {
-                Button(
-                    onClick = {
-                        recordedPoints = emptyList()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Icon(Icons.Default.Clear, contentDescription = "Clear", modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Clear Gesture")
+            // Action buttons row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Clear button
+                if (recordedPoints.isNotEmpty() && !isRecording) {
+                    OutlinedButton(
+                        onClick = { recordedPoints = emptyList() },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Clear, contentDescription = "Clear", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Clear")
+                    }
+
+                    // Save as new gesture button
+                    Button(
+                        onClick = { showAssignDialog = true },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Save, contentDescription = "Save", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Save Gesture")
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Saved gestures count
+            // Saved Gestures Section
             if (savedGestures.isNotEmpty()) {
-                Text(
-                    text = "${savedGestures.size} saved gesture(s)",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Saved Gestures (${savedGestures.size})",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // List of saved gestures
+                savedGestures.forEach { gesture ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable {
+                                // Execute the gesture action when tapped
+                                viewModel.executeGestureAction(gesture.actionData)
+                                recognitionStatus = "✓ Executed: ${gesture.name}"
+                                lastMatchedAction = gesture.actionData
+                            },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Gesture,
+                                contentDescription = "Gesture",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = gesture.name,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = GestureActions.getActionLabel(gesture.actionData),
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            IconButton(onClick = { viewModel.deleteGesture(gesture.id) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                // No saved gestures
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Gesture,
+                            contentDescription = "No gestures",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "No saved gestures yet",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Draw a gesture and tap 'Save Gesture' to create one",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Quick action buttons
             Text(
-                text = "Quick Actions",
+                text = "Quick Actions (Tap to Execute)",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -267,7 +383,6 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     .padding(bottom = 8.dp)
             )
 
-            // Pre-defined gesture actions
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -276,9 +391,11 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 items(getQuickActions()) { action ->
                     Card(
                         modifier = Modifier
-                            .height(60.dp)
+                            .height(56.dp)
                             .clickable {
                                 viewModel.executeGestureAction(action.second)
+                                recognitionStatus = "✓ ${action.first}"
+                                lastMatchedAction = action.second
                             },
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -286,7 +403,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(8.dp),
+                                .padding(6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -294,12 +411,12 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 imageVector = action.third,
                                 contentDescription = action.first,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = action.first,
-                                fontSize = 10.sp,
+                                fontSize = 9.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -313,46 +430,39 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
     if (showAssignDialog) {
         AlertDialog(
             onDismissRequest = { showAssignDialog = false },
-            title = { Text("Assign Action to Gesture") },
+            title = { Text("Save Gesture") },
             text = {
                 Column {
+                    Text(
+                        text = "Name your gesture and select an action:",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
                     OutlinedTextField(
                         value = gestureName,
                         onValueChange = { gestureName = it },
                         label = { Text("Gesture Name") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Select Action:", fontWeight = FontWeight.Bold)
+
+                    Text("Select Action:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Action list
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.height(200.dp)
+                        modifier = Modifier.height(180.dp)
                     ) {
                         items(getAssignableActions()) { action ->
                             Card(
                                 modifier = Modifier
                                     .clickable {
                                         selectedAction = action.second
-                                        // Save gesture and action
-                                        if (gestureName.isNotBlank()) {
-                                            viewModel.saveGesture(
-                                                GestureEntity(
-                                                    name = gestureName,
-                                                    points = recordedPoints.toString(),
-                                                    actionType = "keyboard",
-                                                    actionData = action.second
-                                                )
-                                            )
-                                            recordedPoints = emptyList()
-                                            gestureName = ""
-                                            showAssignDialog = false
-                                            recognitionStatus = "Gesture saved!"
-                                        }
                                     },
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (selectedAction == action.second)
@@ -362,8 +472,8 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             ) {
                                 Text(
                                     text = action.first,
-                                    modifier = Modifier.padding(12.dp),
-                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(10.dp),
+                                    fontSize = 11.sp,
                                     color = if (selectedAction == action.second)
                                         MaterialTheme.colorScheme.onPrimary
                                     else MaterialTheme.colorScheme.onSurface
@@ -373,12 +483,38 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     }
                 }
             },
-            confirmButton = {},
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (gestureName.isNotBlank() && selectedAction.isNotBlank()) {
+                            viewModel.saveGesture(
+                                GestureEntity(
+                                    name = gestureName,
+                                    points = recordedPoints.toString(),
+                                    actionType = "keyboard",
+                                    actionData = selectedAction
+                                )
+                            )
+                            recordedPoints = emptyList()
+                            gestureName = ""
+                            selectedAction = ""
+                            showAssignDialog = false
+                            recognitionStatus = "✓ Gesture saved!"
+                        }
+                    },
+                    enabled = gestureName.isNotBlank() && selectedAction.isNotBlank()
+                ) {
+                    Icon(Icons.Default.Save, contentDescription = "Save", modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Save")
+                }
+            },
             dismissButton = {
                 TextButton(onClick = {
                     showAssignDialog = false
                     recordedPoints = emptyList()
                     gestureName = ""
+                    selectedAction = ""
                 }) {
                     Text("Cancel")
                 }
@@ -391,7 +527,6 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
  * Parse points string back to GesturePoint list
  */
 fun parsePoints(pointsStr: String): List<GesturePoint> {
-    // Simple parsing - in production, use JSON library
     return try {
         val cleaned = pointsStr.removePrefix("[").removeSuffix("]")
         if (cleaned.isBlank()) return emptyList()
