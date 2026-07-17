@@ -17,6 +17,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.bluetooth.BluetoothHidManager
 import com.example.bluetooth.getSafeName
 import com.example.data.AppDatabase
+import com.example.service.AirMouseService
 import com.example.data.ConnectionHistoryEntity
 import com.example.data.SettingsEntity
 import com.example.data.ShortcutEntity
@@ -173,6 +174,8 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                                     )
                                 }
                             }
+                            // Start foreground service to maintain connection
+                            AirMouseService.startService(app, deviceName)
                         }
                         BluetoothProfile.STATE_CONNECTING -> {
                             Toast.makeText(application, "Connecting to $deviceName...", Toast.LENGTH_SHORT).show()
@@ -180,6 +183,8 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                         BluetoothProfile.STATE_DISCONNECTED -> {
                             if (lastState == BluetoothProfile.STATE_CONNECTED || lastState == BluetoothProfile.STATE_CONNECTING) {
                                 Toast.makeText(application, "Disconnected from $deviceName", Toast.LENGTH_SHORT).show()
+                                // Stop foreground service
+                                AirMouseService.stopService(app)
                             }
                         }
                     }
@@ -246,6 +251,8 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     fun disconnectDevice() {
         vibrate(50)
         hidManager.disconnectHost()
+        // Stop foreground service when user explicitly disconnects
+        AirMouseService.stopService(app)
     }
 
     fun fetchBatteryLevel() {

@@ -5,6 +5,15 @@ All notable changes to AirMouse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2025-01-16
+
+### Added
+- **Foreground Service** — Bluetooth stays connected when app is minimized
+  - Persistent notification shows connection status
+  - Service starts automatically on Bluetooth connect
+  - Service stops on explicit disconnect
+  - Connection maintained even when app is in background
+
 ## [1.5.2] - 2025-01-16
 
 ### Fixed
