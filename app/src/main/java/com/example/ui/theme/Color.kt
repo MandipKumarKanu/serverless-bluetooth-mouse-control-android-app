@@ -10,7 +10,7 @@ val CyanLight = Color(0xFF22D3EE)
 // Dark theme colors
 val DarkBackground = Color(0xFF020617)
 val DarkSurface = Color(0xFF0F172A)
-val DarkSurfaceVariant = Color(0xFF1E293B)
+val DarkSurfaceVariant = Color(0xFF0E162A)
 val DarkOnBackground = Color(0xFFFFFFFF)
 val DarkOnSurface = Color(0xFFFFFFFF)
 val DarkOnSurfaceVariant = Color(0xFF94A3B8)
