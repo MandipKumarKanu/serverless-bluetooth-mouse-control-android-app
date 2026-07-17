@@ -57,19 +57,20 @@ class GestureRecognizer {
     private fun resample(points: List<Point>, n: Int): List<Point> {
         if (points.isEmpty()) return emptyList()
 
-        val interval = pathLength(points) / (n - 1)
+        val mutablePoints = points.toMutableList()
+        val interval = pathLength(mutablePoints) / (n - 1)
         var D = 0.0
-        val newPoints = mutableListOf(points[0])
+        val newPoints = mutableListOf(mutablePoints[0])
 
         var i = 1
-        while (i < points.size) {
-            val d = distance(points[i - 1], points[i])
+        while (i < mutablePoints.size) {
+            val d = distance(mutablePoints[i - 1], mutablePoints[i])
             if (D + d >= interval) {
-                val qx = points[i - 1].x + ((interval - D) / d) * (points[i].x - points[i - 1].x)
-                val qy = points[i - 1].y + ((interval - D) / d) * (points[i].y - points[i - 1].y)
+                val qx = mutablePoints[i - 1].x + ((interval - D) / d) * (mutablePoints[i].x - mutablePoints[i - 1].x)
+                val qy = mutablePoints[i - 1].y + ((interval - D) / d) * (mutablePoints[i].y - mutablePoints[i - 1].y)
                 val q = Point(qx, qy)
                 newPoints.add(q)
-                points.add(i, q) // Insert resampled point
+                mutablePoints.add(i, q) // Insert resampled point
                 D = 0.0
             } else {
                 D += d
@@ -79,7 +80,7 @@ class GestureRecognizer {
 
         // Add last point if needed
         if (newPoints.size < n) {
-            newPoints.add(points.last())
+            newPoints.add(mutablePoints.last())
         }
 
         return newPoints.take(n)

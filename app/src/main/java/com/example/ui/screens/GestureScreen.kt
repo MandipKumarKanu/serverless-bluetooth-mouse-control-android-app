@@ -31,7 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.gesture.GestureEntity
+import com.example.data.GestureEntity
 import com.example.gesture.GesturePoint
 import com.example.viewmodel.AirMouseViewModel
 
@@ -116,6 +116,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     contentAlignment = Alignment.Center
                 ) {
                     // Draw the gesture path
+                    val pathColor = if (isRecording) MaterialTheme.colorScheme.primary else Color(0xFF3B82F6)
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         if (recordedPoints.isNotEmpty()) {
                             val path = Path()
@@ -127,7 +128,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
                             drawPath(
                                 path = path,
-                                color = if (isRecording) MaterialTheme.colorScheme.primary else Color(0xFF3B82F6),
+                                color = pathColor,
                                 style = Stroke(width = 4.dp.toPx())
                             )
                         }

@@ -1,8 +1,5 @@
 package com.example.gesture
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-
 /**
  * Represents a single point in a gesture path
  */
@@ -10,20 +7,6 @@ data class GesturePoint(
     val x: Float,
     val y: Float,
     val timestamp: Long = System.currentTimeMillis()
-)
-
-/**
- * Represents a recorded gesture with its assigned action
- */
-@Entity(tableName = "gestures")
-data class GestureEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val name: String,
-    val points: String, // JSON string of GesturePoint list
-    val actionType: String, // "keyboard", "media", "mouse"
-    val actionData: String, // Key code, media action, etc.
-    val modifiers: Int = 0, // Keyboard modifiers (Ctrl, Shift, Alt, Win)
-    val createdAt: Long = System.currentTimeMillis()
 )
 
 /**
