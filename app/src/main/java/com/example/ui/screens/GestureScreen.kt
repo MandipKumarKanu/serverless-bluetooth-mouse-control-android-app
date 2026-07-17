@@ -6,11 +6,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -32,8 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.data.GestureEntity
+import com.example.gesture.GestureRecognizer
 import com.example.gesture.GesturePoint
 import com.example.viewmodel.AirMouseViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +42,22 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
     var showAssignDialog by remember { mutableStateOf(false) }
     var selectedAction by remember { mutableStateOf("") }
     var gestureName by remember { mutableStateOf("") }
+
+    // Gesture recognition state
+    var recognitionStatus by remember { mutableStateOf<String?>(null) }
+    var lastMatchedAction by remember { mutableStateOf<String?>(null) }
+    val gestureRecognizer = remember { GestureRecognizer() }
+
+    // Load saved gestures from database
+    val savedGestures by viewModel.gesturesState.collectAsState()
+
+    // Auto-clear recognition status after 2 seconds
+    LaunchedEffect(recognitionStatus) {
+        if (recognitionStatus != null) {
+            delay(2000)
+            recognitionStatus = null
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -71,11 +86,35 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
         ) {
             // Instructions
             Text(
-                text = "Draw a gesture to assign an action",
+                text = "Draw a gesture to trigger or assign action",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
+
+            // Recognition status feedback
+            recognitionStatus?.let { status ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (lastMatchedAction != null)
+                            Color(0xFF064E3B) // Green for success
+                        else
+                            Color(0xFF451A03) // Amber for no match
+                    )
+                ) {
+                    Text(
+                        text = status,
+                        modifier = Modifier.padding(12.dp),
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
 
             // Gesture Canvas
             Card(
@@ -94,11 +133,31 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 onDragStart = {
                                     isRecording = true
                                     recordedPoints = emptyList()
+                                    recognitionStatus = null
                                 },
                                 onDragEnd = {
                                     isRecording = false
                                     if (recordedPoints.size > 10) {
-                                        showAssignDialog = true
+                                        // Try to recognize the gesture
+                                        val templates = savedGestures.associate { gesture ->
+                                            gesture.name to parsePoints(gesture.points)
+                                        }
+
+                                        val result = gestureRecognizer.recognize(recordedPoints, templates)
+
+                                        if (result != null) {
+                                            // Found a match - trigger the action
+                                            val matchedGesture = savedGestures.find { it.name == result.first }
+                                            if (matchedGesture != null) {
+                                                lastMatchedAction = matchedGesture.actionData
+                                                recognitionStatus = "Matched: ${matchedGesture.name} (${(result.second * 100).toInt()}%)"
+                                                viewModel.executeGestureAction(matchedGesture.actionData)
+                                            }
+                                        } else {
+                                            // No match - show assign dialog
+                                            lastMatchedAction = null
+                                            showAssignDialog = true
+                                        }
                                     }
                                 },
                                 onDragCancel = {
@@ -184,7 +243,18 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Saved gestures count
+            if (savedGestures.isNotEmpty()) {
+                Text(
+                    text = "${savedGestures.size} saved gesture(s)",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Quick action buttons
             Text(
@@ -243,7 +313,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
     if (showAssignDialog) {
         AlertDialog(
             onDismissRequest = { showAssignDialog = false },
-            title = { Text("Assign Action") },
+            title = { Text("Assign Action to Gesture") },
             text = {
                 Column {
                     OutlinedTextField(
@@ -281,6 +351,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                             recordedPoints = emptyList()
                                             gestureName = ""
                                             showAssignDialog = false
+                                            recognitionStatus = "Gesture saved!"
                                         }
                                     },
                                 colors = CardDefaults.cardColors(
@@ -313,6 +384,28 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 }
             }
         )
+    }
+}
+
+/**
+ * Parse points string back to GesturePoint list
+ */
+fun parsePoints(pointsStr: String): List<GesturePoint> {
+    // Simple parsing - in production, use JSON library
+    return try {
+        val cleaned = pointsStr.removePrefix("[").removeSuffix("]")
+        if (cleaned.isBlank()) return emptyList()
+
+        cleaned.split("), ").map { pointStr ->
+            val coords = pointStr.removePrefix("GesturePoint(x=").removeSuffix(")")
+                .split(", y=")
+            GesturePoint(
+                x = coords[0].toFloatOrNull() ?: 0f,
+                y = coords[1].split(", timestamp=")[0].toFloatOrNull() ?: 0f
+            )
+        }
+    } catch (e: Exception) {
+        emptyList()
     }
 }
 

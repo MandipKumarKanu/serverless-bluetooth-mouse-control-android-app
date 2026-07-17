@@ -67,6 +67,13 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
             initialValue = emptyList()
         )
 
+    val gesturesState: StateFlow<List<GestureEntity>> = dao.getAllGesturesFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     // Bluetooth States from native service
     val bluetoothState: StateFlow<Int> = hidManager.connectionState
     val connectedDevice: StateFlow<BluetoothDevice?> = hidManager.connectedDevice
