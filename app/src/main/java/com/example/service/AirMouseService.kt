@@ -6,11 +6,13 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.bluetooth.BluetoothDevice
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.example.MainActivity
 import com.example.R
 import com.example.bluetooth.BluetoothHidManager
@@ -144,18 +146,14 @@ class AirMouseService : Service() {
                 action = ACTION_START
                 putExtra(EXTRA_DEVICE_NAME, deviceName)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            ContextCompat.startForegroundService(context, intent)
         }
 
         fun stopService(context: Context) {
             val intent = Intent(context, AirMouseService::class.java).apply {
                 action = ACTION_STOP
             }
-            context.startService(intent)
+            context.stopService(intent)
         }
 
         fun updateService(context: Context, deviceName: String?) {
@@ -163,7 +161,7 @@ class AirMouseService : Service() {
                 action = ACTION_UPDATE
                 putExtra(EXTRA_DEVICE_NAME, deviceName)
             }
-            context.startService(intent)
+            ContextCompat.startForegroundService(context, intent)
         }
     }
 }
