@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.data.GestureEntity
+import com.example.gesture.GestureActions
 import com.example.gesture.GestureRecognizer
 import com.example.gesture.GesturePoint
 import com.example.viewmodel.AirMouseViewModel
