@@ -50,6 +50,17 @@ data class ConnectionHistoryEntity(
     val connectedAt: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "gestures")
+data class GestureEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val name: String,
+    val points: String, // JSON string of GesturePoint list
+    val actionType: String, // "keyboard", "media", "mouse"
+    val actionData: String, // Key code, media action, etc.
+    val modifiers: Int = 0, // Keyboard modifiers
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 @Dao
 interface AirMouseDao {
     @Query("SELECT * FROM settings WHERE id = 1 LIMIT 1")
@@ -78,11 +89,20 @@ interface AirMouseDao {
 
     @Query("DELETE FROM connection_history")
     suspend fun clearConnectionHistory()
+
+    @Query("SELECT * FROM gestures ORDER BY createdAt DESC")
+    fun getAllGesturesFlow(): Flow<List<GestureEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGesture(gesture: GestureEntity)
+
+    @Query("DELETE FROM gestures WHERE id = :id")
+    suspend fun deleteGesture(id: Int)
 }
 
 @Database(
-    entities = [SettingsEntity::class, ShortcutEntity::class, ConnectionHistoryEntity::class],
-    version = 3,
+    entities = [SettingsEntity::class, ShortcutEntity::class, ConnectionHistoryEntity::class, GestureEntity::class],
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -111,6 +131,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS gestures (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        points TEXT NOT NULL,
+                        actionType TEXT NOT NULL,
+                        actionData TEXT NOT NULL,
+                        modifiers INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL
+                    )
+                """)
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -118,7 +154,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "air_mouse_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

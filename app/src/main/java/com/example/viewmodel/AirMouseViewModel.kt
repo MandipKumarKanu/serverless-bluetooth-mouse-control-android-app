@@ -412,6 +412,59 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         hidManager.sendConsumerInput(actionBit)
     }
 
+    // --- GESTURE ACTIONS ---
+    fun saveGesture(gesture: GestureEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dao.insertGesture(gesture)
+        }
+    }
+
+    fun deleteGesture(id: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dao.deleteGesture(id)
+        }
+    }
+
+    fun executeGestureAction(action: String) {
+        vibrate(30)
+        when (action) {
+            // Keyboard actions
+            "copy" -> sendKeyboardKey(0x01, 0x06.toByte()) // Ctrl+C
+            "paste" -> sendKeyboardKey(0x01, 0x19.toByte()) // Ctrl+V
+            "undo" -> sendKeyboardKey(0x01, 0x1D.toByte()) // Ctrl+Z
+            "redo" -> sendKeyboardKey(0x01, 0x16.toByte()) // Ctrl+Y
+            "select_all" -> sendKeyboardKey(0x01, 0x04.toByte()) // Ctrl+A
+            "save" -> sendKeyboardKey(0x01, 0x16.toByte()) // Ctrl+S
+            "close" -> sendKeyboardKey(0x01, 0x0D.toByte()) // Ctrl+W
+            "tab" -> sendKeyboardKey(0, 0x2B.toByte())
+            "enter" -> sendKeyboardKey(0, 0x28.toByte())
+            "esc" -> sendKeyboardKey(0, 0x29.toByte())
+            "delete" -> sendKeyboardKey(0, 0x2A.toByte())
+            "backspace" -> sendKeyboardKey(0, 0x2A.toByte())
+
+            // Media actions
+            "play_pause" -> sendMediaAction(0x08)
+            "next_track" -> sendMediaAction(0x10)
+            "prev_track" -> sendMediaAction(0x20)
+            "vol_up" -> sendMediaAction(0x01)
+            "vol_down" -> sendMediaAction(0x02)
+            "mute" -> sendMediaAction(0x04)
+
+            // Mouse actions
+            "left_click" -> sendMouseClick(1)
+            "right_click" -> sendMouseClick(2)
+            "middle_click" -> sendMouseClick(4)
+            "scroll_up" -> hidManager.sendMouseInput(0, 0, 0, 1)
+            "scroll_down" -> hidManager.sendMouseInput(0, 0, 0, -1)
+
+            // Presentation actions
+            "next_slide" -> sendKeyboardKey(0, 0x4E.toByte()) // Page Down
+            "prev_slide" -> sendKeyboardKey(0, 0x4B.toByte()) // Page Up
+            "fullscreen" -> sendKeyboardKey(0, 0x3E.toByte()) // F5
+            "black_screen" -> sendKeyboardKey(0, 0x05.toByte()) // B key
+        }
+    }
+
     // --- VIBRATION HELPER ---
     fun vibrate(durationMs: Long) {
         if (!settingsState.value.vibrationFeedback) return

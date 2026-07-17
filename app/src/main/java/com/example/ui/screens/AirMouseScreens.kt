@@ -87,6 +87,7 @@ object Routes {
     const val SETTINGS = "settings"
     const val ABOUT = "about"
     const val GAMEPAD = "gamepad"
+    const val GESTURE = "gesture"
 }
 
 // ==========================================
@@ -433,7 +434,8 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         ControlScreenTile(Routes.MEDIA_REMOTE, "Media Remote", Icons.Outlined.PlayCircle, Color(0xFFEF4444)),
                         ControlScreenTile(Routes.PRESENTATION, "Presentation", Icons.Outlined.CoPresent, Color(0xFF8B5CF6)),
                         ControlScreenTile(Routes.SHORTCUTS, "Shortcuts", Icons.Outlined.SettingsApplications, Color(0xFFEC4899)),
-                        ControlScreenTile(Routes.GAMEPAD, "Gamepad", Icons.Outlined.Gamepad, Color(0xFF06B6D4))
+                        ControlScreenTile(Routes.GAMEPAD, "Gamepad", Icons.Outlined.Gamepad, Color(0xFF06B6D4)),
+                        ControlScreenTile(Routes.GESTURE, "Gestures", Icons.Outlined.Gesture, Color(0xFFFF6B35))
                     )
 
                     Column(
