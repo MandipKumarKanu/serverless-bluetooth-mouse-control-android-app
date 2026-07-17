@@ -286,7 +286,11 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
     val isProfileReady by viewModel.isProfileReady.collectAsState()
     val pairedDevices by viewModel.pairedDevices.collectAsState()
     val lastConnectedDeviceAddress by viewModel.lastConnectedDeviceAddress.collectAsState()
+    val settings by viewModel.settingsState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+
+    // Check if Material You (dynamic colors) is enabled
+    val useDynamicColors = settings.useDynamicColors
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -462,16 +466,17 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                         verticalArrangement = Arrangement.Center,
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
+                                        val iconColor = if (useDynamicColors) MaterialTheme.colorScheme.primary else tile1.color
                                         Box(
                                             modifier = Modifier
                                                 .size(40.dp)
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
+                                                .background(iconColor.copy(alpha = 0.15f), CircleShape),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = tile1.icon,
                                                 contentDescription = tile1.title,
-                                                tint = MaterialTheme.colorScheme.primary,
+                                                tint = iconColor,
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }
@@ -507,16 +512,17 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                             verticalArrangement = Arrangement.Center,
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
+                                            val iconColor2 = if (useDynamicColors) MaterialTheme.colorScheme.primary else tile2.color
                                             Box(
                                                 modifier = Modifier
                                                     .size(40.dp)
-                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
+                                                    .background(iconColor2.copy(alpha = 0.15f), CircleShape),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
                                                     imageVector = tile2.icon,
                                                     contentDescription = tile2.title,
-                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    tint = iconColor2,
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                             }
