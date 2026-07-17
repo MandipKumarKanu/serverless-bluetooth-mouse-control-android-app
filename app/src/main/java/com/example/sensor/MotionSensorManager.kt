@@ -9,6 +9,7 @@ import android.util.Log
 import com.example.bluetooth.BluetoothHidManager
 import com.example.data.SettingsEntity
 import kotlin.math.abs
+import kotlin.math.ln
 import kotlin.math.sign
 import kotlin.math.sqrt
 

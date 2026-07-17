@@ -1,5 +1,6 @@
 package com.example.sensor
 
+import android.util.Log
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.sign
