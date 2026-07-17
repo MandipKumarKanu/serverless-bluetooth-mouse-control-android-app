@@ -248,7 +248,18 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun refreshPairedDevices() {
-        _pairedDevices.value = hidManager.getBondedDevices()
+        val devices = hidManager.getBondedDevices()
+        val currentDevice = connectedDevice.value
+        val lastAddress = lastConnectedDeviceAddress.value
+
+        // Sort: connected first, then last used, then others
+        val sorted = devices.sortedWith(compareByDescending<BluetoothDevice> {
+            it.address == currentDevice?.address
+        }.thenByDescending {
+            it.address == lastAddress
+        })
+
+        _pairedDevices.value = sorted
     }
 
     fun connectToDevice(device: BluetoothDevice) {
