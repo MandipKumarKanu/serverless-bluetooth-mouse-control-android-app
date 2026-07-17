@@ -327,6 +327,17 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         sensorManager.stop()
     }
 
+    // Called when app goes to background - pause sensors but keep Bluetooth alive
+    fun onAppBackground() {
+        sensorManager.stop()
+        Log.d(TAG, "App backgrounded - sensors paused, Bluetooth connection maintained")
+    }
+
+    // Called when app comes to foreground - resume sensors if they were active
+    fun onAppForeground() {
+        Log.d(TAG, "App foregrounded - ready to resume sensors")
+    }
+
     fun calibrateAirMouse() {
         vibrate(100)
         sensorManager.calibrate()

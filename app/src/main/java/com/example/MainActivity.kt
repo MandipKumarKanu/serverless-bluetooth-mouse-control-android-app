@@ -1,6 +1,7 @@
 package com.example
 
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +11,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -70,6 +74,30 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val navController = rememberNavController()
+                val lifecycleOwner = LocalLifecycleOwner.current
+
+                // Lifecycle observer for background/foreground transitions
+                DisposableEffect(lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_STOP -> {
+                                // App went to background - pause sensors
+                                viewModel.onAppBackground()
+                                Log.d("MainActivity", "App backgrounded - sensors paused")
+                            }
+                            Lifecycle.Event.ON_START -> {
+                                // App came to foreground - ready to resume
+                                viewModel.onAppForeground()
+                                Log.d("MainActivity", "App foregrounded")
+                            }
+                            else -> {}
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
+                }
 
                 // Keep screen awake setting observer
                 LaunchedEffect(settings.keepScreenAwake) {
