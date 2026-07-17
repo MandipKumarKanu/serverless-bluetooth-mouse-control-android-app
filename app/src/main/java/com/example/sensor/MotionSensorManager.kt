@@ -10,6 +10,7 @@ import com.example.bluetooth.BluetoothHidManager
 import com.example.data.SettingsEntity
 import kotlin.math.abs
 import kotlin.math.sign
+import kotlin.math.sqrt
 
 class MotionSensorManager(context: Context) : SensorEventListener {
 
@@ -22,7 +23,7 @@ class MotionSensorManager(context: Context) : SensorEventListener {
     // Configurable Settings (synced from Room db)
     private var settings = SettingsEntity()
 
-    // Bias calibration values
+    // Bias calibration values (for drift elimination)
     private var biasX = 0f
     private var biasY = 0f
     private var isCalibrating = false
@@ -31,9 +32,8 @@ class MotionSensorManager(context: Context) : SensorEventListener {
     private var accumBiasX = 0f
     private var accumBiasY = 0f
 
-    // Smoothing state
-    private var prevDx = 0f
-    private var prevDy = 0f
+    // Adaptive smoothing filter (10/10 implementation)
+    private val adaptiveFilter = AdaptiveSmoothingFilter()
 
     // Mouse buttons current state (retained to prevent releasing buttons during motion)
     private var activeButtons: Byte = 0
@@ -49,7 +49,7 @@ class MotionSensorManager(context: Context) : SensorEventListener {
     fun start(buttonsState: Byte = 0) {
         if (isRunning) return
         activeButtons = buttonsState
-        
+
         gyroscope?.let { gyro ->
             sensorManager.registerListener(this, gyro, SensorManager.SENSOR_DELAY_GAME)
             isRunning = true
@@ -74,6 +74,10 @@ class MotionSensorManager(context: Context) : SensorEventListener {
         calibrationSamplesCount = 0
         accumBiasX = 0f
         accumBiasY = 0f
+
+        // Also start adaptive filter calibration
+        adaptiveFilter.startCalibration()
+
         Log.d(TAG, "Starting motion sensor calibration")
     }
 
@@ -88,16 +92,20 @@ class MotionSensorManager(context: Context) : SensorEventListener {
             accumBiasX += rawX
             accumBiasY += rawY
             calibrationSamplesCount++
+
+            // Add sample to adaptive filter calibration
+            adaptiveFilter.addCalibrationSample(rawX, rawY)
+
             if (calibrationSamplesCount >= maxCalibrationSamples) {
                 biasX = accumBiasX / maxCalibrationSamples
                 biasY = accumBiasY / maxCalibrationSamples
                 isCalibrating = false
-                Log.d(TAG, "Calibration complete: biasX=$biasX, biasY=$biasY")
+                Log.d(TAG, "Calibration complete: biasX=$biasX, biasY=$biasY, tremorFreq=${adaptiveFilter.getTremorFrequency()}Hz")
             }
             return
         }
 
-        // Apply Calibration Offset
+        // Apply Calibration Offset (drift elimination)
         rawX -= biasX
         rawY -= biasY
 
@@ -114,31 +122,30 @@ class MotionSensorManager(context: Context) : SensorEventListener {
         // Apply Dead Zone Check
         val speedX = abs(targetDx)
         val speedY = abs(targetDy)
-        
+
         val deadZ = settings.deadZone * 10f // amplify dead zone factor
-        
+
         val finalDxRaw = if (speedX < deadZ) 0f else targetDx
         val finalDyRaw = if (speedY < deadZ) 0f else targetDy
 
-        // Apply Smoothing (Low Pass Filter)
-        val smoothFactor = (1.0f - settings.smoothing).coerceIn(0.05f, 1.0f)
-        val smoothedDx = prevDx * (1.0f - smoothFactor) + finalDxRaw * smoothFactor
-        val smoothedDy = prevDy * (1.0f - smoothFactor) + finalDyRaw * smoothFactor
-
-        prevDx = smoothedDx
-        prevDy = smoothedDy
+        // Apply Adaptive Smoothing (10/10 implementation)
+        val (smoothedDx, smoothedDy) = adaptiveFilter.filter(
+            rawDx = finalDxRaw,
+            rawDy = finalDyRaw,
+            baseSmoothing = settings.smoothing
+        )
 
         if (smoothedDx == 0f && smoothedDy == 0f) return
 
-        // Apply Cursor Sensitivity and Pointer Acceleration
-        // Sensitivity multiplies the speed
+        // Apply Cursor Sensitivity
         var finalDx = smoothedDx * settings.sensitivity * 0.8f
         var finalDy = smoothedDy * settings.sensitivity * 0.8f
 
-        // Acceleration applies non-linear scaling based on speed
+        // Apply Pointer Acceleration (logarithmic curve for natural feel)
         val currentSpeed = abs(finalDx) + abs(finalDy)
         if (currentSpeed > 1.0f) {
-            val accelMultiplier = 1.0f + (currentSpeed * 0.05f * settings.acceleration)
+            // Logarithmic acceleration: more natural than linear
+            val accelMultiplier = 1.0f + ln(currentSpeed / 10f + 1f) * settings.acceleration * 0.3f
             finalDx *= accelMultiplier
             finalDy *= accelMultiplier
         }
