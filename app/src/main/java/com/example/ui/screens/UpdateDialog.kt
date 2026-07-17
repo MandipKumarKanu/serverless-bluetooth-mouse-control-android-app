@@ -81,7 +81,7 @@ fun UpdateDialog(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 150.dp),
+                            .heightIn(max = 180.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
@@ -93,17 +93,51 @@ fun UpdateDialog(
                         ) {
                             Text(
                                 text = "What's New:",
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = updateInfo.changelog.take(300),
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 16.sp
-                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Parse and display changelog
+                            val parsedLines = parseChangelog(updateInfo.changelog)
+                            parsedLines.forEach { line ->
+                                when {
+                                    line.startsWith("HEADER:") -> {
+                                        Text(
+                                            text = line.removePrefix("HEADER:"),
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                                        )
+                                    }
+                                    line.startsWith("ITEM:") -> {
+                                        Text(
+                                            text = "• ${line.removePrefix("ITEM:")}",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                                        )
+                                    }
+                                    line.startsWith("SUBITEM:") -> {
+                                        Text(
+                                            text = "  ○ ${line.removePrefix("SUBITEM:")}",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(start = 20.dp, top = 2.dp)
+                                        )
+                                    }
+                                    else -> {
+                                        Text(
+                                            text = line,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -146,4 +180,45 @@ fun UpdateDialog(
             }
         }
     }
+}
+
+/**
+ * Parse markdown changelog into clean format lines
+ * Returns list of strings with prefixes: HEADER:, ITEM:, SUBITEM:, or plain text
+ */
+fun parseChangelog(changelog: String): List<String> {
+    val result = mutableListOf<String>()
+    val lines = changelog.split("\n")
+
+    for (line in lines) {
+        val trimmed = line.trim()
+        if (trimmed.isEmpty()) continue
+
+        when {
+            // Headers: ## or ###
+            trimmed.startsWith("## ") -> {
+                result.add("HEADER:${trimmed.removePrefix("## ").trim()}")
+            }
+            trimmed.startsWith("### ") -> {
+                result.add("HEADER:${trimmed.removePrefix("### ").trim()}")
+            }
+            // Bullet points: - or *
+            trimmed.startsWith("- ") -> {
+                result.add("ITEM:${trimmed.removePrefix("- ").trim()}")
+            }
+            trimmed.startsWith("* ") -> {
+                result.add("ITEM:${trimmed.removePrefix("* ").trim()}")
+            }
+            // Sub-bullets
+            trimmed.startsWith("  - ") || trimmed.startsWith("  * ") -> {
+                result.add("SUBITEM:${trimmed.trimStart().removePrefix("- ").removePrefix("* ").trim()}")
+            }
+            // Regular text
+            else -> {
+                result.add(trimmed)
+            }
+        }
+    }
+
+    return result
 }

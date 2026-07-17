@@ -112,7 +112,7 @@ class MainActivity : ComponentActivity() {
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = if (settings.themeDark) Color(0xFF020617) else Color(0xFFF8FAFC)
+                    color = MaterialTheme.colorScheme.background
                 ) {
                     NavHost(
                         navController = navController,

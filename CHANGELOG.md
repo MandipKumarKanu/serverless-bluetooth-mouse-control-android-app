@@ -8,8 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.2] - 2025-01-16
 
 ### Fixed
-- Fixed reportError() API call (only takes 2 parameters)
-- Windows Bluetooth HID compatibility complete
+- Update dialog now parses markdown changelog into clean format
+- System theme follows device theme by default
+- Material You (dynamic colors) disabled by default
 
 ## [1.8.1] - 2025-01-16
 
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added report ID validation for all HID reports
   - Added pending connection mechanism for registration-complete flow
   - Comprehensive logging for all HID operations
+  - Fixed reportError() API call
 
 ## [1.8.0] - 2025-01-16
 

@@ -30,7 +30,7 @@ data class SettingsEntity(
     val vibrationFeedback: Boolean = true,
     val soundFeedback: Boolean = false,
     val keepScreenAwake: Boolean = true,
-    val themeDark: Boolean = true,
+    val themeDark: Boolean = false, // Follow system theme by default
     val useDynamicColors: Boolean = false
 )
 
