@@ -11,9 +11,9 @@ class GestureRecognizer {
     companion object {
         private const val NUM_POINTS = 64 // Number of points to resample to
         private const val SQUARE_SIZE = 250.0 // Size of the bounding square
-        private const val HALF SQUARE_SIZE = SQUARE_SIZE / 2.0
+        private val HALF_SQUARE_SIZE = SQUARE_SIZE / 2.0
         private const val THRESHOLD = 0.65 // Minimum score to consider a match (0-1)
-        private const val ORIGIN = Point(0.0, 0.0)
+        private val ORIGIN = Point(0.0, 0.0)
     }
 
     /**

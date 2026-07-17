@@ -19,6 +19,7 @@ import com.example.bluetooth.getSafeName
 import com.example.data.AppDatabase
 import com.example.service.AirMouseService
 import com.example.data.ConnectionHistoryEntity
+import com.example.data.GestureEntity
 import com.example.data.SettingsEntity
 import com.example.data.ShortcutEntity
 import com.example.sensor.MotionSensorManager

@@ -7,6 +7,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,13 +25,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.gesture.GestureActions
 import com.example.gesture.GestureEntity
 import com.example.gesture.GesturePoint
 import com.example.viewmodel.AirMouseViewModel
@@ -82,7 +84,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     .height(250.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(2.dp, if (isRecording) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
+                border = CardDefaults.outlinedCardBorder()
             ) {
                 Box(
                     modifier = Modifier
@@ -205,8 +207,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         modifier = Modifier
                             .height(60.dp)
                             .clickable {
-                                // Execute action directly
-                                viewModel.executeGestureAction(action.first)
+                                viewModel.executeGestureAction(action.second)
                             },
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -219,7 +220,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             verticalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                imageVector = action.second,
+                                imageVector = action.third,
                                 contentDescription = action.first,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
@@ -265,7 +266,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             Card(
                                 modifier = Modifier
                                     .clickable {
-                                        selectedAction = action.first
+                                        selectedAction = action.second
                                         // Save gesture and action
                                         if (gestureName.isNotBlank()) {
                                             viewModel.saveGesture(
@@ -273,7 +274,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                                     name = gestureName,
                                                     points = recordedPoints.toString(),
                                                     actionType = "keyboard",
-                                                    actionData = action.first
+                                                    actionData = action.second
                                                 )
                                             )
                                             recordedPoints = emptyList()
@@ -282,7 +283,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                         }
                                     },
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (selectedAction == action.first)
+                                    containerColor = if (selectedAction == action.second)
                                         MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.surfaceVariant
                                 )
@@ -291,7 +292,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                     text = action.first,
                                     modifier = Modifier.padding(12.dp),
                                     fontSize = 12.sp,
-                                    color = if (selectedAction == action.first)
+                                    color = if (selectedAction == action.second)
                                         MaterialTheme.colorScheme.onPrimary
                                     else MaterialTheme.colorScheme.onSurface
                                 )
@@ -314,59 +315,33 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
     }
 }
 
-@Composable
-fun LazyVerticalGrid(
-    columns: GridCells,
-    modifier: Modifier = Modifier,
-    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
-    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
-    content: LazyGridScope.() -> Unit
-) {
-    // Simplified grid implementation
-    LazyColumn(
-        modifier = modifier,
-        verticalArrangement = verticalArrangement
-    ) {
-        content()
-    }
-}
-
-sealed class GridCells {
-    data class Fixed(val count: Int) : GridCells()
-}
-
-interface LazyGridScope {
-    fun item(content: @Composable () -> Unit)
-    fun items(count: Int, itemContent: @Composable (Int) -> Unit)
-}
-
-fun getQuickActions(): List<Pair<String, ImageVector>> {
+fun getQuickActions(): List<Triple<String, String, ImageVector>> {
     return listOf(
-        "Copy" to Icons.Default.ContentCopy,
-        "Paste" to Icons.Default.ContentPaste,
-        "Undo" to Icons.Default.Undo,
-        "Redo" to Icons.Default.Redo,
-        "Vol +" to Icons.Default.VolumeUp,
-        "Vol -" to Icons.Default.VolumeDown,
-        "Play" to Icons.Default.PlayArrow,
-        "Next" to Icons.Default.SkipNext,
-        "Prev" to Icons.Default.SkipPrevious
+        Triple("Copy", "copy", Icons.Default.ContentCopy),
+        Triple("Paste", "paste", Icons.Default.ContentPaste),
+        Triple("Undo", "undo", Icons.Default.Undo),
+        Triple("Redo", "redo", Icons.Default.Redo),
+        Triple("Vol +", "vol_up", Icons.Default.VolumeUp),
+        Triple("Vol -", "vol_down", Icons.Default.VolumeDown),
+        Triple("Play", "play_pause", Icons.Default.PlayArrow),
+        Triple("Next", "next_track", Icons.Default.SkipNext),
+        Triple("Prev", "prev_track", Icons.Default.SkipPrevious)
     )
 }
 
-fun getAssignableActions(): List<Pair<String, ImageVector>> {
+fun getAssignableActions(): List<Pair<String, String>> {
     return listOf(
-        "Copy (Ctrl+C)" to Icons.Default.ContentCopy,
-        "Paste (Ctrl+V)" to Icons.Default.ContentPaste,
-        "Undo (Ctrl+Z)" to Icons.Default.Undo,
-        "Redo (Ctrl+Y)" to Icons.Default.Redo,
-        "Select All" to Icons.Default.SelectAll,
-        "Volume Up" to Icons.Default.VolumeUp,
-        "Volume Down" to Icons.Default.VolumeDown,
-        "Play/Pause" to Icons.Default.PlayArrow,
-        "Next Track" to Icons.Default.SkipNext,
-        "Previous Track" to Icons.Default.SkipPrevious,
-        "Left Click" to Icons.Default.Mouse,
-        "Right Click" to Icons.Default.RightClick
+        "Copy (Ctrl+C)" to "copy",
+        "Paste (Ctrl+V)" to "paste",
+        "Undo (Ctrl+Z)" to "undo",
+        "Redo (Ctrl+Y)" to "redo",
+        "Select All" to "select_all",
+        "Volume Up" to "vol_up",
+        "Volume Down" to "vol_down",
+        "Play/Pause" to "play_pause",
+        "Next Track" to "next_track",
+        "Previous Track" to "prev_track",
+        "Left Click" to "left_click",
+        "Right Click" to "right_click"
     )
 }
