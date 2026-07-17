@@ -65,7 +65,11 @@ class MainActivity : ComponentActivity() {
             }
 
             MyApplicationTheme(
-                darkTheme = settings.themeDark,
+                darkTheme = when (settings.themeMode) {
+                    1 -> false // Light
+                    2 -> true  // Dark
+                    else -> isSystemInDarkTheme() // System Default
+                },
                 dynamicColor = settings.useDynamicColors
             ) {
                 // Show update dialog (inside theme for proper colors)

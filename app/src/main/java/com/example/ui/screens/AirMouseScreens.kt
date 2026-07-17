@@ -3073,28 +3073,67 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
             Text("Appearance", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 15.sp)
 
-            // Dark Theme Toggle
+            // Theme Mode Dropdown
+            var expanded by remember { mutableStateOf(false) }
+            val themeOptions = listOf("System Default", "Light", "Dark")
+            val currentThemeText = themeOptions[settings.themeMode]
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Dark Theme", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Switch between dark and light theme", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    Text("Switch Theme", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Choose theme mode", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
-                Switch(
-                    checked = settings.themeDark,
-                    onCheckedChange = { viewModel.updateSettings(settings.copy(themeDark = it)) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = Color.White,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    modifier = Modifier.testTag("setting_dark_theme")
-                )
+                Box {
+                    OutlinedButton(
+                        onClick = { expanded = true },
+                        modifier = Modifier.testTag("setting_theme_mode")
+                    ) {
+                        Text(currentThemeText, fontSize = 13.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                            contentDescription = "Dropdown",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        themeOptions.forEachIndexed { index, option ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = option,
+                                        color = if (index == settings.themeMode)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.updateSettings(settings.copy(themeMode = index))
+                                    expanded = false
+                                },
+                                leadingIcon = {
+                                    if (index == settings.themeMode) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             // Material You Toggle

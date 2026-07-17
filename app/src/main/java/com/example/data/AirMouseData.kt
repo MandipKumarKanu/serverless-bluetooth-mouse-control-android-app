@@ -30,7 +30,7 @@ data class SettingsEntity(
     val vibrationFeedback: Boolean = true,
     val soundFeedback: Boolean = false,
     val keepScreenAwake: Boolean = true,
-    val themeDark: Boolean = false, // Follow system theme by default
+    val themeMode: Int = 0, // 0=System Default, 1=Light, 2=Dark
     val useDynamicColors: Boolean = false
 )
 
@@ -102,7 +102,7 @@ interface AirMouseDao {
 
 @Database(
     entities = [SettingsEntity::class, ShortcutEntity::class, ConnectionHistoryEntity::class, GestureEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -147,6 +147,15 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Rename themeDark to themeMode and convert: false(0) -> 0(System), true(2) -> 2(Dark)
+                db.execSQL("ALTER TABLE settings ADD COLUMN themeMode INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE settings SET themeMode = CASE WHEN themeDark = 1 THEN 2 ELSE 0 END")
+                db.execSQL("ALTER TABLE settings DROP COLUMN themeDark")
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -154,7 +163,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "air_mouse_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
