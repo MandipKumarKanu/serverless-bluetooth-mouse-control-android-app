@@ -38,6 +38,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
     var isRecording by remember { mutableStateOf(false) }
+    var isRegistering by remember { mutableStateOf(false) } // Registration mode
     var recordedPoints by remember { mutableStateOf<List<GesturePoint>>(emptyList()) }
     var showAssignDialog by remember { mutableStateOf(false) }
     var selectedAction by remember { mutableStateOf("") }
@@ -84,13 +85,51 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Instructions
-            Text(
-                text = "Draw a gesture → It triggers if matched, or save as new",
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
+            // Mode indicator
+            if (isRegistering) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(
+                        text = "📝 REGISTER MODE — Draw gesture to register",
+                        modifier = Modifier.padding(10.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+
+            // Register Gesture Button
+            Button(
+                onClick = {
+                    isRegistering = true
+                    recordedPoints = emptyList()
+                    recognitionStatus = null
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isRegistering) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Icon(
+                    imageVector = if (isRegistering) Icons.Default.Check else Icons.Default.Add,
+                    contentDescription = "Register",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isRegistering) "Drawing... (draw gesture below)" else "Register New Gesture",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Recognition status feedback
             recognitionStatus?.let { status ->
@@ -138,25 +177,30 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 onDragEnd = {
                                     isRecording = false
                                     if (recordedPoints.size > 10) {
-                                        // Try to recognize the gesture
-                                        val templates = savedGestures.associate { gesture ->
-                                            gesture.name to parsePoints(gesture.points)
-                                        }
-
-                                        val result = gestureRecognizer.recognize(recordedPoints, templates)
-
-                                        if (result != null) {
-                                            // Found a match - trigger the action
-                                            val matchedGesture = savedGestures.find { it.name == result.first }
-                                            if (matchedGesture != null) {
-                                                lastMatchedAction = matchedGesture.actionData
-                                                recognitionStatus = "✓ Matched: ${matchedGesture.name}"
-                                                viewModel.executeGestureAction(matchedGesture.actionData)
-                                            }
-                                        } else {
-                                            // No match - show assign dialog
-                                            lastMatchedAction = null
+                                        if (isRegistering) {
+                                            // In register mode - show assign dialog
                                             showAssignDialog = true
+                                        } else {
+                                            // In normal mode - try to recognize
+                                            val templates = savedGestures.associate { gesture ->
+                                                gesture.name to parsePoints(gesture.points)
+                                            }
+
+                                            val result = gestureRecognizer.recognize(recordedPoints, templates)
+
+                                            if (result != null) {
+                                                // Found a match - trigger the action
+                                                val matchedGesture = savedGestures.find { it.name == result.first }
+                                                if (matchedGesture != null) {
+                                                    lastMatchedAction = matchedGesture.actionData
+                                                    recognitionStatus = "✓ Matched: ${matchedGesture.name}"
+                                                    viewModel.executeGestureAction(matchedGesture.actionData)
+                                                }
+                                            } else {
+                                                // No match
+                                                lastMatchedAction = null
+                                                recognitionStatus = "No match found. Tap 'Register New Gesture' to save."
+                                            }
                                         }
                                     }
                                 },
@@ -256,7 +300,9 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
                     // Save as new gesture button
                     Button(
-                        onClick = { showAssignDialog = true },
+                        onClick = {
+                            showAssignDialog = true
+                        },
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(Icons.Default.Save, contentDescription = "Save", modifier = Modifier.size(18.dp))
@@ -499,6 +545,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             gestureName = ""
                             selectedAction = ""
                             showAssignDialog = false
+                            isRegistering = false
                             recognitionStatus = "✓ Gesture saved!"
                         }
                     },

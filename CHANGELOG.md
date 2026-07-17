@@ -5,6 +5,18 @@ All notable changes to AirMouse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2025-01-16
+
+### Added
+- **Register Gesture button** — Clear button to enter registration mode
+- Blue indicator shows when in register mode
+- Clear flow: Register → Draw → Save → Done
+
+### Fixed
+- Gesture recognition now works properly
+- Saved gestures list with tap-to-execute
+- Better UX with visual feedback
+
 ## [1.7.1] - 2025-01-16
 
 ### Fixed
