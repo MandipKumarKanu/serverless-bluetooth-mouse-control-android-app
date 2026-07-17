@@ -5,6 +5,22 @@ All notable changes to AirMouse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2025-01-16
+
+### Fixed
+- **Windows Bluetooth HID Compatibility** — Device now recognized on Windows
+  - Updated HID descriptor for Windows compliance
+  - Fixed SDP settings (provider name, subclass)
+  - Added Windows-compatible callbacks (onGetReport, onSetProtocol, onVirtualCableUnplug)
+  - Added report validation for mouse/keyboard/consumer input
+  - Added registration check before connection
+  - Enhanced logging for debugging
+
+### Added
+- Comprehensive Bluetooth HID logging throughout lifecycle
+- Report validation for mouse buttons, X/Y values, scroll
+- Windows protocol negotiation handlers
+
 ## [1.7.2] - 2025-01-16
 
 ### Added

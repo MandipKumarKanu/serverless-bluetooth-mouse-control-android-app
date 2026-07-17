@@ -109,8 +109,11 @@ class BluetoothHidManager private constructor(context: Context) {
         }
 
         // Combined Keyboard, Mouse, and Consumer Control HID Descriptor
+        // Updated for Windows compatibility
         private val HID_DESCRIPTOR = byteArrayOf(
-            // Keyboard (Report ID 1)
+            // =====================================================================
+            // KEYBOARD (Report ID 1) - Standard Boot Keyboard
+            // =====================================================================
             0x05.toByte(), 0x01.toByte(),       // USAGE_PAGE (Generic Desktop)
             0x09.toByte(), 0x06.toByte(),       // USAGE (Keyboard)
             0xa1.toByte(), 0x01.toByte(),       // COLLECTION (Application)
@@ -149,7 +152,9 @@ class BluetoothHidManager private constructor(context: Context) {
             0x81.toByte(), 0x00.toByte(),       //   INPUT (Data,Ary,Abs) - Key codes
             0xc0.toByte(),                      // END_COLLECTION
 
-            // Mouse (Report ID 2)
+            // =====================================================================
+            // MOUSE (Report ID 2) - Standard Boot Mouse
+            // =====================================================================
             0x05.toByte(), 0x01.toByte(),       // USAGE_PAGE (Generic Desktop)
             0x09.toByte(), 0x02.toByte(),       // USAGE (Mouse)
             0xa1.toByte(), 0x01.toByte(),       // COLLECTION (Application)
@@ -193,7 +198,9 @@ class BluetoothHidManager private constructor(context: Context) {
             0xc0.toByte(),                      //   END_COLLECTION
             0xc0.toByte(),                      // END_COLLECTION
 
-            // Consumer Control (Report ID 3 - Volume/Media Keys)
+            // =====================================================================
+            // CONSUMER CONTROL (Report ID 3) - Media keys
+            // =====================================================================
             0x05.toByte(), 0x0c.toByte(),       // USAGE_PAGE (Consumer Devices)
             0x09.toByte(), 0x01.toByte(),       // USAGE (Consumer Control)
             0xa1.toByte(), 0x01.toByte(),       // COLLECTION (Application)
@@ -202,7 +209,7 @@ class BluetoothHidManager private constructor(context: Context) {
             0x25.toByte(), 0x01.toByte(),       //   LOGICAL_MAXIMUM (1)
             0x75.toByte(), 0x01.toByte(),       //   REPORT_SIZE (1)
 
-            // Key Definitions: Volume Up, Down, Mute, Play/Pause, Next Track, Prev Track, Power, Home
+            // Key Definitions
             0x09.toByte(), 0xe9.toByte(),       //   USAGE (Volume Up)
             0x09.toByte(), 0xea.toByte(),       //   USAGE (Volume Down)
             0x09.toByte(), 0xe2.toByte(),       //   USAGE (Mute)
@@ -210,7 +217,7 @@ class BluetoothHidManager private constructor(context: Context) {
             0x09.toByte(), 0xb5.toByte(),       //   USAGE (Scan Next Track)
             0x09.toByte(), 0xb6.toByte(),       //   USAGE (Scan Previous Track)
             0x09.toByte(), 0x30.toByte(),       //   USAGE (Power)
-            0x09.toByte(), 0x40.toByte(),       //   USAGE (Menu) - fallback home/menu
+            0x09.toByte(), 0x40.toByte(),       //   USAGE (Menu)
 
             0x95.toByte(), 0x08.toByte(),       //   REPORT_COUNT (8)
             0x81.toByte(), 0x02.toByte(),       //   INPUT (Data,Var,Abs)
@@ -261,24 +268,42 @@ class BluetoothHidManager private constructor(context: Context) {
         }, BluetoothProfile.HID_DEVICE)
     }
 
+    // Enhanced callback with Windows-compatible handlers
     private val mCallback = @SuppressLint("NewApi") object : BluetoothHidDevice.Callback() {
         override fun onAppStatusChanged(pluggedDevice: BluetoothDevice?, registered: Boolean) {
             super.onAppStatusChanged(pluggedDevice, registered)
-            Log.d(TAG, "onAppStatusChanged: registered=$registered, device=${pluggedDevice?.getSafeName()}")
+            Log.d(TAG, "onAppStatusChanged: registered=$registered, device=${pluggedDevice?.getSafeName()} [${pluggedDevice?.address}]")
             _isAppRegistered.value = registered
             isRegistered = registered
+
+            if (registered) {
+                Log.d(TAG, "=== HID APP REGISTERED SUCCESSFULLY ===")
+                Log.d(TAG, "Device should now appear as HID in Bluetooth settings")
+            } else {
+                Log.w(TAG, "HID app registration failed or was unregistered")
+            }
         }
 
         override fun onConnectionStateChanged(device: BluetoothDevice?, state: Int) {
             super.onConnectionStateChanged(device, state)
-            Log.d(TAG, "onConnectionStateChanged: device=${device?.getSafeName()}, state=$state")
+            val stateStr = when (state) {
+                BluetoothProfile.STATE_DISCONNECTED -> "DISCONNECTED"
+                BluetoothProfile.STATE_CONNECTING -> "CONNECTING"
+                BluetoothProfile.STATE_CONNECTED -> "CONNECTED"
+                BluetoothProfile.STATE_DISCONNECTING -> "DISCONNECTING"
+                else -> "UNKNOWN($state)"
+            }
+            Log.d(TAG, "onConnectionStateChanged: device=${device?.getSafeName()} [${device?.address}], state=$stateStr")
+
             _connectionState.value = state
 
             when (state) {
                 BluetoothProfile.STATE_CONNECTED -> {
                     _connectedDevice.value = device
                     isConnecting = false
-                    Log.d(TAG, "Connected to: ${device?.getSafeName()}")
+                    Log.d(TAG, "=== CONNECTION ESTABLISHED ===")
+                    Log.d(TAG, "Device: ${device?.getSafeName()}")
+                    Log.d(TAG, "Address: ${device?.address}")
                 }
                 BluetoothProfile.STATE_CONNECTING -> {
                     isConnecting = true
@@ -294,37 +319,110 @@ class BluetoothHidManager private constructor(context: Context) {
                 }
             }
         }
+
+        // Handle GetReport - Windows may request current state
+        override fun onGetReport(device: BluetoothDevice?, type: Byte, reportId: Byte, bufferSize: Int) {
+            super.onGetReport(device, type, reportId, bufferSize)
+            Log.d(TAG, "onGetReport: device=${device?.getSafeName()}, type=$type, reportId=$reportId, bufferSize=$bufferSize")
+
+            // Respond with empty report to satisfy Windows
+            val profile = hidDeviceProfile ?: return
+            try {
+                when (reportId) {
+                    1.toByte() -> {
+                        // Keyboard report - 8 bytes
+                        profile.sendReport(device, 1, ByteArray(8))
+                    }
+                    2.toByte() -> {
+                        // Mouse report - 4 bytes
+                        profile.sendReport(device, 2, ByteArray(4))
+                    }
+                    3.toByte() -> {
+                        // Consumer control report - 1 byte
+                        profile.sendReport(device, 3, ByteArray(1))
+                    }
+                }
+                Log.d(TAG, "onGetReport: Responded with empty report for reportId=$reportId")
+            } catch (e: Exception) {
+                Log.e(TAG, "onGetReport: Error sending response", e)
+            }
+        }
+
+        // Handle SetReport - Windows may send LED state
+        override fun onSetReport(device: BluetoothDevice?, type: Byte, reportId: Byte, data: ByteArray?) {
+            super.onSetReport(device, type, reportId, data)
+            Log.d(TAG, "onSetReport: device=${device?.getSafeName()}, type=$type, reportId=$reportId, data=${data?.contentToString()}")
+            // ACK the report
+            val profile = hidDeviceProfile ?: return
+            try {
+                profile.reportError(device, reportId, BluetoothHidDevice.REPORT_MODE_SUCCESS)
+            } catch (e: Exception) {
+                Log.e(TAG, "onSetReport: Error sending ACK", e)
+            }
+        }
+
+        // Handle SetProtocol - Windows negotiates boot protocol
+        override fun onSetProtocol(device: BluetoothDevice?, protocol: Byte) {
+            super.onSetProtocol(device, protocol)
+            Log.d(TAG, "onSetProtocol: device=${device?.getSafeName()}, protocol=$protocol (0=Boot, 1=Report)")
+            // Windows may request Boot protocol (0) - we acknowledge but continue using Report protocol
+        }
+
+        // Handle VirtualCableUnplug - Windows may unplug virtually
+        override fun onVirtualCableUnplug(device: BluetoothDevice?) {
+            super.onVirtualCableUnplug(device)
+            Log.d(TAG, "onVirtualCableUnplug: device=${device?.getSafeName()}")
+            _connectedDevice.value = null
+            _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
+            isConnecting = false
+        }
     }
 
     @SuppressLint("NewApi")
     fun registerApp() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            Log.e(TAG, "registerApp: SDK too low (${Build.VERSION.SDK_INT})")
+            return
+        }
         val profile = hidDeviceProfile
         if (profile == null) {
+            Log.e(TAG, "registerApp: HID profile is null, reinitializing...")
             initializeHidProfile()
             return
         }
-        if (isRegistered) return
+        if (isRegistered) {
+            Log.d(TAG, "registerApp: Already registered, skipping")
+            return
+        }
 
+        Log.d(TAG, "registerApp: Creating SDP settings...")
+        Log.d(TAG, "  Name: AirMouse")
+        Log.d(TAG, "  Description: Wireless HID Controller")
+        Log.d(TAG, "  Provider: Generic HID Device")
+        Log.d(TAG, "  Subclass: 0x00 (None - let host decide)")
+        Log.d(TAG, "  Descriptor size: ${HID_DESCRIPTOR.size} bytes")
+
+        // Windows-compatible SDP settings
         val sdpSettings = BluetoothHidDeviceAppSdpSettings(
-            "AirMouse",
-            "Serverless Air Mouse Remote",
-            "Android HID Device",
-            0xC0.toByte(), // Subclass: Peripheral (Combo Keyboard/Pointer)
+            "AirMouse",                          // Name
+            "Wireless HID Controller",           // Description
+            "Generic HID Device",               // Provider - avoid "Android"
+            0x00.toByte(),                      // Subclass: None
             HID_DESCRIPTOR
         )
 
         try {
+            Log.d(TAG, "registerApp: Calling profile.registerApp()...")
             val registered = profile.registerApp(
                 sdpSettings,
                 null,
                 null,
-                scheduledExecutor, // Reuse single executor
+                scheduledExecutor,
                 mCallback
             )
-            Log.d(TAG, "registerApp attempt: success=$registered")
+            Log.d(TAG, "registerApp: registerApp() returned: $registered")
         } catch (e: Exception) {
-            Log.e(TAG, "Error registering HID app", e)
+            Log.e(TAG, "registerApp: Exception during registration", e)
         }
     }
 
@@ -381,16 +479,29 @@ class BluetoothHidManager private constructor(context: Context) {
             return false
         }
 
+        // Guard: Ensure app is registered before connecting (Windows requirement)
+        if (!isRegistered) {
+            Log.w(TAG, "App not registered, attempting registration first")
+            registerApp()
+            // Delay connection to allow registration to complete
+            scheduledExecutor.schedule({
+                connectHost(device)
+            }, 1, TimeUnit.SECONDS)
+            return false
+        }
+
         lastConnectAttemptTime = now
         isConnecting = true
         Log.d(TAG, "Connecting to host: ${device.getSafeName()} [${device.address}]")
 
         initializeHidProfile {
             try {
+                Log.d(TAG, "Attempting connection...")
                 val connected = hidDeviceProfile?.connect(device)
                 Log.d(TAG, "connectHost result: $connected")
                 if (connected != true) {
                     isConnecting = false
+                    Log.w(TAG, "Connection attempt returned false")
                 }
             } catch (e: SecurityException) {
                 Log.e(TAG, "SecurityException connecting to host", e)
@@ -439,8 +550,20 @@ class BluetoothHidManager private constructor(context: Context) {
         val profile = hidDeviceProfile ?: return false
         val device = _connectedDevice.value ?: return false
 
-        val data = byteArrayOf(buttons, dx, dy, scroll)
-        return profile.sendReport(device, 2, data)
+        // Validate and clamp values
+        val validDx = dx.coerceIn(-127, 127)
+        val validDy = dy.coerceIn(-127, 127)
+        val validScroll = scroll.coerceIn(-127, 127)
+        val validButtons = (buttons.toInt() and 0x1F).toByte() // Only lower 5 bits
+
+        val data = byteArrayOf(validButtons, validDx.toByte(), validDy.toByte(), validScroll.toByte())
+        Log.v(TAG, "sendMouseInput: buttons=$validButtons, dx=$validDx, dy=$validDy, scroll=$validScroll")
+
+        val result = profile.sendReport(device, 2, data)
+        if (!result) {
+            Log.w(TAG, "sendMouseInput: sendReport failed - device may be disconnected")
+        }
+        return result
     }
 
     // --- KEYBOARD TRANSMISSION ---
@@ -460,7 +583,12 @@ class BluetoothHidManager private constructor(context: Context) {
             fullReport[2 + i] = keyCodes[i]
         }
 
-        return profile.sendReport(device, 1, fullReport)
+        Log.v(TAG, "sendKeyboardInput: modifiers=$modifiers, keyCodes=${keyCodes.contentToString()}")
+        val result = profile.sendReport(device, 1, fullReport)
+        if (!result) {
+            Log.w(TAG, "sendKeyboardInput: sendReport failed")
+        }
+        return result
     }
 
     // Sends a key press followed immediately by key release
@@ -479,6 +607,7 @@ class BluetoothHidManager private constructor(context: Context) {
         val device = _connectedDevice.value ?: return false
 
         val data = byteArrayOf(keys)
+        Log.v(TAG, "sendConsumerInput: keys=$keys")
         val success = profile.sendReport(device, 3, data)
 
         // Release immediate key-press after volume or control command to mimic keyboard tap release
