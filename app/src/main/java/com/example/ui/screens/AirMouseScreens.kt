@@ -554,19 +554,70 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Paired Host Devices",
+                        text = if (isConnected) "Connected Device" else "Paired Host Devices",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(start = 4.dp)
                     )
-                    TextButton(onClick = { viewModel.refreshPairedDevices() }) {
-                        Text("Scan Bonded", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    if (!isConnected) {
+                        TextButton(onClick = { viewModel.refreshPairedDevices() }) {
+                            Text("Scan Bonded", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
 
-            if (pairedDevices.isEmpty()) {
+            // When connected, show only the connected device in compact form
+            if (isConnected && connectedDevice != null) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.disconnectDevice() }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.BluetoothConnected,
+                                    contentDescription = "Connected",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = connectedDevice?.getSafeName() ?: "Unknown Device",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Tap to disconnect",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                                Text("ACTIVE", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.padding(2.dp))
+                            }
+                        }
+                    }
+                }
+            } else if (pairedDevices.isEmpty()) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -596,7 +647,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         }
                     }
                 }
-            } else {
+            } else if (!isConnected) {
                 items(pairedDevices) { device ->
                     val isConnecting = viewModel.hidManager.connectedDevice.value == device && connectionState == BluetoothProfile.STATE_CONNECTING
                     val isThisConnected = viewModel.hidManager.connectedDevice.value == device && connectionState == BluetoothProfile.STATE_CONNECTED
