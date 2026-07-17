@@ -34,6 +34,7 @@ import com.example.ui.screens.SplashScreen
 import com.example.ui.screens.TouchpadScreen
 import com.example.ui.screens.UpdateDialog
 import com.example.ui.theme.MyApplicationTheme
+import com.example.service.AirMouseService
 import com.example.update.UpdateChecker
 import com.example.update.UpdateInfo
 import com.example.viewmodel.AirMouseViewModel
@@ -160,5 +161,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Stop the foreground service when app is swiped away from recent apps
+        AirMouseService.stopService(this)
     }
 }
