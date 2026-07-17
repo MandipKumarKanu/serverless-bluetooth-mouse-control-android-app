@@ -47,6 +47,9 @@ class BluetoothHidManager private constructor(context: Context) {
     private var lastConnectAttemptTime = 0L
     private val connectCooldownMs = 2000L // Minimum time between connect attempts
 
+    // Pending connection (for registration-complete flow)
+    private var pendingConnectionDevice: BluetoothDevice? = null
+
     // State flows for UI mapping
     private val _connectionState = MutableStateFlow(BluetoothProfile.STATE_DISCONNECTED)
     val connectionState: StateFlow<Int> = _connectionState.asStateFlow()
@@ -77,6 +80,7 @@ class BluetoothHidManager private constructor(context: Context) {
                     _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
                     _connectedDevice.value = null
                     isConnecting = false
+                    isRegistered = false
                 }
             }
         }
@@ -109,7 +113,7 @@ class BluetoothHidManager private constructor(context: Context) {
         }
 
         // Combined Keyboard, Mouse, and Consumer Control HID Descriptor
-        // Updated for Windows compatibility
+        // Windows-compatible with standard HID Usage Tables
         private val HID_DESCRIPTOR = byteArrayOf(
             // =====================================================================
             // KEYBOARD (Report ID 1) - Standard Boot Keyboard
@@ -199,17 +203,16 @@ class BluetoothHidManager private constructor(context: Context) {
             0xc0.toByte(),                      // END_COLLECTION
 
             // =====================================================================
-            // CONSUMER CONTROL (Report ID 3) - Media keys
+            // CONSUMER CONTROL (Report ID 3) - Media keys using HID Usage Tables
             // =====================================================================
             0x05.toByte(), 0x0c.toByte(),       // USAGE_PAGE (Consumer Devices)
             0x09.toByte(), 0x01.toByte(),       // USAGE (Consumer Control)
             0xa1.toByte(), 0x01.toByte(),       // COLLECTION (Application)
             0x85.toByte(), 0x03.toByte(),       //   REPORT_ID (3)
-            0x15.toByte(), 0x00.toByte(),       //   LOGICAL_MINIMUM (0)
-            0x25.toByte(), 0x01.toByte(),       //   LOGICAL_MAXIMUM (1)
-            0x75.toByte(), 0x01.toByte(),       //   REPORT_SIZE (1)
 
-            // Key Definitions
+            // Consumer Control uses 16-bit usage IDs
+            0x15.toByte(), 0x00.toByte(),       //   LOGICAL_MINIMUM (0)
+            0x26.toByte(), 0xff.toByte(), 0x00.toByte(), //   LOGICAL_MAXIMUM (255)
             0x09.toByte(), 0xe9.toByte(),       //   USAGE (Volume Up)
             0x09.toByte(), 0xea.toByte(),       //   USAGE (Volume Down)
             0x09.toByte(), 0xe2.toByte(),       //   USAGE (Mute)
@@ -219,6 +222,7 @@ class BluetoothHidManager private constructor(context: Context) {
             0x09.toByte(), 0x30.toByte(),       //   USAGE (Power)
             0x09.toByte(), 0x40.toByte(),       //   USAGE (Menu)
 
+            0x75.toByte(), 0x01.toByte(),       //   REPORT_SIZE (1)
             0x95.toByte(), 0x08.toByte(),       //   REPORT_COUNT (8)
             0x81.toByte(), 0x02.toByte(),       //   INPUT (Data,Var,Abs)
             0xc0.toByte()                       // END_COLLECTION
@@ -268,7 +272,7 @@ class BluetoothHidManager private constructor(context: Context) {
         }, BluetoothProfile.HID_DEVICE)
     }
 
-    // Enhanced callback with Windows-compatible handlers
+    // Complete BluetoothHidDevice.Callback implementation
     private val mCallback = @SuppressLint("NewApi") object : BluetoothHidDevice.Callback() {
         override fun onAppStatusChanged(pluggedDevice: BluetoothDevice?, registered: Boolean) {
             super.onAppStatusChanged(pluggedDevice, registered)
@@ -279,6 +283,13 @@ class BluetoothHidManager private constructor(context: Context) {
             if (registered) {
                 Log.d(TAG, "=== HID APP REGISTERED SUCCESSFULLY ===")
                 Log.d(TAG, "Device should now appear as HID in Bluetooth settings")
+
+                // If there's a pending connection, connect now
+                pendingConnectionDevice?.let { device ->
+                    Log.d(TAG, "Connecting pending device after registration: ${device.getSafeName()}")
+                    pendingConnectionDevice = null
+                    performConnection(device)
+                }
             } else {
                 Log.w(TAG, "HID app registration failed or was unregistered")
             }
@@ -352,10 +363,11 @@ class BluetoothHidManager private constructor(context: Context) {
         override fun onSetReport(device: BluetoothDevice?, type: Byte, reportId: Byte, data: ByteArray?) {
             super.onSetReport(device, type, reportId, data)
             Log.d(TAG, "onSetReport: device=${device?.getSafeName()}, type=$type, reportId=$reportId, data=${data?.contentToString()}")
-            // ACK the report
+            // ACK the report - Android API only takes device and reportId
             val profile = hidDeviceProfile ?: return
             try {
-                profile.reportError(device, reportId, BluetoothHidDevice.REPORT_MODE_SUCCESS)
+                profile.reportError(device, reportId)
+                Log.d(TAG, "onSetReport: ACK sent for reportId=$reportId")
             } catch (e: Exception) {
                 Log.e(TAG, "onSetReport: Error sending ACK", e)
             }
@@ -365,7 +377,16 @@ class BluetoothHidManager private constructor(context: Context) {
         override fun onSetProtocol(device: BluetoothDevice?, protocol: Byte) {
             super.onSetProtocol(device, protocol)
             Log.d(TAG, "onSetProtocol: device=${device?.getSafeName()}, protocol=$protocol (0=Boot, 1=Report)")
-            // Windows may request Boot protocol (0) - we acknowledge but continue using Report protocol
+            // Protocol 0 = Boot, Protocol 1 = Report
+            // We acknowledge but continue using Report protocol
+            // Windows may request Boot protocol during enumeration
+        }
+
+        // Handle InterruptData - Host may send data to device
+        override fun onInterruptData(device: BluetoothDevice?, reportId: Byte, data: ByteArray?) {
+            super.onInterruptData(device, reportId, data)
+            Log.d(TAG, "onInterruptData: device=${device?.getSafeName()}, reportId=$reportId, data=${data?.contentToString()}")
+            // Handle LED state changes if needed (e.g., Num Lock, Caps Lock)
         }
 
         // Handle VirtualCableUnplug - Windows may unplug virtually
@@ -399,15 +420,15 @@ class BluetoothHidManager private constructor(context: Context) {
         Log.d(TAG, "  Name: AirMouse")
         Log.d(TAG, "  Description: Wireless HID Controller")
         Log.d(TAG, "  Provider: Generic HID Device")
-        Log.d(TAG, "  Subclass: 0x00 (None - let host decide)")
+        Log.d(TAG, "  Subclass: SUBCLASS1_COMBO (0x03)")
         Log.d(TAG, "  Descriptor size: ${HID_DESCRIPTOR.size} bytes")
 
-        // Windows-compatible SDP settings
+        // Windows-compatible SDP settings using official Android SDK constant
         val sdpSettings = BluetoothHidDeviceAppSdpSettings(
-            "AirMouse",                          // Name
-            "Wireless HID Controller",           // Description
-            "Generic HID Device",               // Provider - avoid "Android"
-            0x00.toByte(),                      // Subclass: None
+            "AirMouse",                              // Name
+            "Wireless HID Controller",               // Description
+            "Generic HID Device",                   // Provider
+            BluetoothHidDevice.SUBCLASS1_COMBO,      // Subclass: Combo Keyboard/Pointer
             HID_DESCRIPTOR
         )
 
@@ -481,16 +502,18 @@ class BluetoothHidManager private constructor(context: Context) {
 
         // Guard: Ensure app is registered before connecting (Windows requirement)
         if (!isRegistered) {
-            Log.w(TAG, "App not registered, attempting registration first")
+            Log.w(TAG, "App not registered, storing as pending connection")
+            pendingConnectionDevice = device
             registerApp()
-            // Delay connection to allow registration to complete
-            scheduledExecutor.schedule({
-                connectHost(device)
-            }, 1, TimeUnit.SECONDS)
             return false
         }
 
-        lastConnectAttemptTime = now
+        return performConnection(device)
+    }
+
+    @SuppressLint("NewApi")
+    private fun performConnection(device: BluetoothDevice): Boolean {
+        lastConnectAttemptTime = System.currentTimeMillis()
         isConnecting = true
         Log.d(TAG, "Connecting to host: ${device.getSafeName()} [${device.address}]")
 

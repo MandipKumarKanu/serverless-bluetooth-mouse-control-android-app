@@ -5,6 +5,24 @@ All notable changes to AirMouse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2] - 2025-01-16
+
+### Fixed
+- Fixed reportError() API call (only takes 2 parameters)
+- Windows Bluetooth HID compatibility complete
+
+## [1.8.1] - 2025-01-16
+
+### Fixed
+- **Windows Bluetooth HID Compatibility** — Complete implementation per PRD
+  - Replaced hardcoded subclass with `BluetoothHidDevice.SUBCLASS1_COMBO`
+  - Added all required HID callbacks (onGetReport, onSetReport, onSetProtocol, onInterruptData, onVirtualCableUnplug)
+  - Fixed registration flow - connectHost() now waits for registration to complete
+  - Updated Consumer Control descriptor for Windows compatibility
+  - Added report ID validation for all HID reports
+  - Added pending connection mechanism for registration-complete flow
+  - Comprehensive logging for all HID operations
+
 ## [1.8.0] - 2025-01-16
 
 ### Fixed
