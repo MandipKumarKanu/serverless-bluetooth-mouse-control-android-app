@@ -465,13 +465,13 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                         Box(
                                             modifier = Modifier
                                                 .size(40.dp)
-                                                .background(tile1.color.copy(alpha = 0.15f), CircleShape),
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = tile1.icon,
                                                 contentDescription = tile1.title,
-                                                tint = tile1.color,
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }
@@ -510,13 +510,13 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                             Box(
                                                 modifier = Modifier
                                                     .size(40.dp)
-                                                    .background(tile2.color.copy(alpha = 0.15f), CircleShape),
+                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
                                                     imageVector = tile2.icon,
                                                     contentDescription = tile2.title,
-                                                    tint = tile2.color,
+                                                    tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                             }
@@ -3299,7 +3299,7 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = statusText,
-                color = if (isConnected) MaterialTheme.colorScheme.onPrimary else contentColor,
+                color = if (isConnected || !isBluetoothPowerOn) Color.White else contentColor,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
