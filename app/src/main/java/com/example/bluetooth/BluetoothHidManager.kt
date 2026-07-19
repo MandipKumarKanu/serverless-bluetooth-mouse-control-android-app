@@ -20,12 +20,75 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
+data class ScannedDevice(
+    val device: BluetoothDevice,
+    val rssi: Int
+)
+
 @SuppressLint("MissingPermission")
 fun BluetoothDevice.getSafeName(): String {
     return try {
         this.name ?: "Unknown Device"
     } catch (e: SecurityException) {
         "Device"
+    }
+}
+
+@SuppressLint("MissingPermission")
+fun BluetoothDevice.isComputer(): Boolean {
+    return try {
+        val bc = this.bluetoothClass
+        bc != null && bc.majorDeviceClass == 256
+    } catch (e: SecurityException) {
+        false
+    }
+}
+
+@SuppressLint("MissingPermission")
+fun BluetoothDevice.isHidCompatibleHost(): Boolean {
+    return try {
+        val name = this.name
+        if (name.isNullOrBlank()) {
+            return false
+        }
+
+        val bluetoothClass = this.bluetoothClass ?: return true // Safe fallback
+        val majorClass = bluetoothClass.majorDeviceClass
+        val deviceClass = bluetoothClass.deviceClass
+
+        // Filter out known non-HID major classes
+        // 1792 = WEARABLE, 2304 = HEALTH, 2048 = TOY, 1536 = IMAGING
+        when (majorClass) {
+            1792, 2304, 2048, 1536 -> return false
+        }
+
+        if (majorClass == 1024) { // AUDIO_VIDEO
+            // Filter out headsets, speakers, headphones, portable/car/hi-fi audio
+            val nonHidAudioClasses = setOf(
+                1028, // WEARABLE_HEADSET
+                1032, // HANDSFREE
+                1040, // MICROPHONE
+                1044, // LOUDSPEAKER
+                1048, // HEADPHONES
+                1052, // PORTABLE_AUDIO
+                1056, // CAR_AUDIO
+                1064  // HIFI_AUDIO
+            )
+            if (deviceClass in nonHidAudioClasses) {
+                return false
+            }
+
+            // Filter out common audio device names in case of weird classes
+            val nameLower = name.lowercase()
+            if (nameLower.contains("speaker") || nameLower.contains("buds") || nameLower.contains("earphone") || 
+                nameLower.contains("headphone") || nameLower.contains("headset") || nameLower.contains("watch") || 
+                nameLower.contains("fitbit") || nameLower.contains("band")) {
+                return false
+            }
+        }
+        true
+    } catch (e: SecurityException) {
+        false
     }
 }
 
@@ -66,21 +129,55 @@ class BluetoothHidManager private constructor(context: Context) {
     private val _isBluetoothEnabled = MutableStateFlow(bluetoothAdapter?.isEnabled ?: false)
     val isBluetoothEnabledFlow: StateFlow<Boolean> = _isBluetoothEnabled.asStateFlow()
 
+    private val _scannedDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
+    val scannedDevices: StateFlow<List<ScannedDevice>> = _scannedDevices.asStateFlow()
+
+    private val _isScanning = MutableStateFlow(false)
+    val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
+    private val _bondedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
+    val bondedDevices: StateFlow<List<BluetoothDevice>> = _bondedDevices.asStateFlow()
+
+    private var discoveryReceiver: BroadcastReceiver? = null
+
     private val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
-                val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
-                _isBluetoothEnabled.value = (state == BluetoothAdapter.STATE_ON)
-                if (state == BluetoothAdapter.STATE_ON) {
-                    initializeHidProfile()
-                } else if (state == BluetoothAdapter.STATE_OFF) {
-                    // Reset state when Bluetooth is turned off
-                    _isProfileReady.value = false
-                    _isAppRegistered.value = false
-                    _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
-                    _connectedDevice.value = null
-                    isConnecting = false
-                    isRegistered = false
+            when (intent.action) {
+                BluetoothAdapter.ACTION_STATE_CHANGED -> {
+                    val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+                    _isBluetoothEnabled.value = (state == BluetoothAdapter.STATE_ON)
+                    if (state == BluetoothAdapter.STATE_ON) {
+                        initializeHidProfile()
+                        _bondedDevices.value = getBondedDevices()
+                    } else if (state == BluetoothAdapter.STATE_OFF) {
+                        // Reset state when Bluetooth is turned off
+                        _isProfileReady.value = false
+                        _isAppRegistered.value = false
+                        _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
+                        _connectedDevice.value = null
+                        isConnecting = false
+                        isRegistered = false
+                        _isScanning.value = false
+                        _scannedDevices.value = emptyList()
+                        _bondedDevices.value = emptyList()
+                    }
+                }
+                BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
+                    val state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR)
+                    val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    }
+                    if (device != null) {
+                        if (state == BluetoothDevice.BOND_BONDED) {
+                            // Remove from scanned list since it is now paired
+                            _scannedDevices.value = _scannedDevices.value.filter { it.device.address != device.address }
+                        }
+                        // Always update bonded devices on bond state changes
+                        _bondedDevices.value = getBondedDevices()
+                    }
                 }
             }
         }
@@ -88,11 +185,13 @@ class BluetoothHidManager private constructor(context: Context) {
 
     init {
         initializeHidProfile()
+        _bondedDevices.value = getBondedDevices()
         try {
-            appContext.registerReceiver(
-                bluetoothReceiver,
-                IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
-            )
+            val filter = IntentFilter().apply {
+                addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+                addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+            }
+            appContext.registerReceiver(bluetoothReceiver, filter)
         } catch (e: Exception) {
             Log.e(TAG, "Error registering bluetoothReceiver", e)
         }
@@ -329,6 +428,11 @@ class BluetoothHidManager private constructor(context: Context) {
                     Log.d(TAG, "Disconnecting from: ${device?.getSafeName()}")
                 }
             }
+            try {
+                com.example.widget.AirMouseWidgetReceiver.updateAllWidgets(appContext)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to update widget: ${e.message}")
+            }
         }
 
         // Handle GetReport - Windows may request current state
@@ -339,21 +443,14 @@ class BluetoothHidManager private constructor(context: Context) {
             // Respond with empty report to satisfy Windows
             val profile = hidDeviceProfile ?: return
             try {
-                when (reportId) {
-                    1.toByte() -> {
-                        // Keyboard report - 8 bytes
-                        profile.sendReport(device, 1, ByteArray(8))
-                    }
-                    2.toByte() -> {
-                        // Mouse report - 4 bytes
-                        profile.sendReport(device, 2, ByteArray(4))
-                    }
-                    3.toByte() -> {
-                        // Consumer control report - 1 byte
-                        profile.sendReport(device, 3, ByteArray(1))
-                    }
+                val data = when (reportId) {
+                    1.toByte() -> ByteArray(8) // Keyboard report
+                    2.toByte() -> ByteArray(4) // Mouse report
+                    3.toByte() -> ByteArray(1) // Consumer control
+                    else -> ByteArray(bufferSize.coerceAtLeast(1))
                 }
-                Log.d(TAG, "onGetReport: Responded with empty report for reportId=$reportId")
+                val success = profile.replyReport(device, type, reportId, data)
+                Log.d(TAG, "onGetReport: Responded via replyReport (success=$success) for reportId=$reportId")
             } catch (e: Exception) {
                 Log.e(TAG, "onGetReport: Error sending response", e)
             }
@@ -363,11 +460,11 @@ class BluetoothHidManager private constructor(context: Context) {
         override fun onSetReport(device: BluetoothDevice?, type: Byte, reportId: Byte, data: ByteArray?) {
             super.onSetReport(device, type, reportId, data)
             Log.d(TAG, "onSetReport: device=${device?.getSafeName()}, type=$type, reportId=$reportId, data=${data?.contentToString()}")
-            // ACK the report - Android API only takes device and reportId
+            // ACK the report with SUCCESS handshake
             val profile = hidDeviceProfile ?: return
             try {
-                profile.reportError(device, reportId)
-                Log.d(TAG, "onSetReport: ACK sent for reportId=$reportId")
+                profile.reportError(device, BluetoothHidDevice.ERROR_RSP_SUCCESS)
+                Log.d(TAG, "onSetReport: Handshake success ACK sent for reportId=$reportId")
             } catch (e: Exception) {
                 Log.e(TAG, "onSetReport: Error sending ACK", e)
             }
@@ -472,6 +569,115 @@ class BluetoothHidManager private constructor(context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Error getting bonded devices", e)
             emptyList()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun startScanning() {
+        val adapter = bluetoothAdapter ?: return
+        if (!adapter.isEnabled) return
+
+        // Stop any ongoing scanning first
+        stopScanning()
+
+        _scannedDevices.value = emptyList()
+        _isScanning.value = true
+
+        discoveryReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                when (intent.action) {
+                    BluetoothDevice.ACTION_FOUND -> {
+                        val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                        }
+                        val rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt()
+                        if (device != null && device.isHidCompatibleHost()) {
+                            // Only add if not already in paired list
+                            val paired = getBondedDevices()
+                            val alreadyPaired = paired.any { it.address == device.address }
+                            if (!alreadyPaired) {
+                                val currentList = _scannedDevices.value
+                                val existingIndex = currentList.indexOfFirst { it.device.address == device.address }
+                                if (existingIndex >= 0) {
+                                    // Update RSSI of existing scanned device
+                                    _scannedDevices.value = currentList.mapIndexed { idx, item ->
+                                        if (idx == existingIndex) item.copy(rssi = rssi) else item
+                                    }
+                                } else {
+                                    _scannedDevices.value = currentList + ScannedDevice(device, rssi)
+                                }
+                            }
+                        }
+                    }
+                    BluetoothAdapter.ACTION_DISCOVERY_STARTED -> {
+                        _isScanning.value = true
+                    }
+                    BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                        _isScanning.value = false
+                        unregisterDiscoveryReceiver()
+                    }
+                }
+            }
+        }
+
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_FOUND)
+            addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
+            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+        }
+
+        try {
+            appContext.registerReceiver(discoveryReceiver, filter)
+            val success = adapter.startDiscovery()
+            if (!success) {
+                Log.e(TAG, "Failed to start discovery")
+                _isScanning.value = false
+                unregisterDiscoveryReceiver()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting discovery", e)
+            _isScanning.value = false
+            unregisterDiscoveryReceiver()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun stopScanning() {
+        val adapter = bluetoothAdapter ?: return
+        try {
+            if (adapter.isDiscovering) {
+                adapter.cancelDiscovery()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cancelling discovery", e)
+        }
+        _isScanning.value = false
+        unregisterDiscoveryReceiver()
+    }
+
+    private fun unregisterDiscoveryReceiver() {
+        discoveryReceiver?.let { receiver ->
+            try {
+                appContext.unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error unregistering discoveryReceiver", e)
+            }
+            discoveryReceiver = null
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun bondDevice(device: BluetoothDevice): Boolean {
+        return try {
+            // Cancel discovery before initiating bond for better performance and reliability
+            stopScanning()
+            device.createBond()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initiating bonding for device ${device.address}", e)
+            false
         }
     }
 

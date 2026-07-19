@@ -8,7 +8,10 @@
     
     <!-- Bluetooth Runtime Permissions for Android 12 (API 31) and higher -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission 
+        android:name="android.permission.BLUETOOTH_SCAN" 
+        android:usesPermissionFlags="neverForLocation" 
+        tools:targetApi="s" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 
     <!-- Motion Sensors and Haptics Permissions -->
@@ -67,6 +70,10 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
+                <action android:name="com.example.widget.ACTION_TOGGLE_BT" />
+                <action android:name="com.example.widget.ACTION_START_MOUSE" />
+                <action android:name="com.example.widget.ACTION_STOP_MOUSE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

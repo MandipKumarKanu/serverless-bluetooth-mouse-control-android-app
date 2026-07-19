@@ -4,56 +4,57 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 object ThemeColors {
     // Background colors
     val background: Color
         @Composable
         @ReadOnlyComposable
-        get() = if (isDarkTheme()) DarkBackground else LightBackground
+        get() = MaterialTheme.colorScheme.background
 
     val surface: Color
         @Composable
         @ReadOnlyComposable
-        get() = if (isDarkTheme()) DarkSurface else LightSurface
+        get() = MaterialTheme.colorScheme.surface
 
     val surfaceVariant: Color
         @Composable
         @ReadOnlyComposable
-        get() = if (isDarkTheme()) DarkSurfaceVariant else LightSurfaceVariant
+        get() = MaterialTheme.colorScheme.surfaceVariant
 
     // Text colors
     val onBackground: Color
         @Composable
         @ReadOnlyComposable
-        get() = if (isDarkTheme()) DarkOnBackground else LightOnBackground
+        get() = MaterialTheme.colorScheme.onBackground
 
     val onSurface: Color
         @Composable
         @ReadOnlyComposable
-        get() = if (isDarkTheme()) DarkOnSurface else LightOnSurface
+        get() = MaterialTheme.colorScheme.onSurface
 
     val onSurfaceVariant: Color
         @Composable
         @ReadOnlyComposable
-        get() = if (isDarkTheme()) DarkOnSurfaceVariant else LightOnSurfaceVariant
+        get() = MaterialTheme.colorScheme.onSurfaceVariant
 
     // Border colors
     val border: Color
         @Composable
         @ReadOnlyComposable
-        get() = if (isDarkTheme()) DarkBorder else LightBorder
+        get() = MaterialTheme.colorScheme.outline
 
     // Status colors
     val error: Color
         @Composable
         @ReadOnlyComposable
-        get() = if (isDarkTheme()) DarkError else LightError
+        get() = MaterialTheme.colorScheme.error
 
     val errorContainer: Color
         @Composable
         @ReadOnlyComposable
-        get() = if (isDarkTheme()) DarkErrorContainer else LightErrorContainer
+        get() = MaterialTheme.colorScheme.errorContainer
 
     val success: Color
         @Composable
@@ -68,12 +69,11 @@ object ThemeColors {
     val primary: Color
         @Composable
         @ReadOnlyComposable
-        get() = if (isDarkTheme()) Cyan else CyanDark
+        get() = MaterialTheme.colorScheme.primary
 
     @Composable
     @ReadOnlyComposable
     private fun isDarkTheme(): Boolean {
-        return MaterialTheme.colorScheme.background == DarkBackground ||
-               MaterialTheme.colorScheme.surface == DarkSurface
+        return MaterialTheme.colorScheme.background.luminance() < 0.5f
     }
 }

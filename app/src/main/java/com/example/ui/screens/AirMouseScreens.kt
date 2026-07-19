@@ -69,6 +69,7 @@ import com.example.data.SettingsEntity
 import com.example.data.ShortcutEntity
 import com.example.viewmodel.AirMouseViewModel
 import com.example.bluetooth.getSafeName
+import com.example.bluetooth.isComputer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -88,6 +89,7 @@ object Routes {
     const val ABOUT = "about"
     const val GAMEPAD = "gamepad"
     const val GESTURE = "gesture"
+    const val NUMPAD = "numpad"
 }
 
 // ==========================================
@@ -318,11 +320,11 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                     IconButton(
                         onClick = {
                             viewModel.vibrate(30)
-                            viewModel.refreshPairedDevices()
+                            navController.navigate(Routes.SETTINGS)
                         },
-                        modifier = Modifier.testTag("refresh_devices")
+                        modifier = Modifier.testTag("settings_button")
                     ) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh Paired", tint = MaterialTheme.colorScheme.onBackground)
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 }
             )
@@ -393,7 +395,11 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                             Text(
                                 text = statusText,
                                 fontSize = 16.sp,
-                                color = if (isConnected || !isBluetoothPowerOn) Color.White else MaterialTheme.colorScheme.onSurface,
+                                color = when {
+                                    isConnected -> Color.White
+                                    !isBluetoothPowerOn -> MaterialTheme.colorScheme.onErrorContainer
+                                    else -> MaterialTheme.colorScheme.onSurface
+                                },
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -435,7 +441,8 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         ControlScreenTile(Routes.PRESENTATION, "Presentation", Icons.Outlined.CoPresent, Color(0xFF8B5CF6)),
                         ControlScreenTile(Routes.SHORTCUTS, "Shortcuts", Icons.Outlined.SettingsApplications, Color(0xFFEC4899)),
                         ControlScreenTile(Routes.GAMEPAD, "Gamepad", Icons.Outlined.Gamepad, Color(0xFF06B6D4)),
-                        ControlScreenTile(Routes.GESTURE, "Gestures", Icons.Outlined.Gesture, Color(0xFFFF6B35))
+                        ControlScreenTile(Routes.GESTURE, "Gestures", Icons.Outlined.Gesture, Color(0xFFFF6B35)),
+                        ControlScreenTile(Routes.NUMPAD, "Numpad", Icons.Outlined.Dialpad, Color(0xFF6366F1))
                     )
 
                     Column(
@@ -458,7 +465,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                         }
                                         .testTag("tile_${tile1.route}"),
                                     shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                    colors = CardDefaults.cardColors(containerColor = if (useDynamicColors) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f) else MaterialTheme.colorScheme.surfaceVariant),
                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                                 ) {
                                     Column(
@@ -504,7 +511,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                             }
                                             .testTag("tile_${tile2.route}"),
                                         shape = RoundedCornerShape(16.dp),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                        colors = CardDefaults.cardColors(containerColor = if (useDynamicColors) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f) else MaterialTheme.colorScheme.surfaceVariant),
                                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                                     ) {
                                         Column(
@@ -676,7 +683,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = if (device.bluetoothClass?.majorDeviceClass == 256) Icons.Default.Computer else Icons.Default.Tv,
+                                imageVector = if (device.isComputer()) Icons.Default.Computer else Icons.Default.Tv,
                                 contentDescription = "Device Type",
                                 tint = if (isThisConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
@@ -714,31 +721,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                 }
             }
 
-            // Quick Setup Navigation Link Card
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { navController.navigate(Routes.SETTINGS) },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurface)
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text("Configure Mouse & Scroll Speeds", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium, fontSize = 15.sp)
-                        }
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Go", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
+
 
             item {
                 Card(
@@ -782,6 +765,7 @@ data class ControlScreenTile(
 // ==========================================
 @Composable
 fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
+    val settings by viewModel.settingsState.collectAsState()
     var isRightScrollActive by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -928,8 +912,14 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                         inertiaJob = coroutineScope.launch {
                                             var velocity = scrollVelocity
                                             while (kotlin.math.abs(velocity) > 0.1f) {
-                                                val tick = if (velocity > 0) 1 else -1
-                                                viewModel.hidManager.sendMouseInput(0, 0, 0, tick.toByte())
+                                                val rawTick = if (velocity > 0) 1f else -1f
+                                                val scaledTick = rawTick * settings.scrollSpeed
+                                                val finalTick = if (scaledTick > 0) {
+                                                    maxOf(1, scaledTick.toInt())
+                                                } else {
+                                                    minOf(-1, scaledTick.toInt())
+                                                }.toByte()
+                                                viewModel.hidManager.sendMouseInput(0, 0, 0, finalTick)
                                                 delay(30)
                                                 velocity *= 0.9f // Deceleration factor
                                             }
@@ -947,8 +937,14 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                     // Track velocity for inertia
                                     scrollVelocity = dragAmount.y
                                     // Send scroll relative ticks
-                                    val tick = if (dragAmount.y > 0) -1 else 1
-                                    viewModel.hidManager.sendMouseInput(0, 0, 0, tick.toByte())
+                                    val rawTick = if (dragAmount.y > 0) -1f else 1f
+                                    val scaledTick = rawTick * settings.scrollSpeed
+                                    val finalTick = if (scaledTick > 0) {
+                                        maxOf(1, scaledTick.toInt())
+                                    } else {
+                                        minOf(-1, scaledTick.toInt())
+                                    }.toByte()
+                                    viewModel.hidManager.sendMouseInput(0, 0, 0, finalTick)
                                     viewModel.vibrate(10)
                                 }
                             )
@@ -1080,6 +1076,69 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Back/Forward buttons for browser navigation
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clickable { 
+                            viewModel.vibrate(20)
+                            viewModel.sendMouseClick(4) // Mouse button 4 = Back
+                        }
+                        .testTag("mouse_back"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Back", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clickable { 
+                            viewModel.vibrate(20)
+                            viewModel.sendMouseClick(5) // Mouse button 5 = Forward
+                        }
+                        .testTag("mouse_forward"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = "Forward",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Forward", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
         }
     }
 }
@@ -1094,8 +1153,8 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
     val settings by viewModel.settingsState.collectAsState()
     
     var showSensitivityDialog by remember { mutableStateOf(false) }
-    var isFreeMode by remember { mutableStateOf(false) }
-    var isFreeStreaming by remember { mutableStateOf(false) }
+    var isFreeMode by remember { mutableStateOf(com.example.service.AirMouseService.isAirMouseActive) }
+    var isFreeStreaming by remember { mutableStateOf(com.example.service.AirMouseService.isAirMouseActive) }
     
     // Hold to Move detection
     val holdInteractionSource = remember { MutableInteractionSource() }
@@ -1116,7 +1175,9 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
     DisposableEffect(key1 = true) {
         onDispose {
-            viewModel.stopAirMouse()
+            if (!com.example.service.AirMouseService.isAirMouseActive) {
+                viewModel.stopAirMouse()
+            }
         }
     }
 
@@ -1806,15 +1867,15 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 },
                             shape = RoundedCornerShape(6.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (shiftPressed) MaterialTheme.colorScheme.primary else Color(0xFF1E293B)
+                                containerColor = if (shiftPressed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                             ),
-                            border = BorderStroke(1.dp, Color(0xFF334155))
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.ArrowUpward,
                                     contentDescription = "Shift",
-                                    tint = if (shiftPressed) Color.Black else Color.White,
+                                    tint = if (shiftPressed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -1844,15 +1905,15 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 },
                             shape = RoundedCornerShape(6.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFF3F1A1A)
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
                             ),
-                            border = BorderStroke(1.dp, Color(0xFF5F2D2D))
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
                         ) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Backspace,
                                     contentDescription = "Backspace",
-                                    tint = Color(0xFFFCA5A5),
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -1875,11 +1936,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                     viewModel.sendKeyboardKey(getModifierByte(), 0x2B.toByte()) // Tab scan code
                                 },
                             shape = RoundedCornerShape(6.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                            border = BorderStroke(1.dp, Color(0xFF334155))
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("TAB", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("TAB", color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -1893,11 +1954,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                     viewModel.sendKeyboardKey(getModifierByte(), 0x2C.toByte()) // Space scan code
                                 },
                             shape = RoundedCornerShape(6.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                            border = BorderStroke(1.dp, Color(0xFF334155))
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("SPACE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("SPACE", color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -1915,7 +1976,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                         ) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("ENTER", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("ENTER", color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -1923,11 +1984,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
             }
 
             // Arrow Keys and D-Pad Controls
-            Text("Navigation & Utilities", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp))
+            Text("Navigation & Utilities", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp))
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                border = BorderStroke(1.dp, Color(0xFF1E293B)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -1942,7 +2003,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         modifier = Modifier.weight(1.1f),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("D-PAD", color = Color(0xFF64748B), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+                        Text("D-PAD", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
                         
                         // Row 1: Up Arrow
                         Row {
@@ -1956,11 +2017,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                     }
                                     .testTag("key_arrow_up"),
                                 shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                                border = BorderStroke(1.dp, Color(0xFF334155))
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                             ) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Up", tint = Color.White)
+                                    Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Up", tint = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                             Spacer(modifier = Modifier.size(44.dp))
@@ -1979,11 +2040,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                     }
                                     .testTag("key_arrow_left"),
                                 shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                                border = BorderStroke(1.dp, Color(0xFF334155))
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                             ) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Left", tint = Color.White)
+                                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Left", tint = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                             
@@ -1991,11 +2052,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             Box(
                                 modifier = Modifier
                                     .size(44.dp)
-                                    .background(Color(0xFF0F172A), RoundedCornerShape(4.dp))
-                                    .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(4.dp)),
+                                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Box(modifier = Modifier.size(8.dp).background(Color(0xFF334155), CircleShape))
+                                Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.outline, CircleShape))
                             }
                             
                             Card(
@@ -2007,11 +2068,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                     }
                                     .testTag("key_arrow_right"),
                                 shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                                border = BorderStroke(1.dp, Color(0xFF334155))
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                             ) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Right", tint = Color.White)
+                                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Right", tint = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                         }
@@ -2030,11 +2091,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                     }
                                     .testTag("key_arrow_down"),
                                 shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                                border = BorderStroke(1.dp, Color(0xFF334155))
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                             ) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "Down", tint = Color.White)
+                                    Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "Down", tint = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                             Spacer(modifier = Modifier.size(44.dp))
@@ -2046,7 +2107,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         modifier = Modifier
                             .width(1.dp)
                             .height(130.dp)
-                            .background(Color(0xFF1E293B))
+                            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                     )
                     
                     // Utility Actions Column (Right side)
@@ -2055,7 +2116,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("SHORTCUTS", color = Color(0xFF64748B), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
+                        Text("SHORTCUTS", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
                         
                         val actions = listOf(
                             Pair("Escape (ESC)", 0x29.toByte()),
@@ -2074,9 +2135,12 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                     .height(34.dp)
                                     .testTag("key_shortcut_${label.lowercase().replace(" ", "_").replace("(", "").replace(")", "")}"),
                                 shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B))
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
                             ) {
-                                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -2084,7 +2148,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
             }
 
             // Desktop Navigation Utilities
-            Text("Desktop Utilities", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp))
+            Text("Desktop Utilities", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp))
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
                 modifier = Modifier.height(48.dp),
@@ -2109,11 +2173,14 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .height(44.dp)
                             .testTag("key_${key.third}"),
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A)),
-                        border = BorderStroke(1.dp, Color(0xFF1E293B)),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                         contentPadding = PaddingValues(0.dp)
                     ) {
-                        Text(key.first, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(key.first, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -2749,8 +2816,10 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                     actions = {
                         IconButton(
                             onClick = {
-                                viewModel.vibrate(30)
-                                showAddDialog = true
+                                if (navController.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
+                                    viewModel.vibrate(30)
+                                    showAddDialog = true
+                                }
                             },
                             modifier = Modifier.testTag("add_shortcut_button")
                         ) {
@@ -2797,7 +2866,11 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { viewModel.triggerCustomShortcut(shortcut) }
+                                .clickable {
+                                    if (navController.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
+                                        viewModel.triggerCustomShortcut(shortcut)
+                                    }
+                                }
                                 .testTag("shortcut_card_${shortcut.id}"),
                             shape = RoundedCornerShape(14.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -2837,8 +2910,10 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                 }
                                 IconButton(
                                     onClick = {
-                                        viewModel.vibrate(30)
-                                        viewModel.deleteShortcut(shortcut.id)
+                                        if (navController.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
+                                            viewModel.vibrate(30)
+                                            viewModel.deleteShortcut(shortcut.id)
+                                        }
                                     },
                                     modifier = Modifier.testTag("delete_shortcut_${shortcut.id}")
                                 ) {
@@ -2991,6 +3066,20 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     onValueChange = { viewModel.updateSettings(settings.copy(sensitivity = it)) },
                     valueRange = 0.2f..3.0f,
                     modifier = Modifier.testTag("setting_sensitivity")
+                )
+            }
+
+            // Scroll Speed Slider
+            Column {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Scroll Speed", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                    Text(String.format("%.1fx", settings.scrollSpeed), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+                Slider(
+                    value = settings.scrollSpeed,
+                    onValueChange = { viewModel.updateSettings(settings.copy(scrollSpeed = it)) },
+                    valueRange = 0.2f..3.0f,
+                    modifier = Modifier.testTag("setting_scroll_speed")
                 )
             }
 
@@ -3187,15 +3276,15 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 }
             }
 
-            // Material You Toggle
+            // Material 3 Dynamic Colors (Monet) Toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Material You", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Use wallpaper-based dynamic colors (Android 12+)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    Text("Material 3 Monet Theme", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Dynamically adapts app colors to match your system wallpaper (Android 12+)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Switch(
@@ -3204,7 +3293,7 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = Color.White,
+                        uncheckedThumbColor = Color.LightGray,
                         uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                     ),
                     modifier = Modifier.testTag("setting_dynamic_colors")
@@ -3269,7 +3358,7 @@ fun AboutScreen(navController: NavController) {
             Text(
                 text = "AirMouse Guide",
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 22.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
 
@@ -3280,45 +3369,244 @@ fun AboutScreen(navController: NavController) {
                 lineHeight = 22.sp
             )
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            Text("Setup Instructions", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            // 1. Windows 10/11 Pairing Guide Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(MaterialTheme.colorScheme.secondaryContainer, shape = CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                modifier = Modifier.size(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(1.5.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalArrangement = Arrangement.spacedBy(1.5.dp)
+                                ) {
+                                    Box(modifier = Modifier.weight(1f).fillMaxHeight().background(MaterialTheme.colorScheme.onSecondaryContainer))
+                                    Box(modifier = Modifier.weight(1f).fillMaxHeight().background(MaterialTheme.colorScheme.onSecondaryContainer))
+                                }
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalArrangement = Arrangement.spacedBy(1.5.dp)
+                                ) {
+                                    Box(modifier = Modifier.weight(1f).fillMaxHeight().background(MaterialTheme.colorScheme.onSecondaryContainer))
+                                    Box(modifier = Modifier.weight(1f).fillMaxHeight().background(MaterialTheme.colorScheme.onSecondaryContainer))
+                                }
+                            }
+                        }
+                        Text(
+                            text = "Windows 10 / 11 Setup Guide",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                    }
 
-            Text(
-                text = "1. Turn ON Bluetooth on your phone and target device (PC, Tablet, macOS, or Smart TV).\n" +
-                        "2. Go to your phone's system settings and Pair your target host device via standard Bluetooth settings.\n" +
-                        "3. Return to the AirMouse app console, refresh, and click on your host under 'Paired Host Devices'.\n" +
-                        "4. Your phone will register securely as a combined hardware mouse and keyboard. Once connected, open any control screen to begin!",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 14.sp,
-                lineHeight = 24.sp
-            )
+                    Text(
+                        text = "Windows caches Bluetooth service descriptors strictly. If your PC does not connect or recognize AirMouse, follow these steps exactly:",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp
+                    )
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val steps = listOf(
+                            "1. Unpair on Windows: Go to Settings > Bluetooth & devices, locate your phone, and choose 'Remove device'.",
+                            "2. Unpair on Phone: Go to system Bluetooth settings, find your PC under paired devices, and tap 'Forget/Unpair'.",
+                            "3. Restart Bluetooth: Toggle Bluetooth OFF and back ON on both your PC and your phone.",
+                            "4. Open AirMouse: Launch this app on your phone to register the virtual keyboard/mouse HID profile in the background.",
+                            "5. Pair from Windows (Not Phone): On Windows, click 'Add device' > 'Bluetooth'. Select your phone and pair.",
+                            "6. Driver Installation: Wait 5-10 seconds for Windows to finish installing the HID driver until it says 'Device is ready'.",
+                            "7. Connect: Return to the AirMouse main dashboard, click your PC name under Paired Devices, and begin controlling!"
+                        )
+                        for (step in steps) {
+                            Text(
+                                text = step,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                }
+            }
 
-            Text("Troubleshooting", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            // 2. Dedicated Smart TV & Android TV Setup Guide Card (NEW!)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(MaterialTheme.colorScheme.tertiaryContainer, shape = CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Tv,
+                                contentDescription = "Smart TV",
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Text(
+                            text = "Smart TV & Android TV Setup Guide",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                    }
 
-            Text(
-                text = "• Connection Rejected: If your PC/TV fails to connect, unpair (forget) the AirMouse phone on both devices, restart Bluetooth, and pair again.\n" +
-                        "• Drift: If the Air Mouse cursor wanders around automatically without moving, place the phone flat on a table and click 'Calibrate Gyro Scope' inside the Air Mouse screen.",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 14.sp,
-                lineHeight = 22.sp
-            )
+                    Text(
+                        text = "Crucial Notice: Many Smart TVs (including Fire TV, Android TV, Google TV, and Samsung/LG TVs) enforce strict Bluetooth host roles. If you try to initiate the connection from the phone app, the TV will immediately reject/disconnect it, resulting in a rapid connect-disconnect loop. Follow this procedure to establish a stable connection:",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp
+                    )
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val tvSteps = listOf(
+                            "1. Break the Loop: If the devices are currently looping, turn Bluetooth OFF and ON again on your phone.",
+                            "2. Unpair on Both: Unpair/forget the phone on your TV, and unpair the TV in your phone's Bluetooth settings.",
+                            "3. Keep App Open: Open the AirMouse app on your phone. This initializes the HID profile and makes your phone discoverable.",
+                            "4. Connect FROM the TV (Important): Go to your TV's Bluetooth Settings (often under Accessories or Remotes & Accessories). Search for new devices, select your phone from the scan results, and pair.",
+                            "5. Accept Pairing: Watch for any pairing code dialogs on your phone screen and tap 'Pair' and 'Allow access'.",
+                            "6. Completed: The TV acts as the host and will establish a robust, permanent connection with the phone without dropping!"
+                        )
+                        for (step in tvSteps) {
+                            Text(
+                                text = step,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                }
+            }
 
-            Text("Specifications", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            // 3. General Setup Instructions Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "General Setup Instructions",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
 
-            Text(
-                text = "• Platform: Native Android (Kotlin & Jetpack Compose)\n" +
-                        "• Bluetooth HID API Level: 28 (Android 9.0+) Required\n" +
-                        "• Profile: official Android BluetoothHidDevice (SDP Combo)\n" +
-                        "• Version: 1.2.0",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 13.sp,
-                lineHeight = 20.sp
-            )
+                    Text(
+                        text = "1. Turn ON Bluetooth on your phone and target device (PC, Tablet, macOS, or Smart TV).\n" +
+                                "2. Go to your phone's system settings and pair your target host device via standard Bluetooth settings.\n" +
+                                "3. Return to the AirMouse app console, refresh, and click on your host under 'Paired Host Devices'.\n" +
+                                "4. Your phone will register securely as a combined hardware mouse and keyboard. Once connected, open any control screen to begin!",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp,
+                        lineHeight = 22.sp
+                    )
+                }
+            }
+
+            // 4. Troubleshooting Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Troubleshooting Guide",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+
+                    Text(
+                        text = "• Connection Rejected / Loop: Windows and Smart TVs cache Bluetooth capabilities. If pairing drops or fails, follow the TV or Windows Setup Guide above to refresh their service discovery caches.\n" +
+                                "• Drift: If the Air Mouse cursor drifts automatically, place the phone flat on a stable surface and click 'Calibrate Gyroscope' inside the Air Mouse screen.\n" +
+                                "• Input Lag: Ensure your phone and host PC do not have aggressive power-saving modes enabled on their Bluetooth controllers.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
+
+            // 5. Technical Specifications Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Technical Specifications",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+
+                    Text(
+                        text = "• Platform: Native Android (Kotlin & Jetpack Compose)\n" +
+                                "• Bluetooth HID API Level: 28 (Android 9.0+) Required\n" +
+                                "• Profile: official Android BluetoothHidDevice (SDP Combo)\n" +
+                                "• Provider / Device: Generic HID Device (AirMouse)\n" +
+                                "• Subclass: Combo Keyboard/Pointer (0x03)\n" +
+                                "• Version: 1.2.0",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp
+                    )
+                }
+            }
         }
     }
 }
@@ -3340,7 +3628,7 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
     }
 
     val contentColor = when {
-        !isBluetoothPowerOn -> MaterialTheme.colorScheme.error
+        !isBluetoothPowerOn -> MaterialTheme.colorScheme.onErrorContainer
         isConnected -> Color(0xFF10B981) // Green for connected
         isConnecting -> Color(0xFFF59E0B) // Amber for connecting
         else -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -3397,7 +3685,7 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = statusText,
-                color = if (isConnected || !isBluetoothPowerOn) Color.White else contentColor,
+                color = if (isConnected) Color.White else contentColor,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,

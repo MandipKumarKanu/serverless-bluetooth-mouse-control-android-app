@@ -180,6 +180,10 @@ abstract class AppDatabase : RoomDatabase() {
                             dao?.insertShortcut(ShortcutEntity(name = "Show Desktop (Win+D)", modifiers = 0x08, keyCodes = "7"))
                             dao?.insertShortcut(ShortcutEntity(name = "Lock Device (Win+L)", modifiers = 0x08, keyCodes = "15"))
                             dao?.insertShortcut(ShortcutEntity(name = "Task Manager (Ctrl+Alt+Del)", modifiers = 0x05, keyCodes = "76"))
+                            // System keys
+                            dao?.insertShortcut(ShortcutEntity(name = "Sleep", modifiers = 0, keyCodes = "68"))
+                            dao?.insertShortcut(ShortcutEntity(name = "Browser Back", modifiers = 0, keyCodes = "161"))
+                            dao?.insertShortcut(ShortcutEntity(name = "Browser Forward", modifiers = 0, keyCodes = "162"))
                         }
                     }
                 })

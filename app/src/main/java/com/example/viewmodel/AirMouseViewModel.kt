@@ -204,6 +204,13 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
+        // Observe bondedDevices flow from hidManager to keep pairedDevices in sync
+        viewModelScope.launch {
+            hidManager.bondedDevices.collect {
+                refreshPairedDevices()
+            }
+        }
+
         refreshPairedDevices()
     }
 
@@ -340,21 +347,67 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     fun startAirMouse(buttonsState: Byte = 0) {
         sensorManager.updateSettings(settingsState.value)
         sensorManager.start(buttonsState)
+        AirMouseService.isAirMouseActive = true
+        com.example.widget.AirMouseWidgetReceiver.updateAllWidgets(app)
     }
 
     fun stopAirMouse() {
         sensorManager.stop()
+        AirMouseService.isAirMouseActive = false
+        // Send stop intent to service to stop service's background sensors
+        val serviceIntent = Intent(app, AirMouseService::class.java).apply {
+            action = AirMouseService.ACTION_STOP_AIR_MOUSE
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                app.startForegroundService(serviceIntent)
+            } else {
+                app.startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to stop service sensors from ViewModel: ${e.message}")
+        }
+        com.example.widget.AirMouseWidgetReceiver.updateAllWidgets(app)
     }
 
     // Called when app goes to background - pause sensors but keep Bluetooth alive
     fun onAppBackground() {
+        if (AirMouseService.isAirMouseActive) {
+            // Transfer sensors to service so they keep running in foreground service
+            val serviceIntent = Intent(app, AirMouseService::class.java).apply {
+                action = AirMouseService.ACTION_START_AIR_MOUSE
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                app.startForegroundService(serviceIntent)
+            } else {
+                app.startService(serviceIntent)
+            }
+        }
         sensorManager.stop()
-        Log.d(TAG, "App backgrounded - sensors paused, Bluetooth connection maintained")
+        Log.d(TAG, "App backgrounded - sensors paused in ViewModel, maintained in service if active")
     }
 
     // Called when app comes to foreground - resume sensors if they were active
     fun onAppForeground() {
         Log.d(TAG, "App foregrounded - ready to resume sensors")
+        if (AirMouseService.isAirMouseActive) {
+            // Stop service sensors since we are in the foreground now and ViewModel will handle it
+            val serviceIntent = Intent(app, AirMouseService::class.java).apply {
+                action = AirMouseService.ACTION_STOP_AIR_MOUSE
+            }
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    app.startForegroundService(serviceIntent)
+                } else {
+                    app.startService(serviceIntent)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to stop service sensors on foreground: ${e.message}")
+            }
+            // Ensure ViewModel sensors are started
+            sensorManager.updateSettings(settingsState.value)
+            sensorManager.start(0)
+        }
     }
 
     fun calibrateAirMouse() {
@@ -451,14 +504,14 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
             "copy" -> sendKeyboardKey(0x01, 0x06.toByte()) // Ctrl+C
             "paste" -> sendKeyboardKey(0x01, 0x19.toByte()) // Ctrl+V
             "undo" -> sendKeyboardKey(0x01, 0x1D.toByte()) // Ctrl+Z
-            "redo" -> sendKeyboardKey(0x01, 0x16.toByte()) // Ctrl+Y
+            "redo" -> sendKeyboardKey(0x01, 0x1C.toByte()) // Ctrl+Y
             "select_all" -> sendKeyboardKey(0x01, 0x04.toByte()) // Ctrl+A
             "save" -> sendKeyboardKey(0x01, 0x16.toByte()) // Ctrl+S
-            "close" -> sendKeyboardKey(0x01, 0x0D.toByte()) // Ctrl+W
+            "close" -> sendKeyboardKey(0x01, 0x1A.toByte()) // Ctrl+W
             "tab" -> sendKeyboardKey(0, 0x2B.toByte())
             "enter" -> sendKeyboardKey(0, 0x28.toByte())
             "esc" -> sendKeyboardKey(0, 0x29.toByte())
-            "delete" -> sendKeyboardKey(0, 0x2A.toByte())
+            "delete" -> sendKeyboardKey(0, 0x4C.toByte()) // Delete (Forward) Key
             "backspace" -> sendKeyboardKey(0, 0x2A.toByte())
 
             // Media actions

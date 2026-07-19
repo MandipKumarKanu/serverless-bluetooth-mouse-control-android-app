@@ -17,13 +17,20 @@ import com.example.MainActivity
 import com.example.R
 import com.example.bluetooth.BluetoothHidManager
 import com.example.bluetooth.getSafeName
+import com.example.sensor.MotionSensorManager
+import com.example.data.AppDatabase
+import com.example.data.SettingsEntity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class AirMouseService : Service() {
 
     private val hidManager by lazy { BluetoothHidManager.getInstance(this) }
+    private var sensorManager: MotionSensorManager? = null
 
     // Service state
     private val _isRunning = MutableStateFlow(false)
@@ -37,6 +44,7 @@ class AirMouseService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        sensorManager = MotionSensorManager(this)
         Log.d(TAG, "AirMouseService created")
     }
 
@@ -53,14 +61,45 @@ class AirMouseService : Service() {
                 val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
                 updateNotification(deviceName)
             }
+            ACTION_START_AIR_MOUSE -> {
+                isAirMouseActive = true
+                startAirMouseSensors()
+                updateNotification(_connectedDeviceName.value)
+            }
+            ACTION_STOP_AIR_MOUSE -> {
+                isAirMouseActive = false
+                stopAirMouseSensors()
+                updateNotification(_connectedDeviceName.value)
+            }
         }
         return START_STICKY
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        isAirMouseActive = false
+        stopAirMouseSensors()
         _isRunning.value = false
         Log.d(TAG, "AirMouseService destroyed")
+    }
+
+    private fun startAirMouseSensors() {
+        if (sensorManager == null) {
+            sensorManager = MotionSensorManager(this)
+        }
+        val scope = CoroutineScope(Dispatchers.IO)
+        scope.launch {
+            val db = AppDatabase.getDatabase(this@AirMouseService, scope)
+            val settings = db.airMouseDao().getSettingsDirect() ?: SettingsEntity()
+            sensorManager?.updateSettings(settings)
+            sensorManager?.start(0)
+            Log.d(TAG, "Sensor manager started inside Service")
+        }
+    }
+
+    private fun stopAirMouseSensors() {
+        sensorManager?.stop()
+        Log.d(TAG, "Sensor manager stopped inside Service")
     }
 
     private fun startForegroundService(deviceName: String?) {
@@ -74,6 +113,8 @@ class AirMouseService : Service() {
     }
 
     private fun stopForegroundService() {
+        isAirMouseActive = false
+        stopAirMouseSensors()
         _isRunning.value = false
         _connectedDeviceName.value = null
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -114,10 +155,10 @@ class AirMouseService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val statusText = if (deviceName != null) {
-            "Connected to $deviceName"
+        val statusText = if (isAirMouseActive) {
+            if (deviceName != null) "Air Mouse Active • $deviceName" else "Air Mouse Active"
         } else {
-            "AirMouse Active"
+            if (deviceName != null) "Connected to $deviceName" else "AirMouse Ready"
         }
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
@@ -139,7 +180,11 @@ class AirMouseService : Service() {
         const val ACTION_START = "com.example.service.START"
         const val ACTION_STOP = "com.example.service.STOP"
         const val ACTION_UPDATE = "com.example.service.UPDATE"
+        const val ACTION_START_AIR_MOUSE = "com.example.service.START_AIR_MOUSE"
+        const val ACTION_STOP_AIR_MOUSE = "com.example.service.STOP_AIR_MOUSE"
         const val EXTRA_DEVICE_NAME = "device_name"
+
+        var isAirMouseActive = false
 
         fun startService(context: Context, deviceName: String? = null) {
             val intent = Intent(context, AirMouseService::class.java).apply {

@@ -11,15 +11,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Cyan,
+    primary = IndigoLight,
     onPrimary = DarkBackground,
-    primaryContainer = CyanDark,
+    primaryContainer = IndigoDark,
     onPrimaryContainer = DarkOnBackground,
-    secondary = PurpleGrey80,
+    secondary = CyanAccent,
     onSecondary = DarkBackground,
     secondaryContainer = DarkSurfaceVariant,
     onSecondaryContainer = DarkOnSurface,
-    tertiary = Pink80,
+    tertiary = PinkLight,
     onTertiary = DarkBackground,
     tertiaryContainer = DarkSurfaceVariant,
     onTertiaryContainer = DarkOnSurface,
@@ -37,16 +37,16 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = CyanDark,
-    onPrimary = LightOnBackground,
-    primaryContainer = CyanLight,
-    onPrimaryContainer = LightOnBackground,
-    secondary = PurpleGrey40,
-    onSecondary = LightOnBackground,
+    primary = IndigoPrimary,
+    onPrimary = androidx.compose.ui.graphics.Color.White,
+    primaryContainer = IndigoLight,
+    onPrimaryContainer = IndigoDark,
+    secondary = CyanDark,
+    onSecondary = androidx.compose.ui.graphics.Color.White,
     secondaryContainer = LightSurfaceVariant,
     onSecondaryContainer = LightOnSurface,
-    tertiary = Pink40,
-    onTertiary = LightOnBackground,
+    tertiary = PinkDark,
+    onTertiary = androidx.compose.ui.graphics.Color.White,
     tertiaryContainer = LightSurfaceVariant,
     onTertiaryContainer = LightOnSurface,
     background = LightBackground,
@@ -57,7 +57,7 @@ private val LightColorScheme = lightColorScheme(
     onSurfaceVariant = LightOnSurfaceVariant,
     outline = LightBorder,
     error = LightError,
-    onError = LightOnBackground,
+    onError = androidx.compose.ui.graphics.Color.White,
     errorContainer = LightErrorContainer,
     onErrorContainer = LightError,
 )

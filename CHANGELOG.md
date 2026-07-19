@@ -5,6 +5,14 @@ All notable changes to AirMouse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2025-01-16
+
+### Added
+- **Numpad Mode** — Virtual numeric keypad for data entry (0-9, +, -, *, /, Enter)
+- **Back/Forward Buttons** — Browser navigation buttons in Touchpad mode
+- **System Keys** — Sleep, Browser Back, Browser Forward shortcuts
+- Horizontal scroll support via mouse wheel
+
 ## [1.8.4] - 2025-01-16
 
 ### Fixed

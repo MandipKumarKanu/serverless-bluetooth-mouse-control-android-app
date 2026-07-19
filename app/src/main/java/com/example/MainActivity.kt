@@ -27,6 +27,7 @@ import com.example.ui.screens.GamepadScreen
 import com.example.ui.screens.GestureScreen
 import com.example.ui.screens.KeyboardScreen
 import com.example.ui.screens.MediaRemoteScreen
+import com.example.ui.screens.NumpadScreen
 import com.example.ui.screens.PermissionsScreen
 import com.example.ui.screens.PresentationScreen
 import com.example.ui.screens.Routes
@@ -153,6 +154,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Routes.GESTURE) {
                             GestureScreen(navController, viewModel)
+                        }
+                        composable(Routes.NUMPAD) {
+                            NumpadScreen(navController, viewModel)
                         }
                         composable(Routes.SHORTCUTS) {
                             ShortcutsScreen(navController, viewModel)
