@@ -89,7 +89,6 @@ object Routes {
     const val ABOUT = "about"
     const val GAMEPAD = "gamepad"
     const val GESTURE = "gesture"
-    const val NUMPAD = "numpad"
 }
 
 // ==========================================
@@ -441,8 +440,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         ControlScreenTile(Routes.PRESENTATION, "Presentation", Icons.Outlined.CoPresent, Color(0xFF8B5CF6)),
                         ControlScreenTile(Routes.SHORTCUTS, "Shortcuts", Icons.Outlined.SettingsApplications, Color(0xFFEC4899)),
                         ControlScreenTile(Routes.GAMEPAD, "Gamepad", Icons.Outlined.Gamepad, Color(0xFF06B6D4)),
-                        ControlScreenTile(Routes.GESTURE, "Gestures", Icons.Outlined.Gesture, Color(0xFFFF6B35)),
-                        ControlScreenTile(Routes.NUMPAD, "Numpad", Icons.Outlined.Dialpad, Color(0xFF6366F1))
+                        ControlScreenTile(Routes.GESTURE, "Gestures", Icons.Outlined.Gesture, Color(0xFFFF6B35))
                     )
 
                     Column(
@@ -1073,69 +1071,6 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             fontWeight = FontWeight.Bold,
                             color = if (isDragMode) Color.White else MaterialTheme.colorScheme.onSurface
                         )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Back/Forward buttons for browser navigation
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(50.dp)
-                        .clickable { 
-                            viewModel.vibrate(20)
-                            viewModel.sendMouseClick(4) // Mouse button 4 = Back
-                        }
-                        .testTag("mouse_back"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Back", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(50.dp)
-                        .clickable { 
-                            viewModel.vibrate(20)
-                            viewModel.sendMouseClick(5) // Mouse button 5 = Forward
-                        }
-                        .testTag("mouse_forward"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowForward,
-                            contentDescription = "Forward",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Forward", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }

@@ -8,9 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.9.0] - 2025-01-16
 
 ### Added
-- **Numpad Mode** — Virtual numeric keypad for data entry (0-9, +, -, *, /, Enter)
-- **Back/Forward Buttons** — Browser navigation buttons in Touchpad mode
-- **System Keys** — Sleep, Browser Back, Browser Forward shortcuts
+- System Keys shortcuts (Sleep, Browser Back, Browser Forward)
 - Horizontal scroll support via mouse wheel
 
 ## [1.8.4] - 2025-01-16
