@@ -1,7 +1,7 @@
 package com.example.tile
 
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothProfile
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothManager
 import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.Tile
@@ -22,14 +22,16 @@ class AirMouseTileService : TileService() {
         val intent = Intent(this, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
+        @Suppress("DEPRECATION")
         startActivityAndCollapse(intent)
     }
 
+    @SuppressLint("MissingPermission")
     private fun updateTileState() {
         val qsTile = qsTile ?: return
 
-        val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-        val isBluetoothOn = bluetoothAdapter?.isEnabled == true
+        val bluetoothManager = getSystemService(BLUETOOTH_SERVICE) as? BluetoothManager
+        val isBluetoothOn = bluetoothManager?.adapter?.isEnabled == true
 
         qsTile.state = if (isBluetoothOn) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
         qsTile.label = if (isBluetoothOn) "AirMouse" else "AirMouse (BT Off)"

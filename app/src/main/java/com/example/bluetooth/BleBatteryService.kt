@@ -222,10 +222,12 @@ class BleBatteryService(private val context: Context) {
             ?.getService(BATTERY_SERVICE_UUID)
             ?.getCharacteristic(BATTERY_LEVEL_UUID) ?: return
 
-        characteristic.value = byteArrayOf(currentBatteryLevel.toByte())
+        @Suppress("DEPRECATION")
+        characteristic.setValue(byteArrayOf(currentBatteryLevel.toByte()))
 
         for (device in connectedDevices) {
             try {
+                @Suppress("DEPRECATION")
                 gattServer?.notifyCharacteristicChanged(device, characteristic, false)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to notify battery level to ${device.getSafeName()}", e)

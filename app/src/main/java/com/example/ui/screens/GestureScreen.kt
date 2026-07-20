@@ -503,7 +503,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         } else {
                             MaterialTheme.colorScheme.onErrorContainer
                         }
-                        val statusIcon = if (isMatched) Icons.Default.CheckCircle else Icons.Default.HelpOutline
+                        val statusIcon = if (isMatched) Icons.Default.CheckCircle else Icons.AutoMirrored.Filled.HelpOutline
 
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -996,10 +996,10 @@ fun getQuickActions(): List<Triple<String, String, ImageVector>> {
     return listOf(
         Triple("Copy", "copy", Icons.Default.ContentCopy),
         Triple("Paste", "paste", Icons.Default.ContentPaste),
-        Triple("Undo", "undo", Icons.Default.Undo),
-        Triple("Redo", "redo", Icons.Default.Redo),
-        Triple("Vol +", "vol_up", Icons.Default.VolumeUp),
-        Triple("Vol -", "vol_down", Icons.Default.VolumeDown),
+        Triple("Undo", "undo", Icons.AutoMirrored.Filled.Undo),
+        Triple("Redo", "redo", Icons.AutoMirrored.Filled.Redo),
+        Triple("Vol +", "vol_up", Icons.AutoMirrored.Filled.VolumeUp),
+        Triple("Vol -", "vol_down", Icons.AutoMirrored.Filled.VolumeDown),
         Triple("Play/Pause", "play_pause", Icons.Default.PlayArrow),
         Triple("Next Track", "next_track", Icons.Default.SkipNext),
         Triple("Prev Track", "prev_track", Icons.Default.SkipPrevious)
