@@ -341,6 +341,8 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
             // 1. Connection Status Card
             item {
                 val isBluetoothPowerOn by viewModel.isBluetoothPowerOn.collectAsState()
+                val batteryLevel by viewModel.batteryLevel.collectAsState()
+                val isCharging by viewModel.isCharging.collectAsState()
                 val cardColor = when {
                     !isBluetoothPowerOn -> MaterialTheme.colorScheme.errorContainer
                     isConnected -> Color(0xFF064E3B) // Dark green for connected
@@ -401,6 +403,30 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                 },
                                 fontWeight = FontWeight.Bold
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val batteryColor = when {
+                                    batteryLevel <= 15 -> Color(0xFFEF4444)
+                                    batteryLevel <= 30 -> Color(0xFFF59E0B)
+                                    else -> if (isCharging) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                                Icon(
+                                    imageVector = if (isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
+                                    contentDescription = "Battery",
+                                    tint = batteryColor,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "$batteryLevel%${if (isCharging) " Charging" else ""}",
+                                    fontSize = 12.sp,
+                                    color = when {
+                                        isConnected -> Color.White.copy(alpha = 0.8f)
+                                        !isBluetoothPowerOn -> MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
+                            }
                         }
                         if (isConnected) {
                             IconButton(

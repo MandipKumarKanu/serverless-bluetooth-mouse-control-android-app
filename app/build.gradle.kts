@@ -13,8 +13,8 @@ android {
     applicationId = "com.aistudio.airmouse.kxmpzq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 27
-    versionName = "1.9.0"
+    versionCode = 28
+    versionName = "1.9.1"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

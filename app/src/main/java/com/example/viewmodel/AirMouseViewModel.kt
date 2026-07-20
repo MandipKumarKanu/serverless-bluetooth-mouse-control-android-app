@@ -22,6 +22,7 @@ import com.example.data.ConnectionHistoryEntity
 import com.example.data.GestureEntity
 import com.example.data.SettingsEntity
 import com.example.data.ShortcutEntity
+import com.example.sensor.BatteryMonitor
 import com.example.sensor.MotionSensorManager
 import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
@@ -85,9 +86,10 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     private val _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val pairedDevices: StateFlow<List<BluetoothDevice>> = _pairedDevices.asStateFlow()
 
-    // Battery level
-    private val _batteryLevel = MutableStateFlow(0)
-    val batteryLevel: StateFlow<Int> = _batteryLevel.asStateFlow()
+    // Battery level (live, not one-shot)
+    private val batteryMonitor = BatteryMonitor(application)
+    val batteryLevel: StateFlow<Int> = batteryMonitor.batteryLevel
+    val isCharging: StateFlow<Boolean> = batteryMonitor.isCharging
 
     // SharedPreferences for safe storage of auto-reconnect settings
     private val prefs = application.getSharedPreferences("air_mouse_prefs", Context.MODE_PRIVATE)
@@ -124,8 +126,15 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     }
 
     init {
-        // Fetch battery level
-        fetchBatteryLevel()
+        // Start live battery monitoring
+        batteryMonitor.start()
+
+        // Push battery level to BLE GATT Battery Service (for host Bluetooth settings)
+        viewModelScope.launch {
+            batteryMonitor.batteryLevel.collect { level ->
+                hidManager.updateBleBatteryLevel(level)
+            }
+        }
 
         // Sync settings to sensor manager on database emission
         viewModelScope.launch {
@@ -281,11 +290,6 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         AirMouseService.stopService(app)
     }
 
-    fun fetchBatteryLevel() {
-        val batteryManager = app.getSystemService(Context.BATTERY_SERVICE) as android.os.BatteryManager
-        val batteryLevel = batteryManager.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        _batteryLevel.value = batteryLevel
-    }
 
     fun clearConnectionHistory() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -555,6 +559,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     override fun onCleared() {
         super.onCleared()
         autoReconnectJob?.cancel()
+        batteryMonitor.stop()
     }
 
     companion object {

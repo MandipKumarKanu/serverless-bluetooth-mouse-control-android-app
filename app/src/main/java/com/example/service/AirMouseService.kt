@@ -17,11 +17,13 @@ import com.example.MainActivity
 import com.example.R
 import com.example.bluetooth.BluetoothHidManager
 import com.example.bluetooth.getSafeName
+import com.example.sensor.BatteryMonitor
 import com.example.sensor.MotionSensorManager
 import com.example.data.AppDatabase
 import com.example.data.SettingsEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,6 +33,8 @@ class AirMouseService : Service() {
 
     private val hidManager by lazy { BluetoothHidManager.getInstance(this) }
     private var sensorManager: MotionSensorManager? = null
+    private lateinit var batteryMonitor: BatteryMonitor
+    private var batteryUpdateJob: Job? = null
 
     // Service state
     private val _isRunning = MutableStateFlow(false)
@@ -45,6 +49,16 @@ class AirMouseService : Service() {
         super.onCreate()
         createNotificationChannel()
         sensorManager = MotionSensorManager(this)
+        batteryMonitor = BatteryMonitor(this)
+        batteryMonitor.start()
+
+        // Update notification when battery level changes
+        batteryUpdateJob = CoroutineScope(Dispatchers.Main).launch {
+            batteryMonitor.batteryLevel.collect {
+                updateNotification(_connectedDeviceName.value)
+            }
+        }
+
         Log.d(TAG, "AirMouseService created")
     }
 
@@ -79,6 +93,8 @@ class AirMouseService : Service() {
         super.onDestroy()
         isAirMouseActive = false
         stopAirMouseSensors()
+        batteryUpdateJob?.cancel()
+        batteryMonitor.stop()
         _isRunning.value = false
         Log.d(TAG, "AirMouseService destroyed")
     }
@@ -155,15 +171,22 @@ class AirMouseService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val batteryLevel = batteryMonitor.batteryLevel.value
+        val isCharging = batteryMonitor.isCharging.value
+        val batteryIcon = if (isCharging) "\u26A1" else "\uD83D\uDD0B"
+
         val statusText = if (isAirMouseActive) {
-            if (deviceName != null) "Air Mouse Active • $deviceName" else "Air Mouse Active"
+            if (deviceName != null) "Air Mouse Active \u2022 $deviceName" else "Air Mouse Active"
         } else {
             if (deviceName != null) "Connected to $deviceName" else "AirMouse Ready"
         }
 
+        val subText = "$batteryIcon Battery: $batteryLevel%${if (isCharging) " (Charging)" else ""}"
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("AirMouse")
             .setContentText(statusText)
+            .setSubText(subText)
             .setSmallIcon(R.drawable.ic_app_logo)
             .setContentIntent(pendingIntent)
             .setOngoing(true)

@@ -101,6 +101,8 @@ class BluetoothHidManager private constructor(context: Context) {
 
     private var hidDeviceProfile: BluetoothHidDevice? = null
     private var isRegistered = false
+    private val bleBatteryService = BleBatteryService(context)
+    private var lastBatteryLevel = 0
 
     // Single executor for all scheduled tasks (prevents executor leak)
     private val scheduledExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
@@ -414,6 +416,9 @@ class BluetoothHidManager private constructor(context: Context) {
                     Log.d(TAG, "=== CONNECTION ESTABLISHED ===")
                     Log.d(TAG, "Device: ${device?.getSafeName()}")
                     Log.d(TAG, "Address: ${device?.address}")
+                    // Start BLE Battery Service so host can see phone battery
+                    bleBatteryService.start()
+                    bleBatteryService.updateBatteryLevel(lastBatteryLevel)
                 }
                 BluetoothProfile.STATE_CONNECTING -> {
                     isConnecting = true
@@ -423,6 +428,8 @@ class BluetoothHidManager private constructor(context: Context) {
                     _connectedDevice.value = null
                     isConnecting = false
                     Log.d(TAG, "Disconnected from: ${device?.getSafeName()}")
+                    // Stop BLE Battery Service
+                    bleBatteryService.stop()
                 }
                 BluetoothProfile.STATE_DISCONNECTING -> {
                     Log.d(TAG, "Disconnecting from: ${device?.getSafeName()}")
@@ -762,6 +769,11 @@ class BluetoothHidManager private constructor(context: Context) {
         return bluetoothAdapter?.isEnabled ?: false
     }
 
+    fun updateBleBatteryLevel(level: Int) {
+        lastBatteryLevel = level
+        bleBatteryService.updateBatteryLevel(level)
+    }
+
     fun isConnected(): Boolean {
         return _connectionState.value == BluetoothProfile.STATE_CONNECTED && _connectedDevice.value != null
     }
@@ -853,6 +865,7 @@ class BluetoothHidManager private constructor(context: Context) {
     }
 
     fun destroy() {
+        bleBatteryService.stop()
         scheduledExecutor.shutdownNow()
     }
 }
