@@ -5,6 +5,14 @@ All notable changes to AirMouse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.2] - 2025-07-20
+
+### Added
+- **Notification Action Buttons** — Media controls + air mouse toggle directly from notification
+  - Play/Pause, Next Track, Volume Down buttons when connected
+  - Air Mouse toggle button (Start/Stop) in notification
+  - No need to open the app for basic controls
+
 ## [1.9.1] - 2025-07-20
 
 ### Added

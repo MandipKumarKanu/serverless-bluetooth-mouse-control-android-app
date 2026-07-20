@@ -6,8 +6,10 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -43,6 +45,30 @@ class AirMouseService : Service() {
     private val _connectedDeviceName = MutableStateFlow<String?>(null)
     val connectedDeviceName: StateFlow<String?> = _connectedDeviceName.asStateFlow()
 
+    // Broadcast receiver for notification media actions
+    private val mediaActionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                ACTION_MEDIA_PLAY_PAUSE -> {
+                    hidManager.sendConsumerInput(0x08)
+                    Log.d(TAG, "Media: Play/Pause")
+                }
+                ACTION_MEDIA_NEXT -> {
+                    hidManager.sendConsumerInput(0x10)
+                    Log.d(TAG, "Media: Next Track")
+                }
+                ACTION_MEDIA_PREV -> {
+                    hidManager.sendConsumerInput(0x20)
+                    Log.d(TAG, "Media: Previous Track")
+                }
+                ACTION_MEDIA_VOL_DOWN -> {
+                    hidManager.sendConsumerInput(0x02)
+                    Log.d(TAG, "Media: Volume Down")
+                }
+            }
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -51,6 +77,15 @@ class AirMouseService : Service() {
         sensorManager = MotionSensorManager(this)
         batteryMonitor = BatteryMonitor(this)
         batteryMonitor.start()
+
+        // Register media action receiver
+        val filter = IntentFilter().apply {
+            addAction(ACTION_MEDIA_PLAY_PAUSE)
+            addAction(ACTION_MEDIA_NEXT)
+            addAction(ACTION_MEDIA_PREV)
+            addAction(ACTION_MEDIA_VOL_DOWN)
+        }
+        registerReceiver(mediaActionReceiver, filter)
 
         // Update notification when battery level changes
         batteryUpdateJob = CoroutineScope(Dispatchers.Main).launch {
@@ -95,6 +130,10 @@ class AirMouseService : Service() {
         stopAirMouseSensors()
         batteryUpdateJob?.cancel()
         batteryMonitor.stop()
+        try {
+            unregisterReceiver(mediaActionReceiver)
+        } catch (_: Exception) {
+        }
         _isRunning.value = false
         Log.d(TAG, "AirMouseService destroyed")
     }
@@ -183,7 +222,7 @@ class AirMouseService : Service() {
 
         val subText = "$batteryIcon Battery: $batteryLevel%${if (isCharging) " (Charging)" else ""}"
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("AirMouse")
             .setContentText(statusText)
             .setSubText(subText)
@@ -192,7 +231,47 @@ class AirMouseService : Service() {
             .setOngoing(true)
             .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
+
+        // Add media + air mouse action buttons when connected
+        if (hidManager.isConnected()) {
+            // Play / Pause
+            val playPauseIntent = Intent(ACTION_MEDIA_PLAY_PAUSE)
+            val playPausePending = PendingIntent.getBroadcast(
+                this, 10, playPauseIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(R.drawable.ic_app_logo, "Play", playPausePending)
+
+            // Next Track
+            val nextIntent = Intent(ACTION_MEDIA_NEXT)
+            val nextPending = PendingIntent.getBroadcast(
+                this, 11, nextIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(R.drawable.ic_app_logo, "Next", nextPending)
+
+            // Volume Down
+            val volDownIntent = Intent(ACTION_MEDIA_VOL_DOWN)
+            val volDownPending = PendingIntent.getBroadcast(
+                this, 12, volDownIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(R.drawable.ic_app_logo, "Vol-", volDownPending)
+
+            // Air Mouse Toggle
+            val airMouseAction = if (isAirMouseActive) ACTION_STOP_AIR_MOUSE else ACTION_START_AIR_MOUSE
+            val airMouseLabel = if (isAirMouseActive) "Stop Mouse" else "Start Mouse"
+            val airMouseIntent = Intent(this, AirMouseService::class.java).apply {
+                action = airMouseAction
+            }
+            val airMousePending = PendingIntent.getService(
+                this, 13, airMouseIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(R.drawable.ic_app_logo, airMouseLabel, airMousePending)
+        }
+
+        return builder.build()
     }
 
     companion object {
@@ -206,6 +285,12 @@ class AirMouseService : Service() {
         const val ACTION_START_AIR_MOUSE = "com.example.service.START_AIR_MOUSE"
         const val ACTION_STOP_AIR_MOUSE = "com.example.service.STOP_AIR_MOUSE"
         const val EXTRA_DEVICE_NAME = "device_name"
+
+        // Notification media action broadcasts
+        const val ACTION_MEDIA_PLAY_PAUSE = "com.example.service.MEDIA_PLAY_PAUSE"
+        const val ACTION_MEDIA_NEXT = "com.example.service.MEDIA_NEXT"
+        const val ACTION_MEDIA_PREV = "com.example.service.MEDIA_PREV"
+        const val ACTION_MEDIA_VOL_DOWN = "com.example.service.MEDIA_VOL_DOWN"
 
         var isAirMouseActive = false
 
