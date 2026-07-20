@@ -5,6 +5,24 @@ All notable changes to AirMouse will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.1] - 2025-07-20
+
+### Added
+- **BLE GATT Battery Service** — Phone battery level now visible in host's Bluetooth settings
+  - Standard Bluetooth Battery Service (UUID 0x180F) exposed via BLE GATT
+  - Works like Bluetooth earphones — host shows battery in its Bluetooth settings
+  - Battery updates pushed via GATT notifications when level changes
+  - Automatically starts on HID connection, stops on disconnect
+- **Live Battery Monitoring** — Battery level updates in real-time throughout the app
+  - Foreground notification shows battery level and charging status
+  - Dashboard connection card displays battery with color-coded icon
+  - Battery icon: red (<=15%), amber (<=30%), green (charging)
+
+### Fixed
+- Fixed all deprecation warnings from CI build
+- `BluetoothAdapter.getDefaultAdapter()` replaced with `BluetoothManager.adapter`
+- Deprecated Material icons replaced with AutoMirrored versions
+
 ## [1.9.0] - 2025-01-16
 
 ### Added
