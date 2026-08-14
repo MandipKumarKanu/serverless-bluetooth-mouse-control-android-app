@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Explicit Cancel Controls** — Added Cancel buttons on status card, device list item, and bottom sticky status bar.
 - **Touchpad Top-Right Settings Menu** — Added top-right Settings button on Touchpad screen with sliders for live Touch Pointer Sensitivity and Scroll Bar Sensitivity adjustments.
 - **Clean Connection Status Card** — Removed battery percentage text/row from under the main connection status text.
+- **Enhanced Sticky Connection Bar** — Removed blinking dot animation and added network signal icon with RSSI strength display (`CONNECTED: Device (network icon) -62 dBm -- Strong`).
 
 ## [1.9.3] - 2026-08-14
 

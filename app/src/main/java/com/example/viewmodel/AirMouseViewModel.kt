@@ -78,6 +78,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     // Bluetooth States from native service
     val bluetoothState: StateFlow<Int> = hidManager.connectionState
     val connectedDevice: StateFlow<BluetoothDevice?> = hidManager.connectedDevice
+    val connectedDeviceRssi: StateFlow<Int?> = hidManager.connectedDeviceRssi
     val targetDevice: StateFlow<BluetoothDevice?> = hidManager.targetDevice
     val isProfileReady: StateFlow<Boolean> = hidManager.isProfileReady
     val isAppRegistered: StateFlow<Boolean> = hidManager.isAppRegistered

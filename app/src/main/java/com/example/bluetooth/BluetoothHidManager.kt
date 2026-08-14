@@ -123,6 +123,9 @@ class BluetoothHidManager private constructor(context: Context) {
     private val _connectedDevice = MutableStateFlow<BluetoothDevice?>(null)
     val connectedDevice: StateFlow<BluetoothDevice?> = _connectedDevice.asStateFlow()
 
+    private val _connectedDeviceRssi = MutableStateFlow<Int?>(null)
+    val connectedDeviceRssi: StateFlow<Int?> = _connectedDeviceRssi.asStateFlow()
+
     private val _targetDevice = MutableStateFlow<BluetoothDevice?>(null)
     val targetDevice: StateFlow<BluetoothDevice?> = _targetDevice.asStateFlow()
 
@@ -425,6 +428,9 @@ class BluetoothHidManager private constructor(context: Context) {
                     connectTimeoutJob?.cancel(true)
                     _targetDevice.value = null
                     _connectedDevice.value = device
+                    if (_connectedDeviceRssi.value == null) {
+                        _connectedDeviceRssi.value = -60
+                    }
                     isConnecting = false
                     Log.d(TAG, "=== CONNECTION ESTABLISHED ===")
                     Log.d(TAG, "Device: ${device?.getSafeName()}")
@@ -445,6 +451,7 @@ class BluetoothHidManager private constructor(context: Context) {
                     connectTimeoutJob?.cancel(true)
                     _targetDevice.value = null
                     _connectedDevice.value = null
+                    _connectedDeviceRssi.value = null
                     isConnecting = false
                     Log.d(TAG, "Disconnected from: ${device?.getSafeName()}")
                     // Stop BLE Battery Service

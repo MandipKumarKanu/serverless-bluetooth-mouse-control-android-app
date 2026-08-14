@@ -3736,6 +3736,7 @@ fun AboutScreen(navController: NavController) {
 fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavController? = null) {
     val connectionState by viewModel.bluetoothState.collectAsState()
     val connectedDevice by viewModel.connectedDevice.collectAsState()
+    val connectedDeviceRssi by viewModel.connectedDeviceRssi.collectAsState()
     val targetDevice by viewModel.targetDevice.collectAsState()
     val isBluetoothPowerOn by viewModel.isBluetoothPowerOn.collectAsState()
 
@@ -3756,22 +3757,13 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    val statusText = when {
-        !isBluetoothPowerOn -> "BLUETOOTH IS TURNED OFF - CLICK TO TURN ON"
-        isConnected -> "CONNECTED: ${connectedDevice?.getSafeName() ?: "Host Device"}"
-        isConnecting -> "CONNECTING TO ${targetDevice?.getSafeName() ?: "Host Device"}..."
-        else -> "DISCONNECTED - TAP TO RECONNECT"
+    val rssiVal = connectedDeviceRssi ?: -62
+    val absRssi = kotlin.math.abs(rssiVal)
+    val strengthLabel = when {
+        absRssi <= 65 -> "Strong"
+        absRssi <= 80 -> "Good"
+        else -> "Fair"
     }
-
-    val pulseAlpha by rememberInfiniteTransition(label = "pulse").animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseAlpha"
-    )
 
     Surface(
         modifier = Modifier
@@ -3795,25 +3787,43 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .scale(if (isConnected || isConnecting || !isBluetoothPowerOn) pulseAlpha else 1f)
-                    .background(
-                        color = contentColor,
-                        shape = CircleShape
-                    )
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = statusText,
-                color = if (isConnected) Color.White else contentColor,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                textAlign = TextAlign.Center
-            )
-            if (isConnecting) {
+            if (isConnected) {
+                Text(
+                    text = "CONNECTED: ${connectedDevice?.getSafeName() ?: "Host Device"} ",
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.SignalCellularAlt,
+                    contentDescription = "Signal Strength",
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.size(15.dp)
+                )
+                Text(
+                    text = " -$absRssi dBm -- $strengthLabel",
+                    color = Color(0xFF10B981),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+            } else if (isConnecting) {
+                Icon(
+                    imageVector = Icons.Default.BluetoothSearching,
+                    contentDescription = "Connecting",
+                    tint = Color(0xFFF59E0B),
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "CONNECTING TO ${targetDevice?.getSafeName() ?: "Host Device"}...",
+                    color = Color(0xFFF59E0B),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(
                     onClick = { viewModel.cancelConnection() },
@@ -3826,6 +3836,21 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
                         modifier = Modifier.size(16.dp)
                     )
                 }
+            } else {
+                Icon(
+                    imageVector = if (!isBluetoothPowerOn) Icons.Default.BluetoothDisabled else Icons.Default.Bluetooth,
+                    contentDescription = "Bluetooth Status",
+                    tint = contentColor,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (!isBluetoothPowerOn) "BLUETOOTH IS TURNED OFF - CLICK TO TURN ON" else "DISCONNECTED - TAP TO RECONNECT",
+                    color = contentColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
             }
         }
     }
