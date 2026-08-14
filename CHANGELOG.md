@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automatic 10-Second Connection Timeout** — Connection attempts automatically time out after 10 seconds if target device is unreachable, returning to Disconnected state with Toast notification.
 - **One-Tap Device Switching & Manual Cancellation** — Tap connecting device card again to cancel, or tap another device to instantly switch connection target.
 - **Explicit Cancel Controls** — Added Cancel buttons on status card, device list item, and bottom sticky status bar.
-- **Target Device Tracking** — App tracks and displays exact target device name during connection attempt.
+- **Touchpad Top-Right Settings Menu** — Added top-right Settings button on Touchpad screen with sliders for live Touch Pointer Sensitivity and Scroll Bar Sensitivity adjustments.
+- **Clean Connection Status Card** — Removed battery percentage text/row from under the main connection status text.
 
 ## [1.9.3] - 2026-08-14
 

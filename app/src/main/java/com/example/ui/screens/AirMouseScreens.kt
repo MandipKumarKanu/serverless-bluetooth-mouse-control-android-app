@@ -413,31 +413,6 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                 },
                                 fontWeight = FontWeight.Bold
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                val batteryColor = when {
-                                    batteryLevel <= 15 -> Color(0xFFEF4444)
-                                    batteryLevel <= 30 -> Color(0xFFF59E0B)
-                                    else -> if (isCharging) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                                Icon(
-                                    imageVector = if (isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
-                                    contentDescription = "Battery",
-                                    tint = batteryColor,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "$batteryLevel%${if (isCharging) " Charging" else ""}",
-                                    fontSize = 12.sp,
-                                    color = when {
-                                        isConnected -> Color.White.copy(alpha = 0.8f)
-                                        isConnectingState -> Color(0xFFF59E0B).copy(alpha = 0.8f)
-                                        !isBluetoothPowerOn -> MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
-                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
-                                )
-                            }
                         }
                         if (isConnected) {
                             IconButton(
@@ -845,6 +820,7 @@ data class ControlScreenTile(
 fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
     val settings by viewModel.settingsState.collectAsState()
     var isRightScrollActive by remember { mutableStateOf(false) }
+    var showTouchpadSettings by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     // Scroll inertia state
@@ -864,12 +840,142 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                         }
+                    },
+                    actions = {
+                        IconButton(onClick = {
+                            viewModel.vibrate(30)
+                            showTouchpadSettings = true
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Touchpad Settings",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
                     }
                 )
                 StickyConnectionIndicator(viewModel, navController)
             }
         }
     ) { innerPadding ->
+        if (showTouchpadSettings) {
+            var currentSensitivity by remember(settings.sensitivity) { mutableFloatStateOf(settings.sensitivity) }
+            var currentScrollSpeed by remember(settings.scrollSpeed) { mutableFloatStateOf(settings.scrollSpeed) }
+
+            AlertDialog(
+                onDismissRequest = { showTouchpadSettings = false },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Touchpad & Scroll Settings", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Touch Pointer Sensitivity Slider
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Touch Pointer Sensitivity",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = String.format(java.util.Locale.US, "%.1fx", currentSensitivity),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Slider(
+                                value = currentSensitivity,
+                                onValueChange = { currentSensitivity = it },
+                                onValueChangeFinished = {
+                                    viewModel.updateSettings(settings.copy(sensitivity = currentSensitivity))
+                                },
+                                valueRange = 0.2f..3.0f,
+                                steps = 27
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Slow (0.2x)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Fast (3.0x)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                        // Scroll Speed Slider
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Scroll Bar Sensitivity",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = String.format(java.util.Locale.US, "%.1fx", currentScrollSpeed),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Slider(
+                                value = currentScrollSpeed,
+                                onValueChange = { currentScrollSpeed = it },
+                                onValueChangeFinished = {
+                                    viewModel.updateSettings(settings.copy(scrollSpeed = currentScrollSpeed))
+                                },
+                                valueRange = 0.2f..3.0f,
+                                steps = 27
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Slow (0.2x)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Fast (3.0x)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.updateSettings(settings.copy(sensitivity = currentSensitivity, scrollSpeed = currentScrollSpeed))
+                            showTouchpadSettings = false
+                        }
+                    ) {
+                        Text("Done", fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
