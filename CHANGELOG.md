@@ -4,6 +4,12 @@ All notable changes to AirMouse will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.9.9] - 2026-08-14
+
+### Added
+- **Beam Phone Clipboard to PC** — Added 1-tap "Beam Clip" button on Keyboard screen to automatically transmit phone copied text character-by-character over Bluetooth HID.
+- **PC App Switcher / Task View Button** — Added "Apps" button (`Win + Tab`) to Media Remote navigation bar.
+
 ## [1.9.8] - 2026-08-14
 
 ### Added

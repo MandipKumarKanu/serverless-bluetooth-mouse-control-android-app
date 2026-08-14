@@ -1877,27 +1877,69 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         )
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = {
-                            viewModel.vibrate(30)
-                            coroutineScope.launch {
-                                val text = textInput
-                                textInput = ""
-                                text.forEach { char ->
-                                    transmitCharacter(char)
-                                    delay(15) // small latency gap between characters
+                    val context = LocalContext.current
+                    val clipboardManager = remember { context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager }
+
+                    fun beamClipboardText() {
+                        val clipData = clipboardManager.primaryClip
+                        if (clipData != null && clipData.itemCount > 0) {
+                            val copiedText = clipData.getItemAt(0).text?.toString()
+                            if (!copiedText.isNullOrEmpty()) {
+                                viewModel.vibrate(40)
+                                Toast.makeText(context, "Beaming Clipboard: \"${copiedText.take(20)}...\"", Toast.LENGTH_SHORT).show()
+                                coroutineScope.launch {
+                                    copiedText.forEach { char ->
+                                        transmitCharacter(char)
+                                        delay(15)
+                                    }
                                 }
+                            } else {
+                                Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
                             }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("send_text_button"),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        } else {
+                            Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.onPrimary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Send String to Host", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                        Button(
+                            onClick = {
+                                viewModel.vibrate(30)
+                                coroutineScope.launch {
+                                    val text = textInput
+                                    textInput = ""
+                                    text.forEach { char ->
+                                        transmitCharacter(char)
+                                        delay(15) // small latency gap between characters
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1.2f)
+                                .height(48.dp)
+                                .testTag("send_text_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.onPrimary)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Send Text", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+
+                        Button(
+                            onClick = { beamClipboardText() },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .testTag("beam_clipboard_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                        ) {
+                            Icon(imageVector = Icons.Default.ContentPaste, contentDescription = "Beam Clipboard", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Beam Clip", color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
                     }
                 }
             }
@@ -2715,10 +2757,10 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                 }
             }
 
-            // 3. Navigation Shortcuts Row: Back & Enter/Select
+            // 3. Navigation Shortcuts Row: Back, App Switch & Enter/Select
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Back / Escape key
@@ -2726,14 +2768,33 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                     onClick = { viewModel.sendKeyboardKey(0, 0x29.toByte()) }, // Escape / Back
                     modifier = Modifier
                         .weight(1f)
-                        .height(52.dp)
+                        .height(50.dp)
                         .testTag("media_back_key"),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Back", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Back", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+
+                // App Switcher / Task View key (Win + Tab)
+                Button(
+                    onClick = {
+                        viewModel.vibrate(30)
+                        viewModel.sendKeyboardKey(8, 0x2B.toByte()) // Win + Tab
+                        Toast.makeText(context, "Task View (Win + Tab)", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier
+                        .weight(1.1f)
+                        .height(50.dp)
+                        .testTag("media_app_switch_key"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Icon(imageVector = Icons.Default.ViewArray, contentDescription = "App Switch", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Apps", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
 
                 // Direct Select / Enter key
@@ -2741,14 +2802,14 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                     onClick = { viewModel.sendKeyboardKey(0, 0x28.toByte()) }, // Enter / Select
                     modifier = Modifier
                         .weight(1f)
-                        .height(52.dp)
+                        .height(50.dp)
                         .testTag("media_enter_key"),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardReturn, contentDescription = "Enter", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Enter", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardReturn, contentDescription = "Enter", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Enter", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
 

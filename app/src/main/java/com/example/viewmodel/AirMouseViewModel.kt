@@ -511,7 +511,61 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         hidManager.sendMouseInput(0, 0, 0, 0)
     }
 
-    // --- KEYBOARD ACTIONS ---
+    fun sendText(text: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            text.forEach { char ->
+                var modifier: Byte = 0
+                var keyCode: Byte = 0
+                when (char) {
+                    in 'a'..'z' -> keyCode = (0x04 + (char - 'a')).toByte()
+                    in 'A'..'Z' -> {
+                        modifier = 0x02.toByte() // Shift
+                        keyCode = (0x04 + (char - 'A')).toByte()
+                    }
+                    in '1'..'9' -> keyCode = (0x1E + (char - '1')).toByte()
+                    '0' -> keyCode = 0x27.toByte()
+                    ' ' -> keyCode = 0x2C.toByte()
+                    '\n' -> keyCode = 0x28.toByte()
+                    '\t' -> keyCode = 0x2B.toByte()
+                    '!' -> { modifier = 0x02.toByte(); keyCode = 0x1E.toByte() }
+                    '@' -> { modifier = 0x02.toByte(); keyCode = 0x1F.toByte() }
+                    '#' -> { modifier = 0x02.toByte(); keyCode = 0x20.toByte() }
+                    '$' -> { modifier = 0x02.toByte(); keyCode = 0x21.toByte() }
+                    '%' -> { modifier = 0x02.toByte(); keyCode = 0x22.toByte() }
+                    '^' -> { modifier = 0x02.toByte(); keyCode = 0x23.toByte() }
+                    '&' -> { modifier = 0x02.toByte(); keyCode = 0x24.toByte() }
+                    '*' -> { modifier = 0x02.toByte(); keyCode = 0x25.toByte() }
+                    '(' -> { modifier = 0x02.toByte(); keyCode = 0x26.toByte() }
+                    ')' -> { modifier = 0x02.toByte(); keyCode = 0x27.toByte() }
+                    '-' -> keyCode = 0x2D.toByte()
+                    '_' -> { modifier = 0x02.toByte(); keyCode = 0x2D.toByte() }
+                    '=' -> keyCode = 0x2E.toByte()
+                    '+' -> { modifier = 0x02.toByte(); keyCode = 0x2E.toByte() }
+                    '[' -> keyCode = 0x2F.toByte()
+                    '{' -> { modifier = 0x02.toByte(); keyCode = 0x2F.toByte() }
+                    ']' -> keyCode = 0x30.toByte()
+                    '}' -> { modifier = 0x02.toByte(); keyCode = 0x30.toByte() }
+                    '\\' -> keyCode = 0x31.toByte()
+                    '|' -> { modifier = 0x02.toByte(); keyCode = 0x31.toByte() }
+                    ';' -> keyCode = 0x33.toByte()
+                    ':' -> { modifier = 0x02.toByte(); keyCode = 0x33.toByte() }
+                    '\'' -> keyCode = 0x34.toByte()
+                    '"' -> { modifier = 0x02.toByte(); keyCode = 0x34.toByte() }
+                    ',' -> keyCode = 0x36.toByte()
+                    '<' -> { modifier = 0x02.toByte(); keyCode = 0x36.toByte() }
+                    '.' -> keyCode = 0x37.toByte()
+                    '>' -> { modifier = 0x02.toByte(); keyCode = 0x37.toByte() }
+                    '/' -> keyCode = 0x38.toByte()
+                    '?' -> { modifier = 0x02.toByte(); keyCode = 0x38.toByte() }
+                }
+                if (keyCode != 0.toByte()) {
+                    hidManager.sendKeyPress(modifier, keyCode)
+                    kotlinx.coroutines.delay(15)
+                }
+            }
+        }
+    }
+
     fun sendKeyboardKey(modifiers: Byte, keyCode: Byte) {
         vibrate(20)
         hidManager.sendKeyPress(modifiers, keyCode)
