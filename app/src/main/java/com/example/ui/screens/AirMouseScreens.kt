@@ -193,19 +193,20 @@ fun SplashScreen(navController: NavController) {
 fun PermissionsScreen(navController: NavController) {
     val context = LocalContext.current
     
-    val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        arrayOf(
-            Manifest.permission.BLUETOOTH_CONNECT,
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_ADVERTISE
-        )
-    } else {
-        arrayOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.BLUETOOTH,
-            Manifest.permission.BLUETOOTH_ADMIN
-        )
-    }
+    val requiredPermissions = buildList {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            add(Manifest.permission.BLUETOOTH_CONNECT)
+            add(Manifest.permission.BLUETOOTH_SCAN)
+            add(Manifest.permission.BLUETOOTH_ADVERTISE)
+        } else {
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.BLUETOOTH)
+            add(Manifest.permission.BLUETOOTH_ADMIN)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }.toTypedArray()
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -239,13 +240,13 @@ fun PermissionsScreen(navController: NavController) {
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,
-                    contentDescription = "Bluetooth Permission Required",
+                    contentDescription = "Bluetooth & Notification Permissions Required",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(72.dp)
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    text = "Bluetooth & Sensors Required",
+                    text = "Bluetooth & Notification Permissions",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -253,7 +254,7 @@ fun PermissionsScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "AirMouse functions 100% serverless by registering directly as a hardware device over standard Bluetooth HID.\n\nTo establish connections and stream motion data, we require Bluetooth discovery, connection, and motion sensor permissions.",
+                    text = "AirMouse registers directly as a hardware device over standard Bluetooth HID.\n\nTo establish connections and show media controls (Play/Pause, Prev, Next) in your notification bar while connected, we require Bluetooth and Notification permissions.",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -985,7 +986,7 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
             // Touchpad Instruction Alert
             Text(
-                text = "Tap for Left-Click • Double Tap for Double-Click • Swipe Scroll bar to Scroll",
+                text = "Tap: Left Click • 2-Finger Tap: Right Click • 2-Finger Pinch: Zoom • 3-Finger Swipe: Task View",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center,
@@ -993,6 +994,8 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     .fillMaxWidth()
                     .padding(bottom = 8.dp)
             )
+
+            val context = LocalContext.current
 
             // Touch Area Box Row
             Row(
@@ -1012,40 +1015,93 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .pointerInput(Unit) {
                             awaitPointerEventScope {
                                 var lastTapTime = 0L
+                                var initialPinchDistance = -1f
+                                var maxPointersSeen = 0
+                                var isGestureHandled = false
+
                                 while (true) {
-                                    val down = awaitFirstDown()
-                                    val startTime = System.currentTimeMillis()
-                                    val startPos = down.position
-                                    var isDrag = false
-                                    var prevPosition = startPos
+                                    val event = awaitPointerEvent()
+                                    val changes = event.changes
+                                    val pointerCount = changes.size
 
-                                    val dragResult = drag(down.id) { change ->
-                                        val currentPosition = change.position
-                                        val dragAmount = currentPosition - prevPosition
-                                        prevPosition = currentPosition
+                                    if (pointerCount > maxPointersSeen) {
+                                        maxPointersSeen = pointerCount
+                                    }
 
-                                        val dist = (currentPosition - startPos).getDistance()
-                                        if (dist > 8f) {
-                                            isDrag = true
+                                    when {
+                                        // 3-Finger Swipe Up / Down -> Task View (Win + Tab / Cmd + Expose)
+                                        pointerCount == 3 -> {
+                                            val averageDy = changes.map { it.positionChange().y }.average().toFloat()
+                                            if (kotlin.math.abs(averageDy) > 18f && !isGestureHandled) {
+                                                changes.forEach { it.consume() }
+                                                isGestureHandled = true
+                                                viewModel.vibrate(50)
+                                                viewModel.sendKeyboardKey(8, 0x2B.toByte()) // Win + Tab
+                                                Toast.makeText(context, "Task View (Win + Tab)", Toast.LENGTH_SHORT).show()
+                                            }
                                         }
 
-                                        if (isDrag) {
-                                            change.consume()
-                                            // Send mouse movement
-                                            viewModel.sendTouchMove(dragAmount.x, dragAmount.y)
+                                        // 2-Finger Pinch-to-Zoom -> Ctrl + Scroll Wheel
+                                        pointerCount == 2 -> {
+                                            val p1 = changes[0].position
+                                            val p2 = changes[1].position
+                                            val currentDistance = (p1 - p2).getDistance()
+
+                                            if (initialPinchDistance < 0f) {
+                                                initialPinchDistance = currentDistance
+                                            } else {
+                                                val delta = currentDistance - initialPinchDistance
+                                                if (kotlin.math.abs(delta) > 35f && !isGestureHandled) {
+                                                    changes.forEach { it.consume() }
+                                                    initialPinchDistance = currentDistance
+                                                    val scrollTick = if (delta > 0) 1 else -1 // Zoom In (+1) or Zoom Out (-1)
+                                                    viewModel.sendCtrlScroll(scrollTick.toByte())
+                                                    viewModel.vibrate(15)
+                                                }
+                                            }
+                                        }
+
+                                        // 1-Finger Pointer Movement
+                                        pointerCount == 1 -> {
+                                            val change = changes[0]
+                                            if (change.pressed) {
+                                                val dragAmount = change.positionChange()
+                                                if (dragAmount.getDistance() > 1f && maxPointersSeen == 1) {
+                                                    change.consume()
+                                                    viewModel.sendTouchMove(dragAmount.x, dragAmount.y)
+                                                }
+                                            }
                                         }
                                     }
 
-                                    if (!isDrag) {
-                                        val tapTime = System.currentTimeMillis()
-                                        if (tapTime - lastTapTime < 250) {
-                                            viewModel.sendMouseClick(1)
-                                            viewModel.sendMouseClick(1)
-                                            lastTapTime = 0L
-                                        } else {
-                                            viewModel.sendMouseClick(1)
-                                            lastTapTime = tapTime
+                                    // On Pointer Release (All fingers lifted up)
+                                    if (changes.all { !it.pressed }) {
+                                        if (!isGestureHandled) {
+                                            when (maxPointersSeen) {
+                                                1 -> {
+                                                    // 1-Finger Tap -> Left Click
+                                                    val tapTime = System.currentTimeMillis()
+                                                    if (tapTime - lastTapTime < 250) {
+                                                        viewModel.sendMouseClick(1)
+                                                        viewModel.sendMouseClick(1)
+                                                        lastTapTime = 0L
+                                                    } else {
+                                                        viewModel.sendMouseClick(1)
+                                                        lastTapTime = tapTime
+                                                    }
+                                                }
+                                                2 -> {
+                                                    // 2-Finger Tap -> Right Click
+                                                    viewModel.sendMouseClick(2)
+                                                    viewModel.vibrate(40)
+                                                    Toast.makeText(context, "Right Click", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
                                         }
+                                        // Reset gesture tracking
+                                        maxPointersSeen = 0
+                                        initialPinchDistance = -1f
+                                        isGestureHandled = false
                                     }
                                 }
                             }
@@ -3236,6 +3292,71 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
             Text("Feedback & Device", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 15.sp)
 
+            // Persistent Notification & Media Controls Toggle
+            val context = LocalContext.current
+            var hasNotifPermission by remember {
+                mutableStateOf(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                    } else {
+                        true
+                    }
+                )
+            }
+
+            val notifLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestPermission()
+            ) { isGranted ->
+                hasNotifPermission = isGranted
+                if (isGranted) {
+                    Toast.makeText(context, "Notification permission granted! Persistent media controls enabled.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Notification permission denied", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Persistent Media Controls Notification", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(
+                        text = if (hasNotifPermission) "Active media controls (Play/Pause, Prev, Next) in notification bar when connected" else "Permission denied. Tap to enable notification controls.",
+                        color = if (hasNotifPermission) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Switch(
+                    checked = hasNotifPermission,
+                    onCheckedChange = { checked ->
+                        if (checked) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                hasNotifPermission = true
+                            }
+                        } else {
+                            val intent = android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    modifier = Modifier.testTag("setting_notification_toggle")
+                )
+            }
+
             // Vibration switch
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -3803,7 +3924,7 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
                     modifier = Modifier.size(15.dp)
                 )
                 Text(
-                    text = " -$absRssi dBm -- $strengthLabel",
+                    text = " -$absRssi dBm",
                     color = Color(0xFF10B981),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,

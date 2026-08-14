@@ -116,6 +116,16 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                DisposableEffect(navController) {
+                    val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+                        viewModel.currentRoute.value = destination.route
+                    }
+                    navController.addOnDestinationChangedListener(listener)
+                    onDispose {
+                        navController.removeOnDestinationChangedListener(listener)
+                    }
+                }
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -167,6 +177,60 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        val viewModel: AirMouseViewModel by androidx.activity.viewmodels()
+        val isConnected = viewModel.bluetoothState.value == android.bluetooth.BluetoothProfile.STATE_CONNECTED
+        val route = viewModel.currentRoute.value
+
+        if (isConnected) {
+            if (route == Routes.PRESENTATION) {
+                when (keyCode) {
+                    android.view.KeyEvent.KEYCODE_VOLUME_UP -> {
+                        viewModel.sendKeyboardKey(0, 0x4B.toByte()) // Page Up (Prev Slide)
+                        viewModel.vibrate(30)
+                        android.widget.Toast.makeText(this, "Previous Slide (Vol Up)", android.widget.Toast.LENGTH_SHORT).show()
+                        return true
+                    }
+                    android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                        viewModel.sendKeyboardKey(0, 0x4E.toByte()) // Page Down (Next Slide)
+                        viewModel.vibrate(30)
+                        android.widget.Toast.makeText(this, "Next Slide (Vol Down)", android.widget.Toast.LENGTH_SHORT).show()
+                        return true
+                    }
+                }
+            } else if (route == Routes.MEDIA_REMOTE) {
+                when (keyCode) {
+                    android.view.KeyEvent.KEYCODE_VOLUME_UP -> {
+                        viewModel.sendConsumerInput(0x01) // Volume Up
+                        viewModel.vibrate(30)
+                        android.widget.Toast.makeText(this, "Volume Up", android.widget.Toast.LENGTH_SHORT).show()
+                        return true
+                    }
+                    android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                        viewModel.sendConsumerInput(0x02) // Volume Down
+                        viewModel.vibrate(30)
+                        android.widget.Toast.makeText(this, "Volume Down", android.widget.Toast.LENGTH_SHORT).show()
+                        return true
+                    }
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        val viewModel: AirMouseViewModel by androidx.activity.viewmodels()
+        val isConnected = viewModel.bluetoothState.value == android.bluetooth.BluetoothProfile.STATE_CONNECTED
+        val route = viewModel.currentRoute.value
+
+        if (isConnected && (route == Routes.PRESENTATION || route == Routes.MEDIA_REMOTE)) {
+            if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP || keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) {
+                return true
+            }
+        }
+        return super.onKeyUp(keyCode, event)
     }
 
     override fun onDestroy() {

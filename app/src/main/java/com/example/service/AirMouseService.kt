@@ -246,13 +246,21 @@ class AirMouseService : Service() {
 
         // Add media + air mouse action buttons when connected
         if (hidManager.isConnected()) {
+            // Prev Track
+            val prevIntent = Intent(ACTION_MEDIA_PREV)
+            val prevPending = PendingIntent.getBroadcast(
+                this, 9, prevIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(R.drawable.ic_app_logo, "Prev", prevPending)
+
             // Play / Pause
             val playPauseIntent = Intent(ACTION_MEDIA_PLAY_PAUSE)
             val playPausePending = PendingIntent.getBroadcast(
                 this, 10, playPauseIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            builder.addAction(R.drawable.ic_app_logo, "Play", playPausePending)
+            builder.addAction(R.drawable.ic_app_logo, "Play/Pause", playPausePending)
 
             // Next Track
             val nextIntent = Intent(ACTION_MEDIA_NEXT)

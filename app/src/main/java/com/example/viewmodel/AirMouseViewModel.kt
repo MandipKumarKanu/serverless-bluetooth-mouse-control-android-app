@@ -476,6 +476,20 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    val currentRoute = MutableStateFlow<String?>(null)
+
+    fun sendCtrlScroll(scrollTicks: Byte) {
+        // Hold Left Ctrl (Modifier 0x01)
+        hidManager.sendKeyboardInput(0x01, byteArrayOf())
+        // Send Mouse Scroll tick
+        hidManager.sendMouseInput(0, 0, 0, scrollTicks)
+        // Release Left Ctrl
+        viewModelScope.launch(Dispatchers.IO) {
+            kotlinx.coroutines.delay(40)
+            hidManager.sendKeyboardInput(0, byteArrayOf())
+        }
+    }
+
     fun sendMouseClick(button: Byte) {
         vibrate(30)
         // Click Down

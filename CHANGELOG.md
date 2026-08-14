@@ -4,6 +4,13 @@ All notable changes to AirMouse will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.9.5] - 2026-08-14
+
+### Added
+- **Multi-Finger Touchpad Gestures** — 2-finger tap for Right-Click, 2-finger pinch for Zoom In/Out (`Ctrl + Scroll`), and 3-finger swipe up/down for Task View (`Win + Tab`).
+- **Hardware Volume Button Clicker** — Physical phone volume buttons (`Vol Up` / `Vol Down`) act as presentation slide clickers (Page Up/Page Down) in Presentation Mode and volume controls in Media Remote Mode.
+- **Persistent Media Control Notification** — Displays ongoing notification with action buttons (`Prev`, `Play/Pause`, `Next`, `Vol-`, `Start/Stop Mouse`) when connected.
+
 ## [1.9.4] - 2026-08-14
 
 ### Added
@@ -12,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Explicit Cancel Controls** — Added Cancel buttons on status card, device list item, and bottom sticky status bar.
 - **Touchpad Top-Right Settings Menu** — Added top-right Settings button on Touchpad screen with sliders for live Touch Pointer Sensitivity and Scroll Bar Sensitivity adjustments.
 - **Clean Connection Status Card** — Removed battery percentage text/row from under the main connection status text.
-- **Enhanced Sticky Connection Bar** — Removed blinking dot animation and added network signal icon with RSSI strength display (`CONNECTED: Device (network icon) -62 dBm -- Strong`).
+- **Enhanced Sticky Connection Bar** — Removed blinking dot animation and added network signal icon with RSSI strength display (`CONNECTED: Device (network icon) -62 dBm`).
 
 ## [1.9.3] - 2026-08-14
 
