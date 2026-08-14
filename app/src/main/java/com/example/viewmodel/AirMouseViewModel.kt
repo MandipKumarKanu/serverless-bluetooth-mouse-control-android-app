@@ -191,8 +191,12 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                                     )
                                 }
                             }
-                            // Start foreground service to maintain connection
-                            AirMouseService.startService(app, deviceName)
+                            // Start foreground service to maintain connection safely
+                            try {
+                                AirMouseService.startService(app, deviceName)
+                            } catch (e: Exception) {
+                                Log.e("AirMouseViewModel", "Failed to start AirMouseService", e)
+                            }
                         }
                         BluetoothProfile.STATE_CONNECTING -> {
                             Toast.makeText(application, "Connecting to $deviceName...", Toast.LENGTH_SHORT).show()
@@ -200,8 +204,12 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                         BluetoothProfile.STATE_DISCONNECTED -> {
                             if (lastState == BluetoothProfile.STATE_CONNECTED || lastState == BluetoothProfile.STATE_CONNECTING) {
                                 Toast.makeText(application, "Disconnected from $deviceName", Toast.LENGTH_SHORT).show()
-                                // Stop foreground service
-                                AirMouseService.stopService(app)
+                                // Stop foreground service safely
+                                try {
+                                    AirMouseService.stopService(app)
+                                } catch (e: Exception) {
+                                    Log.e("AirMouseViewModel", "Failed to stop AirMouseService", e)
+                                }
                             }
                         }
                     }

@@ -143,7 +143,7 @@ class AirMouseWidgetReceiver : AppWidgetProvider() {
             val hidManager = BluetoothHidManager.getInstance(context)
             val isConnected = isBluetoothOn && hidManager.isConnected()
             val connectedDeviceName = if (isConnected) {
-                hidManager.connectedDevice.value?.name ?: "Connected Device"
+                hidManager.connectedDevice.value?.getSafeName() ?: "Connected Device"
             } else {
                 null
             }

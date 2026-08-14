@@ -41,8 +41,17 @@ class BatteryMonitor(context: Context) {
     fun start() {
         if (isRegistered) return
         val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        appContext.registerReceiver(batteryReceiver, filter)
-        isRegistered = true
+        try {
+            androidx.core.content.ContextCompat.registerReceiver(
+                appContext,
+                batteryReceiver,
+                filter,
+                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            )
+            isRegistered = true
+        } catch (e: Exception) {
+            android.util.Log.e("BatteryMonitor", "Error registering batteryReceiver", e)
+        }
     }
 
     fun stop() {

@@ -193,7 +193,12 @@ class BluetoothHidManager private constructor(context: Context) {
                 addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
                 addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
             }
-            appContext.registerReceiver(bluetoothReceiver, filter)
+            androidx.core.content.ContextCompat.registerReceiver(
+                appContext,
+                bluetoothReceiver,
+                filter,
+                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Error registering bluetoothReceiver", e)
         }
@@ -416,9 +421,13 @@ class BluetoothHidManager private constructor(context: Context) {
                     Log.d(TAG, "=== CONNECTION ESTABLISHED ===")
                     Log.d(TAG, "Device: ${device?.getSafeName()}")
                     Log.d(TAG, "Address: ${device?.address}")
-                    // Start BLE Battery Service so host can see phone battery
-                    bleBatteryService.start()
-                    bleBatteryService.updateBatteryLevel(lastBatteryLevel)
+                    // Start BLE Battery Service safely so host can see phone battery
+                    try {
+                        bleBatteryService.start()
+                        bleBatteryService.updateBatteryLevel(lastBatteryLevel)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error starting bleBatteryService", e)
+                    }
                 }
                 BluetoothProfile.STATE_CONNECTING -> {
                     isConnecting = true
@@ -637,7 +646,12 @@ class BluetoothHidManager private constructor(context: Context) {
         }
 
         try {
-            appContext.registerReceiver(discoveryReceiver, filter)
+            androidx.core.content.ContextCompat.registerReceiver(
+                appContext,
+                discoveryReceiver,
+                filter,
+                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            )
             val success = adapter.startDiscovery()
             if (!success) {
                 Log.e(TAG, "Failed to start discovery")

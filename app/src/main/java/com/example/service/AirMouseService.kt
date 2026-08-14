@@ -78,14 +78,14 @@ class AirMouseService : Service() {
         batteryMonitor = BatteryMonitor(this)
         batteryMonitor.start()
 
-        // Register media action receiver
+        // Register media action receiver safely with export flag for Android 14+
         val filter = IntentFilter().apply {
             addAction(ACTION_MEDIA_PLAY_PAUSE)
             addAction(ACTION_MEDIA_NEXT)
             addAction(ACTION_MEDIA_PREV)
             addAction(ACTION_MEDIA_VOL_DOWN)
         }
-        registerReceiver(mediaActionReceiver, filter)
+        ContextCompat.registerReceiver(this, mediaActionReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         // Update notification when battery level changes
         batteryUpdateJob = CoroutineScope(Dispatchers.Main).launch {
@@ -162,7 +162,19 @@ class AirMouseService : Service() {
         _connectedDeviceName.value = deviceName
 
         val notification = createNotification(deviceName)
-        startForeground(NOTIFICATION_ID, notification)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start foreground service", e)
+        }
 
         Log.d(TAG, "Foreground service started, connected to: $deviceName")
     }
