@@ -15,6 +15,7 @@ import android.widget.Toast
 import com.example.MainActivity
 import com.example.R
 import com.example.bluetooth.BluetoothHidManager
+import com.example.bluetooth.getSafeName
 import com.example.service.AirMouseService
 
 class AirMouseWidgetReceiver : AppWidgetProvider() {
