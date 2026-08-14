@@ -122,6 +122,11 @@ class BluetoothHidManager private constructor(context: Context) {
     private val _connectedDevice = MutableStateFlow<BluetoothDevice?>(null)
     val connectedDevice: StateFlow<BluetoothDevice?> = _connectedDevice.asStateFlow()
 
+    private val _targetDevice = MutableStateFlow<BluetoothDevice?>(null)
+    val targetDevice: StateFlow<BluetoothDevice?> = _targetDevice.asStateFlow()
+
+    private var connectTimeoutJob: java.util.concurrent.ScheduledFuture<*>? = null
+
     private val _isProfileReady = MutableStateFlow(false)
     val isProfileReady: StateFlow<Boolean> = _isProfileReady.asStateFlow()
 
@@ -416,6 +421,8 @@ class BluetoothHidManager private constructor(context: Context) {
 
             when (state) {
                 BluetoothProfile.STATE_CONNECTED -> {
+                    connectTimeoutJob?.cancel(true)
+                    _targetDevice.value = null
                     _connectedDevice.value = device
                     isConnecting = false
                     Log.d(TAG, "=== CONNECTION ESTABLISHED ===")
@@ -434,6 +441,8 @@ class BluetoothHidManager private constructor(context: Context) {
                     Log.d(TAG, "Connecting to: ${device?.getSafeName()}")
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
+                    connectTimeoutJob?.cancel(true)
+                    _targetDevice.value = null
                     _connectedDevice.value = null
                     isConnecting = false
                     Log.d(TAG, "Disconnected from: ${device?.getSafeName()}")
@@ -707,6 +716,7 @@ class BluetoothHidManager private constructor(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
 
         val currentState = _connectionState.value
+        val currentTarget = _targetDevice.value
 
         // Guard: Don't connect if already connected to this device
         if (currentState == BluetoothProfile.STATE_CONNECTED && _connectedDevice.value?.address == device.address) {
@@ -714,10 +724,18 @@ class BluetoothHidManager private constructor(context: Context) {
             return true
         }
 
-        // Guard: Don't connect if already connecting
+        // Handle ongoing connection attempt:
+        // - If connecting to the same device -> Cancel attempt
+        // - If connecting to a different device -> Cancel current attempt and connect to new target
         if (currentState == BluetoothProfile.STATE_CONNECTING || isConnecting) {
-            Log.d(TAG, "Already connecting, skipping")
-            return false
+            if (currentTarget?.address == device.address) {
+                Log.d(TAG, "Already connecting to ${device.getSafeName()}, cancelling attempt")
+                cancelConnection()
+                return false
+            } else {
+                Log.d(TAG, "Cancelling connection to ${currentTarget?.getSafeName()} to connect to ${device.getSafeName()}")
+                cancelConnection()
+            }
         }
 
         // Guard: Cooldown between connect attempts
@@ -742,7 +760,23 @@ class BluetoothHidManager private constructor(context: Context) {
     private fun performConnection(device: BluetoothDevice): Boolean {
         lastConnectAttemptTime = System.currentTimeMillis()
         isConnecting = true
+        _targetDevice.value = device
+        _connectionState.value = BluetoothProfile.STATE_CONNECTING
         Log.d(TAG, "Connecting to host: ${device.getSafeName()} [${device.address}]")
+
+        // Schedule 10-second automatic connection timeout
+        connectTimeoutJob?.cancel(true)
+        connectTimeoutJob = scheduledExecutor.schedule({
+            if (_connectionState.value == BluetoothProfile.STATE_CONNECTING) {
+                Log.w(TAG, "Connection attempt to ${device.getSafeName()} timed out after 10s")
+                cancelConnection()
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    try {
+                        Toast.makeText(appContext, "Connection timed out. ${device.getSafeName()} is unreachable.", Toast.LENGTH_SHORT).show()
+                    } catch (_: Exception) {}
+                }
+            }
+        }, 10, TimeUnit.SECONDS)
 
         initializeHidProfile {
             try {
@@ -751,32 +785,52 @@ class BluetoothHidManager private constructor(context: Context) {
                 Log.d(TAG, "connectHost result: $connected")
                 if (connected != true) {
                     isConnecting = false
+                    _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
+                    _targetDevice.value = null
+                    connectTimeoutJob?.cancel(true)
                     Log.w(TAG, "Connection attempt returned false")
                 }
             } catch (e: SecurityException) {
                 Log.e(TAG, "SecurityException connecting to host", e)
                 isConnecting = false
+                _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
+                _targetDevice.value = null
+                connectTimeoutJob?.cancel(true)
             } catch (e: Exception) {
                 Log.e(TAG, "Error connecting to host", e)
                 isConnecting = false
+                _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
+                _targetDevice.value = null
+                connectTimeoutJob?.cancel(true)
             }
         }
         return true
     }
 
     @SuppressLint("NewApi")
-    fun disconnectHost() {
+    fun cancelConnection() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
-        val device = _connectedDevice.value ?: return
-        Log.d(TAG, "Disconnecting from host: ${device.getSafeName()}")
-        try {
-            hidDeviceProfile?.disconnect(device)
-            isConnecting = false
-        } catch (e: SecurityException) {
-            Log.e(TAG, "SecurityException disconnecting from host", e)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error disconnecting from host", e)
+        connectTimeoutJob?.cancel(true)
+        val deviceToDisconnect = _targetDevice.value ?: _connectedDevice.value
+        Log.d(TAG, "Cancelling connection/disconnecting for device: ${deviceToDisconnect?.getSafeName()}")
+        if (deviceToDisconnect != null) {
+            try {
+                hidDeviceProfile?.disconnect(deviceToDisconnect)
+            } catch (e: SecurityException) {
+                Log.e(TAG, "SecurityException disconnecting host", e)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error disconnecting host", e)
+            }
         }
+        _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
+        _connectedDevice.value = null
+        _targetDevice.value = null
+        isConnecting = false
+    }
+
+    @SuppressLint("NewApi")
+    fun disconnectHost() {
+        cancelConnection()
     }
 
     fun isBluetoothEnabled(): Boolean {

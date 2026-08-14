@@ -343,22 +343,31 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                 val isBluetoothPowerOn by viewModel.isBluetoothPowerOn.collectAsState()
                 val batteryLevel by viewModel.batteryLevel.collectAsState()
                 val isCharging by viewModel.isCharging.collectAsState()
+                val targetDevice by viewModel.targetDevice.collectAsState()
+                val isConnectingState = connectionState == BluetoothProfile.STATE_CONNECTING
+
                 val cardColor = when {
                     !isBluetoothPowerOn -> MaterialTheme.colorScheme.errorContainer
                     isConnected -> Color(0xFF064E3B) // Dark green for connected
+                    isConnectingState -> Color(0xFF451A03) // Dark amber for connecting
                     else -> MaterialTheme.colorScheme.surfaceVariant
                 }
                 val statusText = when {
                     !isBluetoothPowerOn -> "Bluetooth is Off - Tap to turn on"
-                    connectionState == BluetoothProfile.STATE_CONNECTED -> "Connected to ${connectedDevice?.getSafeName() ?: "Unknown Device"}"
-                    connectionState == BluetoothProfile.STATE_CONNECTING -> "Connecting..."
+                    isConnected -> "Connected to ${connectedDevice?.getSafeName() ?: "Unknown Device"}"
+                    isConnectingState -> "Connecting to ${targetDevice?.getSafeName() ?: "Device"}..."
                     connectionState == BluetoothProfile.STATE_DISCONNECTED -> "Disconnected"
                     else -> "Offline"
                 }
-                val statusIcon = if (isConnected) Icons.Filled.BluetoothConnected else Icons.Filled.BluetoothDisabled
+                val statusIcon = when {
+                    isConnected -> Icons.Filled.BluetoothConnected
+                    isConnectingState -> Icons.Filled.BluetoothSearching
+                    else -> Icons.Filled.BluetoothDisabled
+                }
                 val tintColor = when {
                     !isBluetoothPowerOn -> MaterialTheme.colorScheme.error
                     isConnected -> Color(0xFF10B981) // Green for connected
+                    isConnectingState -> Color(0xFFF59E0B) // Amber for connecting
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
 
@@ -398,6 +407,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                 fontSize = 16.sp,
                                 color = when {
                                     isConnected -> Color.White
+                                    isConnectingState -> Color(0xFFF59E0B)
                                     !isBluetoothPowerOn -> MaterialTheme.colorScheme.onErrorContainer
                                     else -> MaterialTheme.colorScheme.onSurface
                                 },
@@ -422,6 +432,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                     fontSize = 12.sp,
                                     color = when {
                                         isConnected -> Color.White.copy(alpha = 0.8f)
+                                        isConnectingState -> Color(0xFFF59E0B).copy(alpha = 0.8f)
                                         !isBluetoothPowerOn -> MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
                                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                                     }
@@ -437,6 +448,18 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Disconnect",
                                     tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        } else if (isConnectingState) {
+                            IconButton(
+                                onClick = { viewModel.cancelConnection() },
+                                modifier = Modifier.testTag("cancel_connect")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Cancel Connection",
+                                    tint = Color(0xFFF59E0B),
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -680,8 +703,9 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                 }
             } else if (!isConnected) {
                 items(pairedDevices) { device ->
-                    val isConnecting = viewModel.hidManager.connectedDevice.value == device && connectionState == BluetoothProfile.STATE_CONNECTING
-                    val isThisConnected = viewModel.hidManager.connectedDevice.value == device && connectionState == BluetoothProfile.STATE_CONNECTED
+                    val targetDevice by viewModel.targetDevice.collectAsState()
+                    val isConnectingThisDevice = targetDevice?.address == device.address && connectionState == BluetoothProfile.STATE_CONNECTING
+                    val isThisConnected = connectedDevice?.address == device.address && connectionState == BluetoothProfile.STATE_CONNECTED
 
                     Card(
                         modifier = Modifier
@@ -696,9 +720,17 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                             .testTag("device_card_${device.address}"),
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isThisConnected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant
+                            containerColor = when {
+                                isThisConnected -> MaterialTheme.colorScheme.surface
+                                isConnectingThisDevice -> Color(0xFF451A03).copy(alpha = 0.5f)
+                                else -> MaterialTheme.colorScheme.surfaceVariant
+                            }
                         ),
-                        border = if (isThisConnected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
+                        border = when {
+                            isThisConnected -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                            isConnectingThisDevice -> BorderStroke(1.dp, Color(0xFFF59E0B))
+                            else -> null
+                        }
                     ) {
                         Row(
                             modifier = Modifier
@@ -709,7 +741,11 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                             Icon(
                                 imageVector = if (device.isComputer()) Icons.Default.Computer else Icons.Default.Tv,
                                 contentDescription = "Device Type",
-                                tint = if (isThisConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                tint = when {
+                                    isThisConnected -> MaterialTheme.colorScheme.primary
+                                    isConnectingThisDevice -> Color(0xFFF59E0B)
+                                    else -> MaterialTheme.colorScheme.onSurface
+                                },
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
@@ -721,14 +757,32 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = device.address,
+                                    text = if (isConnectingThisDevice) "Connecting..." else device.address,
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (isConnectingThisDevice) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
                             }
-                            if (isConnecting) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
+                            if (isConnectingThisDevice) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = Color(0xFFF59E0B)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    IconButton(
+                                        onClick = { viewModel.cancelConnection() },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Cancel Connection",
+                                            tint = Color(0xFFF59E0B),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
                             } else if (isThisConnected) {
                                 Badge(containerColor = MaterialTheme.colorScheme.primary) {
                                     Text("ACTIVE", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.padding(2.dp))
@@ -3576,6 +3630,7 @@ fun AboutScreen(navController: NavController) {
 fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavController? = null) {
     val connectionState by viewModel.bluetoothState.collectAsState()
     val connectedDevice by viewModel.connectedDevice.collectAsState()
+    val targetDevice by viewModel.targetDevice.collectAsState()
     val isBluetoothPowerOn by viewModel.isBluetoothPowerOn.collectAsState()
 
     val isConnected = connectionState == BluetoothProfile.STATE_CONNECTED
@@ -3598,7 +3653,7 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
     val statusText = when {
         !isBluetoothPowerOn -> "BLUETOOTH IS TURNED OFF - CLICK TO TURN ON"
         isConnected -> "CONNECTED: ${connectedDevice?.getSafeName() ?: "Host Device"}"
-        isConnecting -> "CONNECTING: ${connectedDevice?.getSafeName() ?: "Host Device"}..."
+        isConnecting -> "CONNECTING TO ${targetDevice?.getSafeName() ?: "Host Device"}..."
         else -> "DISCONNECTED - TAP TO RECONNECT"
     }
 
@@ -3619,7 +3674,7 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
                 viewModel.vibrate(30)
                 if (!isBluetoothPowerOn) {
                     viewModel.enableBluetooth()
-                } else if (!isConnected) {
+                } else if (!isConnected && !isConnecting) {
                     navController?.navigate(Routes.DASHBOARD) {
                         popUpTo(Routes.DASHBOARD) { inclusive = false }
                     }
@@ -3652,6 +3707,20 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
                 letterSpacing = 1.sp,
                 textAlign = TextAlign.Center
             )
+            if (isConnecting) {
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(
+                    onClick = { viewModel.cancelConnection() },
+                    modifier = Modifier.size(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Cancel Connection",
+                        tint = Color(0xFFF59E0B),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
     }
 }

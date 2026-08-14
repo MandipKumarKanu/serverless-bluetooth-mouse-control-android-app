@@ -78,6 +78,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     // Bluetooth States from native service
     val bluetoothState: StateFlow<Int> = hidManager.connectionState
     val connectedDevice: StateFlow<BluetoothDevice?> = hidManager.connectedDevice
+    val targetDevice: StateFlow<BluetoothDevice?> = hidManager.targetDevice
     val isProfileReady: StateFlow<Boolean> = hidManager.isProfileReady
     val isAppRegistered: StateFlow<Boolean> = hidManager.isAppRegistered
     val isBluetoothPowerOn: StateFlow<Boolean> = hidManager.isBluetoothEnabledFlow
@@ -288,14 +289,38 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
 
     fun connectToDevice(device: BluetoothDevice) {
         vibrate(50)
+        val currentTarget = targetDevice.value
+        val currentState = bluetoothState.value
+
+        if (currentState == BluetoothProfile.STATE_CONNECTING) {
+            if (currentTarget?.address == device.address) {
+                // Tapping same target device while connecting -> Cancel
+                cancelConnection()
+                Toast.makeText(app, "Connection cancelled", Toast.LENGTH_SHORT).show()
+                return
+            } else {
+                // Tapping a different device while connecting -> One-tap switch
+                cancelConnection()
+                Toast.makeText(app, "Switching connection to ${device.getSafeName()}...", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         hidManager.connectHost(device)
+    }
+
+    fun cancelConnection() {
+        vibrate(50)
+        hidManager.cancelConnection()
+        try {
+            AirMouseService.stopService(app)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to stop AirMouseService on cancel", e)
+        }
     }
 
     fun disconnectDevice() {
         vibrate(50)
-        hidManager.disconnectHost()
-        // Stop foreground service when user explicitly disconnects
-        AirMouseService.stopService(app)
+        cancelConnection()
     }
 
 

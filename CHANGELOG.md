@@ -4,6 +4,18 @@ All notable changes to AirMouse will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.9.4] - 2026-08-14
+
+### Added
+- **Automatic 10-Second Connection Timeout** — Connection attempts automatically time out after 10 seconds if target device is unreachable, returning to Disconnected state with Toast notification.
+- **One-Tap Device Switching & Manual Cancellation** — Tap connecting device card again to cancel, or tap another device to instantly switch connection target.
+- **Explicit Cancel Controls** — Added Cancel buttons on status card, device list item, and bottom sticky status bar.
+- **Target Device Tracking** — App tracks and displays exact target device name during connection attempt.
+
+## [1.9.3] - 2026-08-14
+
+### Fixed
+- **Android 14 Compatibility & Crash Fixes** — Added FGS connectedDevice type and receiver export flags to prevent connection crashes.
 
 ## [1.9.2] - 2025-07-20
 
