@@ -4,6 +4,13 @@ All notable changes to AirMouse will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.9.6] - 2026-08-14
+
+### Fixed
+- **Air Mouse Motion Sensor Engine Overhaul** — Fixed inverted EMA low-pass filter logic to eliminate input lag on fast movements and hand jitter/shakiness on slow movements.
+- **Natural 360-Degree Horizontal Tracking** — Combined Gyroscope Yaw (Z-axis) and Roll (Y-axis) for fluid, effortless left/right cursor motion regardless of phone tilt angle.
+- **Micro-Movement Deadzone Tuning** — Reduced deadzone threshold scaling for immediate response to small wrist movements.
+
 ## [1.9.5] - 2026-08-14
 
 ### Added

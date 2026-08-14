@@ -42,7 +42,12 @@ import com.example.update.UpdateInfo
 import com.example.viewmodel.AirMouseViewModel
 import kotlinx.coroutines.launch
 
+import androidx.activity.viewModels
+import androidx.navigation.NavController
+
 class MainActivity : ComponentActivity() {
+    private val mainViewModel: AirMouseViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -180,22 +185,21 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
-        val viewModel: AirMouseViewModel by androidx.activity.viewmodels()
-        val isConnected = viewModel.bluetoothState.value == android.bluetooth.BluetoothProfile.STATE_CONNECTED
-        val route = viewModel.currentRoute.value
+        val isConnected = mainViewModel.bluetoothState.value == android.bluetooth.BluetoothProfile.STATE_CONNECTED
+        val route = mainViewModel.currentRoute.value
 
         if (isConnected) {
             if (route == Routes.PRESENTATION) {
                 when (keyCode) {
                     android.view.KeyEvent.KEYCODE_VOLUME_UP -> {
-                        viewModel.sendKeyboardKey(0, 0x4B.toByte()) // Page Up (Prev Slide)
-                        viewModel.vibrate(30)
+                        mainViewModel.sendKeyboardKey(0, 0x4B.toByte()) // Page Up (Prev Slide)
+                        mainViewModel.vibrate(30)
                         android.widget.Toast.makeText(this, "Previous Slide (Vol Up)", android.widget.Toast.LENGTH_SHORT).show()
                         return true
                     }
                     android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                        viewModel.sendKeyboardKey(0, 0x4E.toByte()) // Page Down (Next Slide)
-                        viewModel.vibrate(30)
+                        mainViewModel.sendKeyboardKey(0, 0x4E.toByte()) // Page Down (Next Slide)
+                        mainViewModel.vibrate(30)
                         android.widget.Toast.makeText(this, "Next Slide (Vol Down)", android.widget.Toast.LENGTH_SHORT).show()
                         return true
                     }
@@ -203,14 +207,14 @@ class MainActivity : ComponentActivity() {
             } else if (route == Routes.MEDIA_REMOTE) {
                 when (keyCode) {
                     android.view.KeyEvent.KEYCODE_VOLUME_UP -> {
-                        viewModel.sendConsumerInput(0x01) // Volume Up
-                        viewModel.vibrate(30)
+                        mainViewModel.sendMediaAction(0x01) // Volume Up
+                        mainViewModel.vibrate(30)
                         android.widget.Toast.makeText(this, "Volume Up", android.widget.Toast.LENGTH_SHORT).show()
                         return true
                     }
                     android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                        viewModel.sendConsumerInput(0x02) // Volume Down
-                        viewModel.vibrate(30)
+                        mainViewModel.sendMediaAction(0x02) // Volume Down
+                        mainViewModel.vibrate(30)
                         android.widget.Toast.makeText(this, "Volume Down", android.widget.Toast.LENGTH_SHORT).show()
                         return true
                     }
@@ -221,9 +225,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onKeyUp(keyCode: Int, event: android.view.KeyEvent?): Boolean {
-        val viewModel: AirMouseViewModel by androidx.activity.viewmodels()
-        val isConnected = viewModel.bluetoothState.value == android.bluetooth.BluetoothProfile.STATE_CONNECTED
-        val route = viewModel.currentRoute.value
+        val isConnected = mainViewModel.bluetoothState.value == android.bluetooth.BluetoothProfile.STATE_CONNECTED
+        val route = mainViewModel.currentRoute.value
 
         if (isConnected && (route == Routes.PRESENTATION || route == Routes.MEDIA_REMOTE)) {
             if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP || keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) {
