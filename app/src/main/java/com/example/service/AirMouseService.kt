@@ -247,7 +247,7 @@ class AirMouseService : Service() {
         // Add media + air mouse action buttons when connected
         if (hidManager.isConnected()) {
             // Prev Track
-            val prevIntent = Intent(ACTION_MEDIA_PREV)
+            val prevIntent = Intent(ACTION_MEDIA_PREV).apply { setPackage(packageName) }
             val prevPending = PendingIntent.getBroadcast(
                 this, 9, prevIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -255,7 +255,7 @@ class AirMouseService : Service() {
             builder.addAction(R.drawable.ic_app_logo, "Prev", prevPending)
 
             // Play / Pause
-            val playPauseIntent = Intent(ACTION_MEDIA_PLAY_PAUSE)
+            val playPauseIntent = Intent(ACTION_MEDIA_PLAY_PAUSE).apply { setPackage(packageName) }
             val playPausePending = PendingIntent.getBroadcast(
                 this, 10, playPauseIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -263,7 +263,7 @@ class AirMouseService : Service() {
             builder.addAction(R.drawable.ic_app_logo, "Play/Pause", playPausePending)
 
             // Next Track
-            val nextIntent = Intent(ACTION_MEDIA_NEXT)
+            val nextIntent = Intent(ACTION_MEDIA_NEXT).apply { setPackage(packageName) }
             val nextPending = PendingIntent.getBroadcast(
                 this, 11, nextIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -271,7 +271,7 @@ class AirMouseService : Service() {
             builder.addAction(R.drawable.ic_app_logo, "Next", nextPending)
 
             // Volume Down
-            val volDownIntent = Intent(ACTION_MEDIA_VOL_DOWN)
+            val volDownIntent = Intent(ACTION_MEDIA_VOL_DOWN).apply { setPackage(packageName) }
             val volDownPending = PendingIntent.getBroadcast(
                 this, 12, volDownIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

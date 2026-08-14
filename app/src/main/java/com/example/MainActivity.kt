@@ -204,7 +204,7 @@ class MainActivity : ComponentActivity() {
                         return true
                     }
                 }
-            } else if (route == Routes.MEDIA_REMOTE) {
+            } else if (route == Routes.MEDIA_REMOTE || route == Routes.AIR_MOUSE || route == Routes.TOUCHPAD) {
                 when (keyCode) {
                     android.view.KeyEvent.KEYCODE_VOLUME_UP -> {
                         mainViewModel.sendMediaAction(0x01) // Volume Up
@@ -228,7 +228,7 @@ class MainActivity : ComponentActivity() {
         val isConnected = mainViewModel.bluetoothState.value == android.bluetooth.BluetoothProfile.STATE_CONNECTED
         val route = mainViewModel.currentRoute.value
 
-        if (isConnected && (route == Routes.PRESENTATION || route == Routes.MEDIA_REMOTE)) {
+        if (isConnected && (route == Routes.PRESENTATION || route == Routes.MEDIA_REMOTE || route == Routes.AIR_MOUSE || route == Routes.TOUCHPAD)) {
             if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP || keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) {
                 return true
             }

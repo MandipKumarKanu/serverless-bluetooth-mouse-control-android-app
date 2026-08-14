@@ -2482,6 +2482,37 @@ data class ModifierTile(
 // ==========================================
 @Composable
 fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel) {
+    val context = LocalContext.current
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
+            val matches = result.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+            if (!matches.isNullOrEmpty()) {
+                val recognizedText = matches[0]
+                Toast.makeText(context, "Beaming to TV: \"$recognizedText\"", Toast.LENGTH_SHORT).show()
+                viewModel.sendText(recognizedText)
+                viewModel.sendKeyboardKey(0, 0x28.toByte()) // Send ENTER
+            }
+        }
+    }
+
+    fun triggerTvVoiceSearch() {
+        viewModel.vibrate(40)
+        // Send Assistant / Search command to TV
+        viewModel.sendMediaAction(0x80.toByte())
+        // Launch Speech Recognizer on phone
+        val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Speak for Google TV Search...")
+        }
+        try {
+            speechLauncher.launch(intent)
+        } catch (_: Exception) {
+            Toast.makeText(context, "Speech recognition not available", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -2508,24 +2539,24 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
             verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. Power & Home Row
+            // 1. Power, Home & Voice Assistant Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // System Power Key
                 Button(
                     onClick = { viewModel.sendMediaAction(0x40) }, // Bit 6 (Power)
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp)
+                        .height(52.dp)
                         .testTag("media_power"),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
-                    Icon(imageVector = Icons.Default.PowerSettingsNew, contentDescription = "Power", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Power", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Icon(imageVector = Icons.Default.PowerSettingsNew, contentDescription = "Power", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Power", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
 
                 // Home Key
@@ -2533,14 +2564,29 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                     onClick = { viewModel.sendMediaAction(0x80.toByte()) }, // Bit 7 (Menu / Home)
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp)
+                        .height(52.dp)
                         .testTag("media_home"),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(imageVector = Icons.Default.Home, contentDescription = "Home", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Home", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Icon(imageVector = Icons.Default.Home, contentDescription = "Home", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Home", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+
+                // Google TV Voice Search Button
+                Button(
+                    onClick = { triggerTvVoiceSearch() },
+                    modifier = Modifier
+                        .weight(1.2f)
+                        .height(52.dp)
+                        .testTag("media_voice_assistant"),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Icon(imageVector = Icons.Default.Mic, contentDescription = "Voice Assistant", tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Voice TV", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
 

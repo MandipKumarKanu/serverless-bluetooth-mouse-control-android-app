@@ -4,6 +4,15 @@ All notable changes to AirMouse will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.9.7] - 2026-08-14
+
+### Added
+- **Google TV Voice Assistant Remote** — Added "Voice TV" button on Media Remote screen. Opens Google TV search on TV and speech recognition on phone, then beams spoken text over Bluetooth HID to TV search box.
+- **Hardware Volume Keys Integration** — Mapped phone physical Volume Up / Volume Down keys to control host volume across Media Remote, Touchpad, and Air Mouse screens.
+
+### Fixed
+- **Notification Media Action Buttons** — Added explicit `setPackage(packageName)` targeting on notification pending intents so `Prev`, `Play/Pause`, `Next`, and `Vol-` notification buttons work reliably across Android 14/15 system UI.
+
 ## [1.9.6] - 2026-08-14
 
 ### Fixed
