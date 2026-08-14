@@ -2513,6 +2513,29 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
         }
     }
 
+    fun triggerScreenMirroring() {
+        viewModel.vibrate(40)
+        // 1. Send Win + K (Wireless Display / Connect shortcut) over Bluetooth HID to PC/TV
+        viewModel.sendKeyboardKey(0x08, 0x0E.toByte()) // Left GUI + K
+        
+        // 2. Open Android native Cast / Screen Mirroring connection settings
+        val castIntent = android.content.Intent(android.provider.Settings.ACTION_CAST_SETTINGS)
+        try {
+            context.startActivity(castIntent)
+        } catch (_: Exception) {
+            try {
+                val wifiDisplayIntent = android.content.Intent("android.settings.WIFI_DISPLAY_SETTINGS")
+                context.startActivity(wifiDisplayIntent)
+            } catch (_: Exception) {
+                Toast.makeText(context, "Opening Wireless Display settings...", Toast.LENGTH_SHORT).show()
+                val displayIntent = android.content.Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS)
+                try {
+                    context.startActivity(displayIntent)
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -2535,58 +2558,85 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 24.dp),
+                .padding(horizontal = 24.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. Power, Home & Voice Assistant Row
-            Row(
+            // 1. Top Quick Action Grid (Power, Home, Voice TV, Screen Mirror)
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // System Power Key
-                Button(
-                    onClick = { viewModel.sendMediaAction(0x40) }, // Bit 6 (Power)
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp)
-                        .testTag("media_power"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                // Row 1: Power & Home
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.PowerSettingsNew, contentDescription = "Power", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Power", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    // System Power Key
+                    Button(
+                        onClick = { viewModel.sendMediaAction(0x40) }, // Bit 6 (Power)
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
+                            .testTag("media_power"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Icon(imageVector = Icons.Default.PowerSettingsNew, contentDescription = "Power", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Power", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+
+                    // Home Key
+                    Button(
+                        onClick = { viewModel.sendMediaAction(0x80.toByte()) }, // Bit 7 (Menu / Home)
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
+                            .testTag("media_home"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Icon(imageVector = Icons.Default.Home, contentDescription = "Home", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Home", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
                 }
 
-                // Home Key
-                Button(
-                    onClick = { viewModel.sendMediaAction(0x80.toByte()) }, // Bit 7 (Menu / Home)
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp)
-                        .testTag("media_home"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                // Row 2: Voice TV & Screen Mirror (Cast)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Home, contentDescription = "Home", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Home", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                }
+                    // Google TV Voice Search Button
+                    Button(
+                        onClick = { triggerTvVoiceSearch() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
+                            .testTag("media_voice_assistant"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    ) {
+                        Icon(imageVector = Icons.Default.Mic, contentDescription = "Voice Assistant", tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Voice TV", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
 
-                // Google TV Voice Search Button
-                Button(
-                    onClick = { triggerTvVoiceSearch() },
-                    modifier = Modifier
-                        .weight(1.2f)
-                        .height(52.dp)
-                        .testTag("media_voice_assistant"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                ) {
-                    Icon(imageVector = Icons.Default.Mic, contentDescription = "Voice Assistant", tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Voice TV", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    // Screen Mirroring / Cast Button
+                    Button(
+                        onClick = { triggerScreenMirroring() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
+                            .testTag("media_screen_mirror"),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    ) {
+                        Icon(imageVector = Icons.Default.Cast, contentDescription = "Screen Mirror", tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Mirror TV", color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
                 }
             }
 
