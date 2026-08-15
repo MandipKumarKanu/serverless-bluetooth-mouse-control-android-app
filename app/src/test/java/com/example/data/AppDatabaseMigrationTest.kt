@@ -60,6 +60,15 @@ class AppDatabaseMigrationTest {
                             "`keepScreenAwake`,`themeDark`) VALUES " +
                             "(1, 1.0, 0.3, 0.05, 1.2, 0, 0, 1.0, 1, 0, 1, 1)"
                     )
+                    // shortcuts table has existed since v1 and must already be
+                    // present because there is no migration that creates it.
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `shortcuts` (" +
+                            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                            "`name` TEXT NOT NULL, " +
+                            "`modifiers` INTEGER NOT NULL, " +
+                            "`keyCodes` TEXT NOT NULL)"
+                    )
                 }
 
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
