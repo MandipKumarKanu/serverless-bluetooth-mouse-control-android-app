@@ -31,6 +31,7 @@ import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -822,6 +823,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     /** Test hook: mirror the framework's onCleared() cleanup from unit tests. */
     @androidx.annotation.VisibleForTesting
     fun clearForTest() {
+        viewModelScope.coroutineContext.cancelChildren()
         onCleared()
     }
 
