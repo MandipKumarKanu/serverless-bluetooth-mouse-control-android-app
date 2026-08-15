@@ -133,10 +133,11 @@ class AppDatabaseMigrationTest {
 
         // Sanity: the DAO is fully usable after the migration chain
         runBlocking {
-            db.airMouseDao().updateSettings(SettingsEntity(sensitivity = 2.0f))
+            val existing = db.airMouseDao().getSettingsDirect() ?: SettingsEntity()
+            db.airMouseDao().updateSettings(existing.copy(sensitivity = 2.0f))
             val loaded = db.airMouseDao().getSettingsDirect()
             assertEquals(2.0f, loaded?.sensitivity ?: 0f, 0.001f)
-            assertTrue(loaded?.themeMode == 2)
+            assertEquals(2, loaded?.themeMode)
 
             // The per-device profile table is usable after migration
             db.airMouseDao().updateDeviceSettings(

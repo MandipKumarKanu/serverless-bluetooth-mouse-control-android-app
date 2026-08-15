@@ -43,6 +43,7 @@ class AirMouseViewModelTest {
 
     @After
     fun tearDown() {
+        testDispatcher.scheduler.advanceUntilIdle()
         Dispatchers.resetMain()
         AppDatabase.resetForTesting()
     }
