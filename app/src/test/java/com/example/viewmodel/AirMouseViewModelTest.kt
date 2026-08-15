@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -43,7 +44,6 @@ class AirMouseViewModelTest {
 
     @After
     fun tearDown() {
-        testDispatcher.scheduler.advanceUntilIdle()
         Dispatchers.resetMain()
         AppDatabase.resetForTesting()
     }
@@ -64,6 +64,7 @@ class AirMouseViewModelTest {
         assertTrue(settings.invertX)
 
         viewModel.clearForTest()
+        advanceUntilIdle()
     }
 
     @Test
@@ -80,6 +81,7 @@ class AirMouseViewModelTest {
         viewModel.shortcutsState.first { list -> list.none { it.name == "My Macro" } }
 
         viewModel.clearForTest()
+        advanceUntilIdle()
     }
 
     @Test
@@ -103,6 +105,7 @@ class AirMouseViewModelTest {
         viewModel.gesturesState.first { list -> list.none { it.name == "Swipe Up" } }
 
         viewModel.clearForTest()
+        advanceUntilIdle()
     }
 
     @Test
@@ -112,6 +115,7 @@ class AirMouseViewModelTest {
         // History starts empty in a fresh DB; clearing must be a no-op, not a crash
         assertTrue(viewModel.connectionHistory.first().isEmpty())
         viewModel.clearForTest()
+        advanceUntilIdle()
     }
 
     @Test
@@ -148,5 +152,6 @@ class AirMouseViewModelTest {
         viewModel.sendText("hi")
 
         viewModel.clearForTest()
+        advanceUntilIdle()
     }
 }
