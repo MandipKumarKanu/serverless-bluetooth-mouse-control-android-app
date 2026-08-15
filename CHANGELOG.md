@@ -4,6 +4,31 @@ All notable changes to AirMouse will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.9.91] - 2026-08-15
+
+### Fixed
+- **Foreground Service crash edge case** — AirMouseService now re-enters the foreground when started while not yet foreground (widget/ViewModel air-mouse intents) or restarted by the system with a null intent, preventing `ForegroundServiceDidNotStartInTimeException`.
+- **Widget boot refresh** — Added missing `RECEIVE_BOOT_COMPLETED` permission and declared `BOOT_COMPLETED` and `CONNECTION_STATE_CHANGED` actions so the widget refreshes after reboot and on connection changes.
+- **Single source of truth for ASCII→HID key mapping** — Extracted the duplicated char-mapping logic from `sendText` and the Keyboard screen into `HidKeyMapper`, and added previously unsupported backtick/tilde characters.
+- **Robust gesture serialization** — Gesture points are now persisted as Moshi JSON instead of the fragile data-class `toString()` format (legacy gestures still parse via fallback). Gesture `actionType` is now categorized correctly (keyboard/media/mouse).
+- **Update checker version comparison** — Pre-release tags (e.g. `1.9.9-rc1`) are no longer reported as newer than released versions.
+- **Removed fake RSSI display** — The connected-bar showed a hardcoded dBm value that was never measured; it now shows just the connected device name.
+- **Pointer Acceleration setting** — The previously hidden `acceleration` setting now has a slider in Settings.
+- **About screen version** — Now shows the real app version from `BuildConfig` instead of the stale hardcoded `1.2.0`.
+- **Dead code & unused dependencies removed** — Deleted inert tremor-calibration pipeline and unused fields/methods in `AdaptiveSmoothingFilter`, unused `ThemeColors`, unused `BluetoothHidManager.destroy()`, and unused camera/Coil/Accompanist/Play Services/Retrofit/OkHttp dependencies.
+
+### Added
+- Unit tests for the gesture recognizer, adaptive smoothing filter, version comparison, gesture serialization, and the HID key mapper.
+
+### Changed
+- **Touchpad gesture engine refactor** — Replaced the ad-hoc multi-touch pointer handling with a dedicated, unit-tested `TouchpadGestureRecognizer` state machine. Fixes:
+  - **Drag no longer clicks** — Moving the cursor with one finger and lifting no longer fires a spurious left click on release; a click only fires when the pointer barely moved.
+  - **Two-finger scroll** — Two fingers now scroll the page (respects the scroll-speed setting), in addition to pinch-to-zoom.
+  - **Continuous pinch & scroll** — Pinch-to-zoom and two-finger scroll emit repeated ticks while the gesture continues (previously a pinch fired at most one zoom tick).
+  - **Safe finger transitions** — Lifting from 3 → 2 fingers (or 2 → 1) can no longer accidentally trigger a scroll, pinch, or click mid-gesture; the gesture mode is locked to the max finger count.
+  - **Correct double-click** — Double-tap now produces exactly two clicks (previously it sent three).
+- **Auto-scroll to top on connect** — Dashboard now smoothly scrolls back to the top when a device connects, so the connected-device card and control modes are immediately visible even when the tapped device was at the bottom of a long paired-device list.
+
 ## [1.9.9] - 2026-08-14
 
 ### Added

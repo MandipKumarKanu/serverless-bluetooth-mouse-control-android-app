@@ -5,7 +5,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -41,6 +40,13 @@ class AirMouseService : Service() {
     // Service state
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
+
+    // Tracks whether the service has entered the foreground. Used to avoid the
+    // ForegroundServiceDidNotStartInTimeException when a startForegroundService()
+    // call reaches onStartCommand before startForeground() has been invoked
+    // (e.g. widget/ViewModel air-mouse intents while the service was stopped,
+    // or a null-intent START_STICKY restart).
+    private var isForeground = false
 
     private val _connectedDeviceName = MutableStateFlow<String?>(null)
     val connectedDeviceName: StateFlow<String?> = _connectedDeviceName.asStateFlow()
@@ -98,6 +104,20 @@ class AirMouseService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Re-enter the foreground immediately if the system restarted us with a
+        // null intent, or if we were started while not yet foreground. Android
+        // requires startForeground() within ~5s of any startForegroundService()
+        // call or it kills the process with
+        // ForegroundServiceDidNotStartInTimeException.
+        if (intent == null || !isForeground) {
+            try {
+                startForeground(NOTIFICATION_ID, createNotification(_connectedDeviceName.value))
+                isForeground = true
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to re-enter foreground", e)
+            }
+        }
+
         when (intent?.action) {
             ACTION_START -> {
                 val deviceName = intent.getStringExtra(EXTRA_DEVICE_NAME)
@@ -127,6 +147,7 @@ class AirMouseService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isAirMouseActive = false
+        isForeground = false
         stopAirMouseSensors()
         batteryUpdateJob?.cancel()
         batteryMonitor.stop()
@@ -172,6 +193,7 @@ class AirMouseService : Service() {
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
+            isForeground = true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start foreground service", e)
         }
@@ -184,6 +206,7 @@ class AirMouseService : Service() {
         stopAirMouseSensors()
         _isRunning.value = false
         _connectedDeviceName.value = null
+        isForeground = false
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
         Log.d(TAG, "Foreground service stopped")

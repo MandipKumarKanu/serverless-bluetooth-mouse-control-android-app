@@ -22,6 +22,9 @@
     <!-- Network Permission for Update Checker -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Required to refresh the widget after device reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <!-- Foreground Service Permission -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
@@ -71,6 +74,8 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
+                <action android:name="android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="com.example.widget.ACTION_TOGGLE_BT" />
                 <action android:name="com.example.widget.ACTION_START_MOUSE" />
                 <action android:name="com.example.widget.ACTION_STOP_MOUSE" />

@@ -1,26 +1,16 @@
 package com.example.sensor
 
-import android.util.Log
-import kotlin.math.abs
-import kotlin.math.ln
-import kotlin.math.sign
 import kotlin.math.sqrt
 
+/**
+ * Speed-adaptive low-pass filter for gyroscope-derived mouse movement.
+ * Applies heavy smoothing to slow (tremor-prone) movement and near-pass-through
+ * alpha to fast sweeps so the cursor stays responsive.
+ */
 class AdaptiveSmoothingFilter {
-    // Previous values for smoothing and prediction
+    // Previous filtered values (EMA state)
     private var prevDx = 0f
     private var prevDy = 0f
-    private var prevPrevDx = 0f
-    private var prevPrevDy = 0f
-    private var prevSmoothing = 0.3f
-
-    // User's tremor frequency (calibrated)
-    private var userTremorFreq = 4f // Default 4Hz (typical hand tremor)
-
-    // Calibration state
-    private var calibrationSamples = mutableListOf<Pair<Float, Float>>()
-    private var isCalibrating = false
-    private val maxCalibrationSamples = 100
 
     /**
      * Apply adaptive filtering to raw gyroscope data.
@@ -54,84 +44,5 @@ class AdaptiveSmoothingFilter {
         prevDy = filteredDy
 
         return Pair(filteredDx, filteredDy)
-    }
-
-    /**
-     * Start calibration to detect user's tremor frequency.
-     */
-    fun startCalibration() {
-        isCalibrating = true
-        calibrationSamples.clear()
-        Log.d(TAG, "Starting adaptive filter calibration")
-    }
-
-    /**
-     * Add a sample during calibration.
-     */
-    fun addCalibrationSample(rawDx: Float, rawDy: Float) {
-        if (!isCalibrating) return
-
-        calibrationSamples.add(Pair(rawDx, rawDy))
-
-        if (calibrationSamples.size >= maxCalibrationSamples) {
-            finishCalibration()
-        }
-    }
-
-    /**
-     * Finish calibration and compute tremor frequency.
-     */
-    private fun finishCalibration() {
-        if (calibrationSamples.isEmpty()) return
-
-        // Analyze tremor frequency using zero-crossing rate
-        var zeroCrossings = 0
-        var prevSign = 0f
-
-        for ((dx, _) in calibrationSamples) {
-            val currentSign = dx
-            if (prevSign != 0f && currentSign * prevSign < 0) {
-                zeroCrossings++
-            }
-            prevSign = currentSign
-        }
-
-        // Estimate frequency (samples / time)
-        // Assuming ~50Hz sensor rate (SENSOR_DELAY_GAME)
-        val duration = calibrationSamples.size / 50f // seconds
-        val frequency = zeroCrossings / duration / 2f // Hz (divide by 2 for full cycles)
-
-        // Clamp to reasonable range (1-10 Hz)
-        userTremorFreq = frequency.coerceIn(1f, 10f)
-
-        isCalibrating = false
-        calibrationSamples.clear()
-
-        Log.d(TAG, "Calibration complete: tremor frequency = ${userTremorFreq}Hz")
-    }
-
-    /**
-     * Check if calibration is in progress.
-     */
-    fun isCalibrating(): Boolean = isCalibrating
-
-    /**
-     * Get current tremor frequency.
-     */
-    fun getTremorFrequency(): Float = userTremorFreq
-
-    /**
-     * Reset filter state.
-     */
-    fun reset() {
-        prevDx = 0f
-        prevDy = 0f
-        prevPrevDx = 0f
-        prevPrevDy = 0f
-        prevSmoothing = 0.3f
-    }
-
-    companion object {
-        private const val TAG = "AdaptiveSmoothingFilter"
     }
 }

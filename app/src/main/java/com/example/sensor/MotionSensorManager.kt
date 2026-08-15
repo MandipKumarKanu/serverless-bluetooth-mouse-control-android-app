@@ -10,7 +10,6 @@ import com.example.bluetooth.BluetoothHidManager
 import com.example.data.SettingsEntity
 import kotlin.math.abs
 import kotlin.math.ln
-import kotlin.math.sign
 import kotlin.math.sqrt
 
 class MotionSensorManager(context: Context) : SensorEventListener {
@@ -76,9 +75,6 @@ class MotionSensorManager(context: Context) : SensorEventListener {
         accumBiasX = 0f
         accumBiasY = 0f
 
-        // Also start adaptive filter calibration
-        adaptiveFilter.startCalibration()
-
         Log.d(TAG, "Starting motion sensor calibration")
     }
 
@@ -101,9 +97,6 @@ class MotionSensorManager(context: Context) : SensorEventListener {
             accumBiasX += rawVert
             accumBiasY += rawHoriz
             calibrationSamplesCount++
-
-            // Add sample to adaptive filter calibration
-            adaptiveFilter.addCalibrationSample(rawVert, rawHoriz)
 
             if (calibrationSamplesCount >= maxCalibrationSamples) {
                 biasX = accumBiasX / maxCalibrationSamples

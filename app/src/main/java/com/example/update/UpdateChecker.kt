@@ -57,9 +57,19 @@ object UpdateChecker {
         }
     }
 
-    private fun compareVersions(latest: String, current: String): Int {
-        val latestParts = latest.split(".").map { it.toIntOrNull() ?: 0 }
-        val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
+    /**
+     * Compare two dotted version strings. Returns 1 if [latest] is newer,
+     * -1 if older, 0 if equal. Pre-release suffixes (e.g. "1.9.9-rc1",
+     * "1.9.9-beta.2") are treated as their base version so a pre-release tag
+     * is never reported as newer than the released version.
+     */
+    internal fun compareVersions(latest: String, current: String): Int {
+        // Strip any pre-release suffix (e.g. "1.9.9-rc1" -> "1.9.9") before
+        // splitting, so pre-release tags never compare as newer than the
+        // released version and stray suffix components don't leak into the
+        // numeric comparison.
+        val latestParts = latest.substringBefore('-').split(".").map { it.toIntOrNull() ?: 0 }
+        val currentParts = current.substringBefore('-').split(".").map { it.toIntOrNull() ?: 0 }
 
         val maxLength = maxOf(latestParts.size, currentParts.size)
 

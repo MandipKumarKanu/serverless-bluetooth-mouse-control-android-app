@@ -15,6 +15,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bluetooth.BluetoothHidManager
+import com.example.bluetooth.HidKeyMapper
 import com.example.bluetooth.getSafeName
 import com.example.data.AppDatabase
 import com.example.service.AirMouseService
@@ -78,7 +79,6 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     // Bluetooth States from native service
     val bluetoothState: StateFlow<Int> = hidManager.connectionState
     val connectedDevice: StateFlow<BluetoothDevice?> = hidManager.connectedDevice
-    val connectedDeviceRssi: StateFlow<Int?> = hidManager.connectedDeviceRssi
     val targetDevice: StateFlow<BluetoothDevice?> = hidManager.targetDevice
     val isProfileReady: StateFlow<Boolean> = hidManager.isProfileReady
     val isAppRegistered: StateFlow<Boolean> = hidManager.isAppRegistered
@@ -501,6 +501,24 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    // Sends mouse wheel ticks from the touchpad (two-finger scroll).
+    // Negative ticks scroll down, positive scroll up. Applies the user's
+    // scroll-speed setting, consistent with the dedicated scroll bar.
+    fun sendScrollTicks(ticks: Int) {
+        if (ticks == 0) return
+        val speed = settingsState.value.scrollSpeed
+        val sign = if (ticks > 0) 1 else -1
+        repeat(kotlin.math.abs(ticks)) {
+            val scaled = sign * speed
+            val finalTick = if (scaled > 0) {
+                maxOf(1, scaled.toInt())
+            } else {
+                minOf(-1, scaled.toInt())
+            }.toByte()
+            hidManager.sendMouseInput(0, 0, 0, finalTick)
+        }
+    }
+
     fun sendMouseDown(button: Byte) {
         _currentMouseButtons.value = button
         hidManager.sendMouseInput(button, 0, 0, 0)
@@ -514,54 +532,9 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     fun sendText(text: String) {
         viewModelScope.launch(Dispatchers.IO) {
             text.forEach { char ->
-                var modifier: Byte = 0
-                var keyCode: Byte = 0
-                when (char) {
-                    in 'a'..'z' -> keyCode = (0x04 + (char - 'a')).toByte()
-                    in 'A'..'Z' -> {
-                        modifier = 0x02.toByte() // Shift
-                        keyCode = (0x04 + (char - 'A')).toByte()
-                    }
-                    in '1'..'9' -> keyCode = (0x1E + (char - '1')).toByte()
-                    '0' -> keyCode = 0x27.toByte()
-                    ' ' -> keyCode = 0x2C.toByte()
-                    '\n' -> keyCode = 0x28.toByte()
-                    '\t' -> keyCode = 0x2B.toByte()
-                    '!' -> { modifier = 0x02.toByte(); keyCode = 0x1E.toByte() }
-                    '@' -> { modifier = 0x02.toByte(); keyCode = 0x1F.toByte() }
-                    '#' -> { modifier = 0x02.toByte(); keyCode = 0x20.toByte() }
-                    '$' -> { modifier = 0x02.toByte(); keyCode = 0x21.toByte() }
-                    '%' -> { modifier = 0x02.toByte(); keyCode = 0x22.toByte() }
-                    '^' -> { modifier = 0x02.toByte(); keyCode = 0x23.toByte() }
-                    '&' -> { modifier = 0x02.toByte(); keyCode = 0x24.toByte() }
-                    '*' -> { modifier = 0x02.toByte(); keyCode = 0x25.toByte() }
-                    '(' -> { modifier = 0x02.toByte(); keyCode = 0x26.toByte() }
-                    ')' -> { modifier = 0x02.toByte(); keyCode = 0x27.toByte() }
-                    '-' -> keyCode = 0x2D.toByte()
-                    '_' -> { modifier = 0x02.toByte(); keyCode = 0x2D.toByte() }
-                    '=' -> keyCode = 0x2E.toByte()
-                    '+' -> { modifier = 0x02.toByte(); keyCode = 0x2E.toByte() }
-                    '[' -> keyCode = 0x2F.toByte()
-                    '{' -> { modifier = 0x02.toByte(); keyCode = 0x2F.toByte() }
-                    ']' -> keyCode = 0x30.toByte()
-                    '}' -> { modifier = 0x02.toByte(); keyCode = 0x30.toByte() }
-                    '\\' -> keyCode = 0x31.toByte()
-                    '|' -> { modifier = 0x02.toByte(); keyCode = 0x31.toByte() }
-                    ';' -> keyCode = 0x33.toByte()
-                    ':' -> { modifier = 0x02.toByte(); keyCode = 0x33.toByte() }
-                    '\'' -> keyCode = 0x34.toByte()
-                    '"' -> { modifier = 0x02.toByte(); keyCode = 0x34.toByte() }
-                    ',' -> keyCode = 0x36.toByte()
-                    '<' -> { modifier = 0x02.toByte(); keyCode = 0x36.toByte() }
-                    '.' -> keyCode = 0x37.toByte()
-                    '>' -> { modifier = 0x02.toByte(); keyCode = 0x37.toByte() }
-                    '/' -> keyCode = 0x38.toByte()
-                    '?' -> { modifier = 0x02.toByte(); keyCode = 0x38.toByte() }
-                }
-                if (keyCode != 0.toByte()) {
-                    hidManager.sendKeyPress(modifier, keyCode)
-                    kotlinx.coroutines.delay(15)
-                }
+                val mapped = HidKeyMapper.map(char) ?: return@forEach
+                hidManager.sendKeyPress(mapped.first, mapped.second)
+                kotlinx.coroutines.delay(15)
             }
         }
     }

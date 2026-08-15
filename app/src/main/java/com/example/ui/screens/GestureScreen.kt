@@ -38,6 +38,9 @@ import com.example.data.GestureEntity
 import com.example.gesture.GestureActions
 import com.example.gesture.GestureRecognizer
 import com.example.gesture.GesturePoint
+import com.example.gesture.deserializeGesturePoints
+import com.example.gesture.gestureActionTypeFor
+import com.example.gesture.serializeGesturePoints
 import com.example.viewmodel.AirMouseViewModel
 import kotlinx.coroutines.delay
 
@@ -934,8 +937,8 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             viewModel.saveGesture(
                                 GestureEntity(
                                     name = gestureName,
-                                    points = recordedPoints.toString(),
-                                    actionType = "keyboard",
+                                    points = serializeGesturePoints(recordedPoints),
+                                    actionType = gestureActionTypeFor(selectedAction),
                                     actionData = selectedAction
                                 )
                             )
@@ -973,25 +976,9 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
 }
 
 /**
- * Parse points string back to GesturePoint list
+ * Parse points string back to GesturePoint list (JSON with legacy fallback)
  */
-fun parsePoints(pointsStr: String): List<GesturePoint> {
-    return try {
-        val cleaned = pointsStr.removePrefix("[").removeSuffix("]")
-        if (cleaned.isBlank()) return emptyList()
-
-        cleaned.split("), ").map { pointStr ->
-            val coords = pointStr.removePrefix("GesturePoint(x=").removeSuffix(")")
-                .split(", y=")
-            GesturePoint(
-                x = coords[0].toFloatOrNull() ?: 0f,
-                y = coords[1].split(", timestamp=")[0].toFloatOrNull() ?: 0f
-            )
-        }
-    } catch (e: Exception) {
-        emptyList()
-    }
-}
+fun parsePoints(pointsStr: String): List<GesturePoint> = deserializeGesturePoints(pointsStr)
 
 @Suppress("DEPRECATION")
 fun getQuickActions(): List<Triple<String, String, ImageVector>> {

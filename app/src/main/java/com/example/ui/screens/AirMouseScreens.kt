@@ -22,6 +22,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -66,10 +67,15 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
+import com.example.BuildConfig
 import com.example.R
 import com.example.data.SettingsEntity
 import com.example.data.ShortcutEntity
+import com.example.gesture.PointerSample
+import com.example.gesture.TouchpadAction
+import com.example.gesture.TouchpadGestureRecognizer
 import com.example.viewmodel.AirMouseViewModel
+import com.example.bluetooth.HidKeyMapper
 import com.example.bluetooth.getSafeName
 import com.example.bluetooth.isComputer
 import kotlinx.coroutines.Job
@@ -311,6 +317,18 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
         }
     }
 
+    val listState = rememberLazyListState()
+
+    // When a device connects, the dashboard restructures — the paired-device
+    // list is replaced by the connected-device card and the control-mode grid
+    // at the top. Scroll back to the top so the user isn't left at the old
+    // scroll position after tapping a device deep in the list.
+    LaunchedEffect(connectionState) {
+        if (connectionState == BluetoothProfile.STATE_CONNECTED) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -333,6 +351,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
         }
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -988,7 +1007,7 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
             // Touchpad Instruction Alert
             Text(
-                text = "Tap: Left Click • 2-Finger Tap: Right Click • 2-Finger Pinch: Zoom • 3-Finger Swipe: Task View",
+                text = "Tap: Click • 2-Finger: Scroll / Right-Click • Pinch: Zoom • 3-Finger Swipe: Task View",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center,
@@ -1015,95 +1034,62 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
                         .testTag("touchpad_area")
                         .pointerInput(Unit) {
+                            // Gesture recognition is delegated to a dedicated,
+                            // unit-tested state machine (TouchpadGestureRecognizer)
+                            val recognizer = TouchpadGestureRecognizer()
                             awaitPointerEventScope {
-                                var lastTapTime = 0L
-                                var initialPinchDistance = -1f
-                                var maxPointersSeen = 0
-                                var isGestureHandled = false
-
                                 while (true) {
                                     val event = awaitPointerEvent()
-                                    val changes = event.changes
-                                    val pointerCount = changes.size
+                                    val samples = event.changes.map {
+                                        PointerSample(
+                                            id = it.id.value,
+                                            x = it.position.x,
+                                            y = it.position.y,
+                                            down = it.pressed
+                                        )
+                                    }
+                                    val actions = recognizer.processFrame(samples, System.currentTimeMillis())
 
-                                    if (pointerCount > maxPointersSeen) {
-                                        maxPointersSeen = pointerCount
+                                    if (actions.isNotEmpty()) {
+                                        event.changes.forEach { it.consume() }
                                     }
 
-                                    when {
-                                        // 3-Finger Swipe Up / Down -> Task View (Win + Tab / Cmd + Expose)
-                                        pointerCount == 3 -> {
-                                            val averageDy = changes.map { it.positionChange().y }.average().toFloat()
-                                            if (kotlin.math.abs(averageDy) > 18f && !isGestureHandled) {
-                                                changes.forEach { it.consume() }
-                                                isGestureHandled = true
-                                                viewModel.vibrate(50)
-                                                viewModel.sendKeyboardKey(8, 0x2B.toByte()) // Win + Tab
-                                                Toast.makeText(context, "Task View (Win + Tab)", Toast.LENGTH_SHORT).show()
+                                    actions.forEach { action ->
+                                        when (action) {
+                                            is TouchpadAction.Move -> {
+                                                // Pointer drag -> cursor movement (no click on release)
+                                                viewModel.sendTouchMove(action.dx, action.dy)
                                             }
-                                        }
-
-                                        // 2-Finger Pinch-to-Zoom -> Ctrl + Scroll Wheel
-                                        pointerCount == 2 -> {
-                                            val p1 = changes[0].position
-                                            val p2 = changes[1].position
-                                            val currentDistance = (p1 - p2).getDistance()
-
-                                            if (initialPinchDistance < 0f) {
-                                                initialPinchDistance = currentDistance
-                                            } else {
-                                                val delta = currentDistance - initialPinchDistance
-                                                if (kotlin.math.abs(delta) > 35f && !isGestureHandled) {
-                                                    changes.forEach { it.consume() }
-                                                    initialPinchDistance = currentDistance
-                                                    val scrollTick = if (delta > 0) 1 else -1 // Zoom In (+1) or Zoom Out (-1)
-                                                    viewModel.sendCtrlScroll(scrollTick.toByte())
-                                                    viewModel.vibrate(15)
+                                            is TouchpadAction.Scroll -> {
+                                                if (action.yTicks != 0) {
+                                                    viewModel.sendScrollTicks(action.yTicks)
+                                                    viewModel.vibrate(10)
                                                 }
                                             }
-                                        }
-
-                                        // 1-Finger Pointer Movement
-                                        pointerCount == 1 -> {
-                                            val change = changes[0]
-                                            if (change.pressed) {
-                                                val dragAmount = change.positionChange()
-                                                if (dragAmount.getDistance() > 1f && maxPointersSeen == 1) {
-                                                    change.consume()
-                                                    viewModel.sendTouchMove(dragAmount.x, dragAmount.y)
-                                                }
+                                            is TouchpadAction.Zoom -> {
+                                                // Ctrl + wheel = pinch-to-zoom
+                                                viewModel.sendCtrlScroll(action.ticks.toByte())
+                                                viewModel.vibrate(15)
                                             }
-                                        }
-                                    }
-
-                                    // On Pointer Release (All fingers lifted up)
-                                    if (changes.all { !it.pressed }) {
-                                        if (!isGestureHandled) {
-                                            when (maxPointersSeen) {
-                                                1 -> {
-                                                    // 1-Finger Tap -> Left Click
-                                                    val tapTime = System.currentTimeMillis()
-                                                    if (tapTime - lastTapTime < 250) {
-                                                        viewModel.sendMouseClick(1)
-                                                        viewModel.sendMouseClick(1)
-                                                        lastTapTime = 0L
-                                                    } else {
-                                                        viewModel.sendMouseClick(1)
-                                                        lastTapTime = tapTime
-                                                    }
-                                                }
-                                                2 -> {
-                                                    // 2-Finger Tap -> Right Click
-                                                    viewModel.sendMouseClick(2)
+                                            is TouchpadAction.Tap -> {
+                                                if (action.button == 2) {
+                                                    // Two-finger tap -> right click
                                                     viewModel.vibrate(40)
                                                     Toast.makeText(context, "Right Click", Toast.LENGTH_SHORT).show()
                                                 }
+                                                viewModel.sendMouseClick(action.button.toByte())
+                                            }
+                                            is TouchpadAction.DoubleTap -> {
+                                                // First tap already sent one click; send the second one.
+                                                viewModel.sendMouseClick(1)
+                                            }
+                                            is TouchpadAction.Swipe -> {
+                                                // Three-finger swipe -> task view (Win + Tab)
+                                                viewModel.vibrate(50)
+                                                viewModel.sendKeyboardKey(8, 0x2B.toByte())
+                                                Toast.makeText(context, "Task View (Win + Tab)", Toast.LENGTH_SHORT).show()
                                             }
                                         }
-                                        // Reset gesture tracking
-                                        maxPointersSeen = 0
-                                        initialPinchDistance = -1f
-                                        isGestureHandled = false
                                     }
                                 }
                             }
@@ -1772,55 +1758,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
     // Maps a standard ASCII char and transmits over HID
     fun transmitCharacter(char: Char) {
-        var modifier: Byte = getModifierByte()
-        var keyCode: Byte = 0
-        
-        when (char) {
-            in 'a'..'z' -> keyCode = (0x04 + (char - 'a')).toByte()
-            in 'A'..'Z' -> {
-                modifier = (modifier.toInt() or 0x02).toByte() // Shift
-                keyCode = (0x04 + (char - 'A')).toByte()
-            }
-            in '1'..'9' -> keyCode = (0x1E + (char - '1')).toByte()
-            '0' -> keyCode = 0x27.toByte()
-            ' ' -> keyCode = 0x2C.toByte()
-            '\n' -> keyCode = 0x28.toByte()
-            '\t' -> keyCode = 0x2B.toByte()
-            '!' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x1E.toByte() }
-            '@' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x1F.toByte() }
-            '#' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x20.toByte() }
-            '$' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x21.toByte() }
-            '%' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x22.toByte() }
-            '^' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x23.toByte() }
-            '&' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x24.toByte() }
-            '*' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x25.toByte() }
-            '(' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x26.toByte() }
-            ')' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x27.toByte() }
-            '-' -> keyCode = 0x2D.toByte()
-            '_' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x2D.toByte() }
-            '=' -> keyCode = 0x2E.toByte()
-            '+' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x2E.toByte() }
-            '[' -> keyCode = 0x2F.toByte()
-            '{' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x2F.toByte() }
-            ']' -> keyCode = 0x30.toByte()
-            '}' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x30.toByte() }
-            '\\' -> keyCode = 0x31.toByte()
-            '|' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x31.toByte() }
-            ';' -> keyCode = 0x33.toByte()
-            ':' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x33.toByte() }
-            '\'' -> keyCode = 0x34.toByte()
-            '"' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x34.toByte() }
-            ',' -> keyCode = 0x36.toByte()
-            '<' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x36.toByte() }
-            '.' -> keyCode = 0x37.toByte()
-            '>' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x37.toByte() }
-            '/' -> keyCode = 0x38.toByte()
-            '?' -> { modifier = (modifier.toInt() or 0x02).toByte(); keyCode = 0x38.toByte() }
-        }
-        
-        if (keyCode != 0.toByte()) {
-            viewModel.hidManager.sendKeyPress(modifier, keyCode)
-        }
+        val mapped = HidKeyMapper.map(char) ?: return
+        // Merge any held modifier toggles (Ctrl/Shift/Alt/Win) with the
+        // character's own required modifier (e.g. Shift for uppercase)
+        val modifier = (getModifierByte().toInt() or mapped.first.toInt()).toByte()
+        viewModel.hidManager.sendKeyPress(modifier, mapped.second)
     }
 
     Scaffold(
@@ -3447,6 +3389,20 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 )
             }
 
+            // Pointer Acceleration Slider
+            Column {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Pointer Acceleration", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                    Text(String.format("%.1f", settings.acceleration), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+                Slider(
+                    value = settings.acceleration,
+                    onValueChange = { viewModel.updateSettings(settings.copy(acceleration = it)) },
+                    valueRange = 0.0f..3.0f,
+                    modifier = Modifier.testTag("setting_acceleration")
+                )
+            }
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
             Text("Feedback & Device", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 15.sp)
@@ -4001,7 +3957,7 @@ fun AboutScreen(navController: NavController) {
                                 "• Profile: official Android BluetoothHidDevice (SDP Combo)\n" +
                                 "• Provider / Device: Generic HID Device (AirMouse)\n" +
                                 "• Subclass: Combo Keyboard/Pointer (0x03)\n" +
-                                "• Version: 1.2.0",
+                                "• Version: ${BuildConfig.VERSION_NAME}",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         lineHeight = 18.sp
@@ -4016,7 +3972,6 @@ fun AboutScreen(navController: NavController) {
 fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavController? = null) {
     val connectionState by viewModel.bluetoothState.collectAsState()
     val connectedDevice by viewModel.connectedDevice.collectAsState()
-    val connectedDeviceRssi by viewModel.connectedDeviceRssi.collectAsState()
     val targetDevice by viewModel.targetDevice.collectAsState()
     val isBluetoothPowerOn by viewModel.isBluetoothPowerOn.collectAsState()
 
@@ -4035,14 +3990,6 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
         isConnected -> Color(0xFF10B981) // Green for connected
         isConnecting -> Color(0xFFF59E0B) // Amber for connecting
         else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    val rssiVal = connectedDeviceRssi ?: -62
-    val absRssi = kotlin.math.abs(rssiVal)
-    val strengthLabel = when {
-        absRssi <= 65 -> "Strong"
-        absRssi <= 80 -> "Good"
-        else -> "Fair"
     }
 
     Surface(
@@ -4069,22 +4016,8 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
         ) {
             if (isConnected) {
                 Text(
-                    text = "CONNECTED: ${connectedDevice?.getSafeName() ?: "Host Device"} ",
+                    text = "CONNECTED: ${connectedDevice?.getSafeName() ?: "Host Device"}",
                     color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Default.SignalCellularAlt,
-                    contentDescription = "Signal Strength",
-                    tint = Color(0xFF10B981),
-                    modifier = Modifier.size(15.dp)
-                )
-                Text(
-                    text = " -$absRssi dBm",
-                    color = Color(0xFF10B981),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
