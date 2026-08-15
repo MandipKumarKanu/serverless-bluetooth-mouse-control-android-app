@@ -330,7 +330,7 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
             // Theme Mode Dropdown
             var expanded by remember { mutableStateOf(false) }
-            val themeOptions = listOf("System Default", "Light", "Dark")
+            val themeOptions = listOf("System Default", "Light", "Dark", "AMOLED")
             val currentThemeText = themeOptions[settings.themeMode]
 
             Row(

@@ -8,6 +8,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
@@ -34,6 +35,13 @@ private val DarkColorScheme = darkColorScheme(
     onError = DarkOnBackground,
     errorContainer = DarkErrorContainer,
     onErrorContainer = DarkError,
+)
+
+// AMOLED: identical to the dark scheme but with pure-black backgrounds, so
+// OLED panels turn the pixels fully off for true blacks.
+private val AmoledColorScheme = DarkColorScheme.copy(
+    background = Color.Black,
+    surface = Color.Black,
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -65,10 +73,13 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    amoled: Boolean = false,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
+        // AMOLED always wins (pure black is the point, even with dynamic colors)
+        amoled -> AmoledColorScheme
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)

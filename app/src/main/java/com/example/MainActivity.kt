@@ -89,8 +89,10 @@ class MainActivity : ComponentActivity() {
                 darkTheme = when (settings.themeMode) {
                     1 -> false // Light
                     2 -> true  // Dark
+                    3 -> true  // AMOLED — dark with pure black
                     else -> isSystemInDarkTheme() // System Default
                 },
+                amoled = settings.themeMode == 3,
                 dynamicColor = settings.useDynamicColors
             ) {
                 // Show update dialog (inside theme for proper colors)

@@ -2,6 +2,12 @@
 
 All notable changes to AirMouse will be documented in this file.
 
+
+## [1.10.5] - 2026-08-15
+
+### Added
+- **AMOLED theme** — new theme mode in Settings (System Default, Light, Dark, AMOLED): identical to Dark but with pure-black backgrounds, so OLED panels turn pixels fully off for true blacks. Pairs with the existing dynamic-color option (pure black takes precedence).
+
 ## [1.10.4] - 2026-08-15
 
 ### Added
