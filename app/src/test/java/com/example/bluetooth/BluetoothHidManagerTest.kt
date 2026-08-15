@@ -102,6 +102,57 @@ class BluetoothHidManagerTest {
         assertTrue(device("Living Room TV", bluetoothClass(0x0400)).isHidCompatibleHost())
     }
 
+    // --- host output report parsing (LEDs / gamepad rumble) ---
+
+    @Test
+    fun parseLedState_emptyReport_returnsZero() {
+        assertEquals(0, parseLedState(null))
+        assertEquals(0, parseLedState(ByteArray(0)))
+    }
+
+    @Test
+    fun parseLedState_extractsLockBitsFromFirstByte() {
+        // Num Lock | Caps Lock
+        assertEquals(0x03, parseLedState(byteArrayOf(0x03)))
+        // Caps Lock only
+        assertEquals(LED_CAPS_LOCK, parseLedState(byteArrayOf(LED_CAPS_LOCK.toByte())))
+        // Scroll Lock only
+        assertEquals(LED_SCROLL_LOCK, parseLedState(byteArrayOf(LED_SCROLL_LOCK.toByte())))
+        // Full 8-byte keyboard-style report: only the first byte matters
+        assertEquals(0x03, parseLedState(byteArrayOf(0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)))
+    }
+
+    @Test
+    fun parseLedState_treatsFirstByteAsUnsigned() {
+        // A host sending 0xFF for all LEDs must not become a negative value
+        assertEquals(0xFF, parseLedState(byteArrayOf(0xFF.toByte())))
+    }
+
+    @Test
+    fun parseRumbleIntensity_emptyReport_returnsZero() {
+        assertEquals(0, parseRumbleIntensity(null))
+        assertEquals(0, parseRumbleIntensity(ByteArray(0)))
+    }
+
+    @Test
+    fun parseRumbleIntensity_usesStrongestMotor() {
+        // weak=20, strong=200 -> 200
+        assertEquals(200, parseRumbleIntensity(byteArrayOf(200.toByte(), 20.toByte())))
+        // strong=30, weak=240 -> 240
+        assertEquals(240, parseRumbleIntensity(byteArrayOf(30.toByte(), 240.toByte())))
+    }
+
+    @Test
+    fun parseRumbleIntensity_singleByteReport() {
+        // Some stacks deliver a single intensity byte
+        assertEquals(128, parseRumbleIntensity(byteArrayOf(128.toByte())))
+    }
+
+    @Test
+    fun parseRumbleIntensity_zeroMeansMotorsOff() {
+        assertEquals(0, parseRumbleIntensity(byteArrayOf(0, 0)))
+    }
+
     // --- connection guards / HID transmission while disconnected ---
 
     @Test

@@ -64,6 +64,9 @@ private const val BTN_DPAD_CENTER = 0x100
 fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
     var gamepadMode by remember { mutableStateOf(false) }
 
+    // Host force-feedback (rumble) intensity, 0 when motors are off
+    val rumble by viewModel.gamepadRumbleState.collectAsState()
+
     // Held D-pad directions; used to compute the HID hat switch (supports diagonals)
     var dpadUp by remember { mutableStateOf(false) }
     var dpadDown by remember { mutableStateOf(false) }
@@ -157,6 +160,49 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 GamepadModeChip("Gamepad Mode", gamepadMode) {
                     viewModel.vibrate(20)
                     gamepadMode = true
+                }
+            }
+
+            // Rumble indicator: lights up while the host game sends
+            // force-feedback output reports (mirrored as phone vibration).
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (rumble > 0) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Vibration,
+                            contentDescription = "Rumble",
+                            tint = if (rumble > 0) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = if (rumble > 0) "RUMBLE ACTIVE" else "RUMBLE",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (rumble > 0) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
                 }
             }
 

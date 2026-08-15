@@ -50,6 +50,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
     var altPressed by remember { mutableStateOf(false) }
     var winPressed by remember { mutableStateOf(false) }
 
+    // Lock states mirrored from the connected PC (HID LED output reports)
+    val capsLock by viewModel.capsLockState.collectAsState()
+    val numLock by viewModel.numLockState.collectAsState()
+    val scrollLock by viewModel.scrollLockState.collectAsState()
+
     fun getModifierByte(): Byte {
         var mask = 0
         if (ctrlPressed) mask = mask or 0x01
@@ -237,6 +242,16 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 }
             }
 
+            // Host lock indicators (Caps/Num/Scroll) mirrored from the PC
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                LockIndicator("CAPS", capsLock, Modifier.weight(1f))
+                LockIndicator("NUM", numLock, Modifier.weight(1f))
+                LockIndicator("SCROLL", scrollLock, Modifier.weight(1f))
+            }
+
             // Modern Virtual QWERTY Keyboard
             Text(
                 text = "Interactive Virtual Keyboard",
@@ -285,7 +300,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         row1.forEach { char ->
                             KeycapButton(
                                 char = char,
-                                isUppercase = shiftPressed,
+                                isUppercase = shiftPressed || capsLock,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     viewModel.vibrate(15)
@@ -305,7 +320,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         row2.forEach { char ->
                             KeycapButton(
                                 char = char,
-                                isUppercase = shiftPressed,
+                                isUppercase = shiftPressed || capsLock,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     viewModel.vibrate(15)
@@ -351,7 +366,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         row3.forEach { char ->
                             KeycapButton(
                                 char = char,
-                                isUppercase = shiftPressed,
+                                isUppercase = shiftPressed || capsLock,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
                                     viewModel.vibrate(15)
@@ -763,3 +778,35 @@ data class ModifierTile(
     val active: Boolean,
     val onClick: () -> Unit
 )
+
+/** Host lock-state indicator (Caps/Num/Scroll) mirrored from the PC via HID. */
+@Composable
+private fun LockIndicator(label: String, active: Boolean, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.height(42.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(
+                            if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.outline,
+                            CircleShape
+                        )
+                )
+                Text(
+                    text = label,
+                    color = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp
+                )
+            }
+        }
+    }
+}

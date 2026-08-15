@@ -2,8 +2,17 @@
 
 All notable changes to AirMouse will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
+
+## [1.10.2] - 2026-08-15
+
+### Added
+- **Host → phone HID feedback** — the phone now reads reports the PC sends back to it over the HID link:
+  - **Keyboard lock indicators** — Caps Lock, Num Lock, and Scroll Lock states from the PC light up on the Keyboard screen (HID LED output report). The on-screen keys also mirror Caps Lock (uppercase) while it's active.
+  - **Gamepad rumble** — the HID descriptor now exposes a force-feedback output report on the gamepad; when a DirectInput game or emulator sends rumble, the phone vibrates at the reported intensity and the Gamepad screen shows a RUMBLE indicator.
+
+### Fixed
+- **Unit test flake on release builds** — `AirMouseViewModelTest` hung (and leaked DB coroutines) because Room 2.7 flow emissions resumed from the query executor are never delivered to a virtual-time test dispatcher, and the DB seeding coroutine raced the tests' writes. Tests now run on real dispatchers and wait for the seed before writing.
 
 ## [1.10.1] - 2026-08-15
 

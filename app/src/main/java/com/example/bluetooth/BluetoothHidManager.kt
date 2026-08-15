@@ -26,6 +26,35 @@ data class ScannedDevice(
     val rssi: Int
 )
 
+// Host LED output report bits (Report ID 1, Usage Page 0x08 LEDs). The host
+// sends these via onSetReport/onInterruptData to mirror its lock states.
+const val LED_NUM_LOCK = 0x01
+const val LED_CAPS_LOCK = 0x02
+const val LED_SCROLL_LOCK = 0x04
+
+/**
+ * Parses the keyboard LED output report (Report ID 1) into the LED bitmask.
+ * The report is a single byte: bits 0-4 are Num/Caps/Scroll/Compose/Kana.
+ * Hosts vary between sending a 1-byte report and a full 8-byte keyboard
+ * report, so take the first byte when present.
+ */
+fun parseLedState(data: ByteArray?): Int {
+    return if (data == null || data.isEmpty()) 0 else (data[0].toInt() and 0xFF)
+}
+
+/**
+ * Parses the gamepad force-feedback output report (Report ID 4) into a
+ * rumble intensity 0-255. The report carries two motor bytes (strong, weak);
+ * the strongest of the two drives the intensity.
+ */
+fun parseRumbleIntensity(data: ByteArray?): Int {
+    if (data == null || data.isEmpty()) return 0
+    return when {
+        data.size >= 2 -> maxOf(data[0].toInt() and 0xFF, data[1].toInt() and 0xFF)
+        else -> data[0].toInt() and 0xFF
+    }
+}
+
 @SuppressLint("MissingPermission")
 fun BluetoothDevice.getSafeName(): String {
     return try {
@@ -137,6 +166,16 @@ class BluetoothHidManager private constructor(context: Context) {
     private val _isBluetoothEnabled = MutableStateFlow(bluetoothAdapter?.isEnabled ?: false)
     val isBluetoothEnabledFlow: StateFlow<Boolean> = _isBluetoothEnabled.asStateFlow()
 
+    // Host-side keyboard lock states (LED output report, Report ID 1).
+    // Bitmask: LED_NUM_LOCK | LED_CAPS_LOCK | LED_SCROLL_LOCK
+    private val _hostLeds = MutableStateFlow(0)
+    val hostLeds: StateFlow<Int> = _hostLeds.asStateFlow()
+
+    // Gamepad force feedback from the host (output report, Report ID 4).
+    // 0 = motors off, 1-255 = intensity of the strongest motor.
+    private val _gamepadRumble = MutableStateFlow(0)
+    val gamepadRumble: StateFlow<Int> = _gamepadRumble.asStateFlow()
+
     private val _scannedDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
     val scannedDevices: StateFlow<List<ScannedDevice>> = _scannedDevices.asStateFlow()
 
@@ -170,6 +209,8 @@ class BluetoothHidManager private constructor(context: Context) {
                         _isScanning.value = false
                         _scannedDevices.value = emptyList()
                         _bondedDevices.value = emptyList()
+                        _hostLeds.value = 0
+                        _gamepadRumble.value = 0
                         // The BLE GATT server is invalidated by the stack while
                         // Bluetooth is off; reset it so the next connect rebuilds it.
                         bleBatteryService.onBluetoothTurnedOff()
@@ -372,6 +413,18 @@ class BluetoothHidManager private constructor(context: Context) {
             0x95.toByte(), 0x04.toByte(),       //   REPORT_COUNT (4)
             0x81.toByte(), 0x03.toByte(),       //   INPUT (Cnst,Var,Abs)
 
+            // Force feedback (rumble) output report: 2 bytes (strong motor,
+            // weak motor), 0-255 each. DirectInput games and emulators that
+            // write to a generic gamepad's output report trigger it; the phone
+            // mirrors the intensity as vibration.
+            0x06.toByte(), 0x00.toByte(), 0xff.toByte(), //   USAGE_PAGE (Vendor-Defined)
+            0x09.toByte(), 0x01.toByte(),       //   USAGE (Vendor-Defined)
+            0x15.toByte(), 0x00.toByte(),       //   LOGICAL_MINIMUM (0)
+            0x26.toByte(), 0xff.toByte(), 0x00.toByte(), //   LOGICAL_MAXIMUM (255)
+            0x75.toByte(), 0x08.toByte(),       //   REPORT_SIZE (8)
+            0x95.toByte(), 0x02.toByte(),       //   REPORT_COUNT (2)
+            0x91.toByte(), 0x02.toByte(),       //   OUTPUT (Data,Var,Abs)
+
             0xc0.toByte(),                      // END_COLLECTION
 
             // =====================================================================
@@ -509,6 +562,9 @@ class BluetoothHidManager private constructor(context: Context) {
                     Log.d(TAG, "Disconnected from: ${device?.getSafeName()}")
                     // Stop BLE Battery Service
                     bleBatteryService.stop()
+                    // Host lock/rumble state no longer applies
+                    _hostLeds.value = 0
+                    _gamepadRumble.value = 0
                 }
                 BluetoothProfile.STATE_DISCONNECTING -> {
                     Log.d(TAG, "Disconnecting from: ${device?.getSafeName()}")
@@ -543,10 +599,11 @@ class BluetoothHidManager private constructor(context: Context) {
             }
         }
 
-        // Handle SetReport - Windows may send LED state
+        // Handle SetReport - host sends LED state or gamepad force feedback
         override fun onSetReport(device: BluetoothDevice?, type: Byte, reportId: Byte, data: ByteArray?) {
             super.onSetReport(device, type, reportId, data)
             Log.d(TAG, "onSetReport: device=${device?.getSafeName()}, type=$type, reportId=$reportId, data=${data?.contentToString()}")
+            handleHostOutputReport(reportId, data)
             // ACK the report with SUCCESS handshake
             val profile = hidDeviceProfile ?: return
             try {
@@ -566,11 +623,12 @@ class BluetoothHidManager private constructor(context: Context) {
             // Windows may request Boot protocol during enumeration
         }
 
-        // Handle InterruptData - Host may send data to device
+        // Handle InterruptData - host may deliver output reports here instead
+        // of (or in addition to) onSetReport on some stacks
         override fun onInterruptData(device: BluetoothDevice?, reportId: Byte, data: ByteArray?) {
             super.onInterruptData(device, reportId, data)
             Log.d(TAG, "onInterruptData: device=${device?.getSafeName()}, reportId=$reportId, data=${data?.contentToString()}")
-            // Handle LED state changes if needed (e.g., Num Lock, Caps Lock)
+            handleHostOutputReport(reportId, data)
         }
 
         // Handle VirtualCableUnplug - Windows may unplug virtually
@@ -586,10 +644,38 @@ class BluetoothHidManager private constructor(context: Context) {
             _connectedDevice.value = null
             _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
             isConnecting = false
+            _hostLeds.value = 0
+            _gamepadRumble.value = 0
             try {
                 bleBatteryService.stop()
             } catch (e: Exception) {
                 Log.e(TAG, "Error stopping bleBatteryService after virtual unplug", e)
+            }
+        }
+    }
+
+    /**
+     * Parses host->device output reports: Report ID 1 carries keyboard LED
+     * state, Report ID 4 carries gamepad force feedback. Called from both
+     * onSetReport and onInterruptData because stacks differ on which channel
+     * delivers output reports.
+     */
+    private fun handleHostOutputReport(reportId: Byte, data: ByteArray?) {
+        when (reportId.toInt()) {
+            1 -> {
+                val leds = parseLedState(data)
+                if (leds != _hostLeds.value) {
+                    _hostLeds.value = leds
+                    Log.d(TAG, "Host LEDs updated: numLock=${leds and LED_NUM_LOCK != 0}, " +
+                        "capsLock=${leds and LED_CAPS_LOCK != 0}, scrollLock=${leds and LED_SCROLL_LOCK != 0}")
+                }
+            }
+            4 -> {
+                val intensity = parseRumbleIntensity(data)
+                if (intensity != _gamepadRumble.value) {
+                    _gamepadRumble.value = intensity
+                    Log.d(TAG, "Gamepad rumble updated: intensity=$intensity")
+                }
             }
         }
     }

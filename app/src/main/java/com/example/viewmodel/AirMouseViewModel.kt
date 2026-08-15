@@ -16,6 +16,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bluetooth.BluetoothHidManager
 import com.example.bluetooth.HidKeyMapper
+import com.example.bluetooth.LED_CAPS_LOCK
+import com.example.bluetooth.LED_NUM_LOCK
+import com.example.bluetooth.LED_SCROLL_LOCK
 import com.example.bluetooth.ScannedDevice
 import com.example.bluetooth.getSafeName
 import com.example.data.AppDatabase
@@ -133,6 +136,23 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     val isProfileReady: StateFlow<Boolean> = hidManager.isProfileReady
     val isBluetoothPowerOn: StateFlow<Boolean> = hidManager.isBluetoothEnabledFlow
 
+    // Host-side keyboard lock indicators, mirrored from the host's HID LED
+    // output reports (e.g. pressing Caps Lock on the PC lights the indicator
+    // here). Only true while connected to a host that sends them.
+    val capsLockState: StateFlow<Boolean> = hidManager.hostLeds
+        .map { it and LED_CAPS_LOCK != 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val numLockState: StateFlow<Boolean> = hidManager.hostLeds
+        .map { it and LED_NUM_LOCK != 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val scrollLockState: StateFlow<Boolean> = hidManager.hostLeds
+        .map { it and LED_SCROLL_LOCK != 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    // Gamepad rumble intensity (0-255) from the host's force-feedback output
+    // reports; 0 when the motors are off or no host is connected.
+    val gamepadRumbleState: StateFlow<Int> = hidManager.gamepadRumble
+
     // Dynamic paired devices list
     private val _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val pairedDevices: StateFlow<List<BluetoothDevice>> = _pairedDevices.asStateFlow()
@@ -188,6 +208,14 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             batteryMonitor.batteryLevel.collect { level ->
                 hidManager.updateBleBatteryLevel(level)
+            }
+        }
+
+        // Mirror host gamepad force feedback (rumble) as phone vibration while
+        // a game keeps sending rumble reports.
+        viewModelScope.launch {
+            hidManager.gamepadRumble.collect { intensity ->
+                handleGamepadRumble(intensity)
             }
         }
 
@@ -815,10 +843,59 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    // True while the phone is vibrating in response to host rumble reports;
+    // guards against re-triggering on every report the game sends.
+    private var rumbleActive = false
+
+    /**
+     * Starts a repeating vibration while the host keeps sending nonzero rumble
+     * reports and stops it when the motors go quiet. Respects the vibration
+     * feedback setting like every other haptic in the app.
+     */
+    private fun handleGamepadRumble(intensity: Int) {
+        if (intensity <= 0) {
+            if (rumbleActive) {
+                rumbleActive = false
+                try {
+                    vibrator.cancel()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to cancel rumble vibration", e)
+                }
+            }
+            return
+        }
+        if (rumbleActive || !settingsState.value.vibrationFeedback) return
+        rumbleActive = true
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Alternate off/on pulses until the host stops rumbling
+                val amplitude = intensity.coerceIn(1, 255)
+                vibrator.vibrate(
+                    VibrationEffect.createWaveform(
+                        longArrayOf(0, 120),
+                        intArrayOf(0, amplitude),
+                        0
+                    )
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(120)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start rumble vibration", e)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         autoReconnectJob?.cancel()
         batteryMonitor.stop()
+        try {
+            vibrator.cancel()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to cancel vibration on clear", e)
+        }
+        rumbleActive = false
     }
 
     /** Test hook: mirror the framework's onCleared() cleanup from unit tests. */
