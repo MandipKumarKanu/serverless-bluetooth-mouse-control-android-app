@@ -77,16 +77,6 @@ fun gestureActionTypeFor(action: String): String {
 }
 
 /**
- * Action types for gestures
- */
-enum class GestureActionType {
-    KEYBOARD,   // Keyboard key combination
-    MEDIA,      // Media control (volume, play/pause)
-    MOUSE,      // Mouse action (click, scroll)
-    SHORTCUT    // Custom shortcut
-}
-
-/**
  * Pre-defined gesture actions
  */
 object GestureActions {

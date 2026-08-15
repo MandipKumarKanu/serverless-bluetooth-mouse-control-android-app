@@ -18,8 +18,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import android.app.DownloadManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
 import com.example.update.UpdateInfo
 
 @Composable
@@ -152,8 +156,14 @@ fun UpdateDialog(
                     // Download button
                     Button(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.downloadUrl))
-                            context.startActivity(intent)
+                            val apkUrl = updateInfo.apkDownloadUrl
+                            if (apkUrl != null) {
+                                downloadApk(context, apkUrl)
+                            } else {
+                                // No APK asset attached to the release - open the page
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.downloadUrl))
+                                context.startActivity(intent)
+                            }
                             onDismiss()
                         },
                         modifier = Modifier
@@ -179,6 +189,32 @@ fun UpdateDialog(
                 }
             }
         }
+    }
+}
+
+/**
+ * Queue an APK download via the system DownloadManager.
+ * Falls back to the release page when no APK asset is available.
+ */
+private fun downloadApk(context: Context, url: String) {
+    try {
+        val request = DownloadManager.Request(Uri.parse(url)).apply {
+            setTitle("AirMouse Update")
+            setDescription("Downloading the latest AirMouse APK")
+            setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            setMimeType("application/vnd.android.package-archive")
+            // DownloadManager handles scoped storage on modern Android; this
+            // keeps the APK in the Downloads folder for easy install.
+            @Suppress("DEPRECATION")
+            setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "AirMouse.apk")
+        }
+        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        manager.enqueue(request)
+        Toast.makeText(context, "Downloading AirMouse update...", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        // Fall back to the release page if the downloader isn't available
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        context.startActivity(intent)
     }
 }
 

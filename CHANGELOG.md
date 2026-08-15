@@ -4,6 +4,34 @@ All notable changes to AirMouse will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [Unreleased]
+
+## [1.10.0] - 2026-08-15
+
+### Added
+- **Real HID gamepad** — The HID descriptor now includes a true Game Pad report (joystick axes, hat switch, 12 buttons) recognized by DirectInput games and emulators. Gamepad screen has a **Keyboard / Gamepad mode toggle**; buttons and D-pad use real press-and-hold semantics in both modes (D-pad becomes a hat switch with diagonal support in gamepad mode).
+- **Touchpad depth** —
+  - **Two-finger horizontal scroll** — the mouse report now carries a horizontal wheel (second Wheel usage), so two-finger left/right scrolls horizontally in apps that support it.
+  - **Long-press drag-hold** — holding one finger still for a moment starts a drag (left button held); move and lift to drop. No more separate drag toggle needed.
+  - **Three-finger window drag** — a slow, sustained three-finger movement drags (moves a window); a quick three-finger flick still opens Task View.
+- **Per-device settings profiles** — Pointer settings (sensitivity, smoothing, dead zone, acceleration, scroll speed, axis inversion) are now remembered per paired host. First connection inherits your global settings; Settings shows a "Device-Specific Settings" section with a Reset-to-Global button. App-level settings (theme, vibration, keep-awake) remain global. DB migration v5 → v6.
+- **Recent connections on Dashboard** — The last connected devices (with timestamps) now appear in a collapsible "Recent Connections" section with a Clear button; previously this data was recorded but never shown.
+- **In-app device scanning & pairing** — New "Scan for nearby devices" section on the Dashboard finds and pairs hosts directly in the app (with RSSI display and a stop-scan control), removing the need to pair in system Bluetooth settings.
+- **OTA direct APK download** — The update dialog now downloads the release APK directly via the system download manager when the release has an attached APK, instead of opening the GitHub page in a browser.
+- **Quick Settings tile toggle** — The QS tile now starts/stops the air mouse when a device is connected (with active/inactive tile state and status subtitle); tapping while disconnected still opens the app.
+- **Gesture action unification** — The gesture-assign dialog now exposes all executable actions (keyboard shortcuts, media controls, and mouse actions) instead of a partial list.
+- **Notification Volume Up button** — The persistent notification now includes a `Vol+` action alongside `Prev`, `Play/Pause`, `Next`, and `Vol-`.
+- **Robolectric test coverage for the core** — New tests for the Room DAO (CRUD + flows), the database migration chain (v1 → v5, including the `themeDark` → `themeMode` conversion), `BluetoothHidManager` device-classification helpers and connection guards, and `AirMouseViewModel` persistence flows. The release CI now runs the full suite plus `lintRelease` (reporting-only) before building the APK.
+- **R8/minify for release builds** — The release APK is now minified and optimized (with keep rules for Moshi codegen, ViewModels, and line numbers in stack traces). Verbose/debug `Log.d`/`Log.v` calls are compiled out of release builds while `Log.i/w/e` remain for diagnostics.
+- **Per-screen files** — The 4,281-line `AirMouseScreens.kt` monolith is split into focused files (`Routes`, `SplashScreen`, `PermissionsScreen`, `DashboardScreen`, `TouchpadScreen`, `AirMouseScreen`, `KeyboardScreen`, `MediaRemoteScreen`, `PresentationScreen`, `ShortcutsScreen`, `SettingsScreen`, `AboutScreen`, `StickyConnectionIndicator`). No behavior changes.
+- **Unit tests run in CI** — The release workflow now runs `testDebugUnitTest` before building the APK, so failing tests block the release.
+
+### Changed
+- **Dead code cleanup** — Removed unused state collects in the Dashboard/Air Mouse screens (`batteryLevel`, `isCharging`, `isAppRegistered`, `isProfileReady`), the unused `GestureActionType` enum, the never-read `AirMouseService.isRunning`/`connectedDeviceName` flows, and a leak-prone throwaway coroutine scope in the sensor startup path.
+- **Receiver hardening** — Context-registered receivers (`BatteryMonitor`, `BluetoothHidManager`) now use `RECEIVER_NOT_EXPORTED` so other apps can't spoof Bluetooth/battery state broadcasts.
+- **Deprecated GATT API** — `BleBatteryService` uses the offset-based `setValue`/`notifyCharacteristicChanged` overloads on Android 13+.
+- **Debug signing fallback** — Debug builds fall back to the standard Android debug keystore when the repo-local `debug.keystore` is absent (fixes debug builds/CI on machines without the file).
+
 ## [1.9.91] - 2026-08-15
 
 ### Fixed

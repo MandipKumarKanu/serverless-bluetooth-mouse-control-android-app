@@ -31,6 +31,7 @@ sealed class TouchpadAction {
     /**
      * Mouse wheel ticks from a two-finger scroll.
      * Negative yTicks = scroll down, positive = scroll up.
+     * Negative xTicks = scroll left, positive = scroll right.
      */
     data class Scroll(val xTicks: Int, val yTicks: Int) : TouchpadAction()
 
@@ -48,6 +49,16 @@ sealed class TouchpadAction {
      * The caller adds one more click on top of the first tap's click.
      */
     data class DoubleTap(val button: Int) : TouchpadAction()
+
+    /**
+     * A drag (button held down) begins: a long-press on one finger, or a
+     * sustained three-finger movement (window move). The caller presses the
+     * mouse button; subsequent [Move]s drag, and [DragEnd] releases it.
+     */
+    data class DragStart(val button: Int) : TouchpadAction()
+
+    /** The drag is over — the caller releases the held mouse button. */
+    data object DragEnd : TouchpadAction()
 
     /** Three-finger vertical swipe (task view). */
     data class Swipe(val direction: SwipeDirection) : TouchpadAction()
@@ -68,6 +79,10 @@ sealed class TouchpadAction {
  *    mistaken for a click on release.
  *  - **Continuous gestures.** Pinch-to-zoom and two-finger scroll emit
  *    repeated ticks as long as the movement continues.
+ *  - **Long-press drag-hold.** Holding one finger still past a threshold
+ *    starts a drag (button held), so drag-and-drop needs no separate toggle.
+ *  - **Three-finger flick vs. drag.** A quick three-finger swipe is task view;
+ *    a slow, sustained three-finger movement drags (moves a window).
  *
  * This class is pure Kotlin and unit-testable; it has no Android dependencies.
  */
@@ -86,10 +101,20 @@ class TouchpadGestureRecognizer {
     private var gestureHandled = false
     private var lastSingleTapTime = 0L
 
+    // Timestamps used to distinguish long-press drags and slow 3-finger drags
+    // from taps/flicks.
+    private var gestureStartTime = 0L
+    private var modeStartTime = 0L
+
+    // Drag state
+    private var dragActive = false          // 1-finger long-press drag
+    private var threeFingerDragActive = false
+
     // Multi-finger baselines
     private var pinchBaseline = -1f
     private var lastCentroidX = 0f
     private var lastCentroidY = 0f
+    private var scrollAccumX = 0f
     private var scrollAccumY = 0f
     private var swipeAccumY = 0f
 
@@ -144,6 +169,11 @@ class TouchpadGestureRecognizer {
         // A finger that was tracked last frame but is missing now lifted.
         if (updated.size != fingers.size) countChanged = true
 
+        // Start of a brand-new gesture (no fingers tracked last frame).
+        if (fingers.isEmpty() && downCount > 0) {
+            gestureStartTime = nowMs
+        }
+
         fingers.clear()
         fingers.putAll(updated)
 
@@ -167,11 +197,19 @@ class TouchpadGestureRecognizer {
         // down than the locked mode), re-baseline and emit nothing.
         if (countChanged || fingers.size < mode) {
             resetBaselines(fingers)
+            modeStartTime = nowMs
             return actions
         }
 
         when (mode) {
             1 -> {
+                // Long-press drag-hold: a finger held still past the threshold
+                // becomes a drag, so drag-and-drop needs no separate toggle.
+                if (!dragActive && !gestureMoved && nowMs - gestureStartTime >= LONG_PRESS_DRAG_MS) {
+                    dragActive = true
+                    gestureHandled = true
+                    actions += TouchpadAction.DragStart(1)
+                }
                 // Single-finger pointer movement
                 if (abs(deltaX) > MOVE_EMIT_THRESHOLD || abs(deltaY) > MOVE_EMIT_THRESHOLD) {
                     actions += TouchpadAction.Move(deltaX, deltaY)
@@ -184,11 +222,23 @@ class TouchpadGestureRecognizer {
                 val p2x = f[1].lastX
                 val p2y = f[1].lastY
 
-                // Two-finger scroll: track centroid travel vertically
+                // Two-finger scroll: track centroid travel in both axes
+                val centroidX = (p1x + p2x) / 2f
                 val centroidY = (p1y + p2y) / 2f
+                scrollAccumX += centroidX - lastCentroidX
                 scrollAccumY += centroidY - lastCentroidY
-                lastCentroidX = (p1x + p2x) / 2f
+                lastCentroidX = centroidX
                 lastCentroidY = centroidY
+
+                var xTicks = 0
+                while (scrollAccumX >= SCROLL_TICK_PX) {
+                    xTicks++ // fingers moved right -> scroll right
+                    scrollAccumX -= SCROLL_TICK_PX
+                }
+                while (scrollAccumX <= -SCROLL_TICK_PX) {
+                    xTicks--
+                    scrollAccumX += SCROLL_TICK_PX
+                }
 
                 var yTicks = 0
                 while (scrollAccumY >= SCROLL_TICK_PX) {
@@ -199,8 +249,8 @@ class TouchpadGestureRecognizer {
                     yTicks++
                     scrollAccumY += SCROLL_TICK_PX
                 }
-                if (yTicks != 0) {
-                    actions += TouchpadAction.Scroll(0, yTicks)
+                if (xTicks != 0 || yTicks != 0) {
+                    actions += TouchpadAction.Scroll(xTicks, yTicks)
                     gestureHandled = true
                 }
 
@@ -219,13 +269,33 @@ class TouchpadGestureRecognizer {
                 }
             }
             3 -> {
-                // Three-finger swipe: track centroid travel vertically
+                // Three-finger gestures: track centroid travel in both axes.
+                val centroidX = fingers.values.map { it.lastX }.average().toFloat()
                 val centroidY = fingers.values.map { it.lastY }.average().toFloat()
-                swipeAccumY += centroidY - lastCentroidY
+                val deltaCx = centroidX - lastCentroidX
+                val deltaCy = centroidY - lastCentroidY
+                lastCentroidX = centroidX
                 lastCentroidY = centroidY
+                swipeAccumY += deltaCy
+
+                // Decide flick (task view) vs sustained drag (window move) on
+                // first threshold crossing: a quick swipe is task view, a slow
+                // sustained movement drags.
                 if (!gestureHandled && abs(swipeAccumY) >= SWIPE_THRESHOLD_PX) {
-                    actions += TouchpadAction.Swipe(if (swipeAccumY > 0) SwipeDirection.DOWN else SwipeDirection.UP)
+                    val elapsed = nowMs - modeStartTime
+                    if (elapsed >= THREE_FINGER_FLICK_MS) {
+                        threeFingerDragActive = true
+                        actions += TouchpadAction.DragStart(1)
+                    } else {
+                        actions += TouchpadAction.Swipe(if (swipeAccumY > 0) SwipeDirection.DOWN else SwipeDirection.UP)
+                    }
                     gestureHandled = true
+                } else if (threeFingerDragActive &&
+                    (abs(deltaCx) > MOVE_EMIT_THRESHOLD || abs(deltaCy) > MOVE_EMIT_THRESHOLD)
+                ) {
+                    // While dragging, forward the movement to move the window.
+                    // (Not on the DragStart frame itself.)
+                    actions += TouchpadAction.Move(deltaCx, deltaCy)
                 }
             }
         }
@@ -235,6 +305,11 @@ class TouchpadGestureRecognizer {
 
     private fun handleRelease(nowMs: Long): List<TouchpadAction> {
         val actions = mutableListOf<TouchpadAction>()
+        // Active drags end with a button release, never a click.
+        if (dragActive || threeFingerDragActive) {
+            actions += TouchpadAction.DragEnd
+            return actions
+        }
         // A handled gesture (scroll/zoom/swipe) or a drag never produces a click.
         if (gestureHandled || gestureMoved) return actions
 
@@ -256,19 +331,12 @@ class TouchpadGestureRecognizer {
 
     private fun resetBaselines(fingers: Map<Long, Finger>) {
         pinchBaseline = -1f
+        scrollAccumX = 0f
         scrollAccumY = 0f
         swipeAccumY = 0f
-        when (fingers.size) {
-            0 -> Unit
-            1 -> {
-                lastCentroidX = fingers.values.first().lastX
-                lastCentroidY = fingers.values.first().lastY
-            }
-            else -> {
-                val f = fingers.values.toList()
-                lastCentroidX = (f[0].lastX + f[1].lastX) / 2f
-                lastCentroidY = (f[0].lastY + f[1].lastY) / 2f
-            }
+        if (fingers.isNotEmpty()) {
+            lastCentroidX = fingers.values.map { it.lastX }.average().toFloat()
+            lastCentroidY = fingers.values.map { it.lastY }.average().toFloat()
         }
     }
 
@@ -277,7 +345,12 @@ class TouchpadGestureRecognizer {
         maxPointers = 0
         gestureMoved = false
         gestureHandled = false
+        dragActive = false
+        threeFingerDragActive = false
+        gestureStartTime = 0L
+        modeStartTime = 0L
         pinchBaseline = -1f
+        scrollAccumX = 0f
         scrollAccumY = 0f
         swipeAccumY = 0f
         lastCentroidX = 0f
@@ -298,5 +371,9 @@ class TouchpadGestureRecognizer {
         private const val ZOOM_TICK_PX = 25f
         // Centroid travel (px) to trigger a three-finger swipe.
         private const val SWIPE_THRESHOLD_PX = 30f
+        // How long a single finger must be held still to become a drag (ms).
+        private const val LONG_PRESS_DRAG_MS = 400L
+        // Max three-finger gesture duration (ms) still treated as a quick flick.
+        private const val THREE_FINGER_FLICK_MS = 300L
     }
 }

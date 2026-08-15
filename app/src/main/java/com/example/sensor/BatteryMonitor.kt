@@ -46,7 +46,10 @@ class BatteryMonitor(context: Context) {
                 appContext,
                 batteryReceiver,
                 filter,
-                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+                // ACTION_BATTERY_CHANGED is a protected system broadcast, so it
+                // is delivered regardless of the export flag. NOT_EXPORTED stops
+                // other apps from spoofing battery state.
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
             )
             isRegistered = true
         } catch (e: Exception) {

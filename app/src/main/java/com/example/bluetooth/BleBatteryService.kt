@@ -14,6 +14,7 @@ import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.content.Context
+import android.os.Build
 import android.os.ParcelUuid
 import android.util.Log
 import java.util.UUID
@@ -222,13 +223,24 @@ class BleBatteryService(private val context: Context) {
             ?.getService(BATTERY_SERVICE_UUID)
             ?.getCharacteristic(BATTERY_LEVEL_UUID) ?: return
 
-        @Suppress("DEPRECATION")
-        characteristic.setValue(byteArrayOf(currentBatteryLevel.toByte()))
+        val batteryValue = byteArrayOf(currentBatteryLevel.toByte())
+
+        // API 33 added offset-based overloads; prefer them when available.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            characteristic.setValue(batteryValue, 0)
+        } else {
+            @Suppress("DEPRECATION")
+            characteristic.setValue(batteryValue)
+        }
 
         for (device in connectedDevices) {
             try {
-                @Suppress("DEPRECATION")
-                gattServer?.notifyCharacteristicChanged(device, characteristic, false)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    gattServer?.notifyCharacteristicChanged(device, characteristic, false, 0)
+                } else {
+                    @Suppress("DEPRECATION")
+                    gattServer?.notifyCharacteristicChanged(device, characteristic, false)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to notify battery level to ${device.getSafeName()}", e)
             }

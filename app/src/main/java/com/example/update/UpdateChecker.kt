@@ -10,6 +10,8 @@ import java.net.URL
 data class UpdateInfo(
     val latestVersion: String,
     val downloadUrl: String,
+    /** Direct APK asset URL, or null when the release has no APK attached. */
+    val apkDownloadUrl: String?,
     val changelog: String,
     val isUpdateAvailable: Boolean
 )
@@ -34,25 +36,40 @@ object UpdateChecker {
 
                     val tagName = json.getString("tag_name").removePrefix("v")
                     val htmlUrl = json.getString("html_url")
-                    val body = json.getString("body") ?: ""
+                    val body = json.optString("body", "")
+
+                    // Find the APK release asset so the app can download it directly
+                    // instead of opening the release page in a browser.
+                    var apkUrl: String? = null
+                    val assets = json.optJSONArray("assets")
+                    if (assets != null) {
+                        for (i in 0 until assets.length()) {
+                            val asset = assets.optJSONObject(i) ?: continue
+                            if (asset.optString("name", "").endsWith(".apk")) {
+                                apkUrl = asset.optString("browser_download_url").ifBlank { null }
+                                break
+                            }
+                        }
+                    }
 
                     val isUpdateAvailable = compareVersions(tagName, currentVersion) > 0
 
-                    Log.d(TAG, "Current: $currentVersion, Latest: $tagName, Update: $isUpdateAvailable")
+                    Log.d(TAG, "Current: $currentVersion, Latest: $tagName, Update: $isUpdateAvailable, ApkUrl: ${apkUrl != null}")
 
                     UpdateInfo(
                         latestVersion = tagName,
                         downloadUrl = htmlUrl,
+                        apkDownloadUrl = apkUrl,
                         changelog = body,
                         isUpdateAvailable = isUpdateAvailable
                     )
                 } else {
                     Log.e(TAG, "GitHub API error: ${connection.responseCode}")
-                    UpdateInfo("", "", "", false)
+                    UpdateInfo("", "", null, "", false)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error checking for update", e)
-                UpdateInfo("", "", "", false)
+                UpdateInfo("", "", null, "", false)
             }
         }
     }

@@ -161,4 +161,106 @@ class TouchpadGestureRecognizerTest {
             recognizer.processFrame(emptyList(), 2L)
         )
     }
+
+    @Test
+    fun `two-finger horizontal scroll emits horizontal ticks`() {
+        recognizer.processFrame(listOf(finger(1, 100f, 100f)), 1L)
+        recognizer.processFrame(listOf(finger(1, 100f, 100f), finger(2, 200f, 100f)), 2L)
+
+        // Both fingers move right 40px -> centroid moved +40px -> 2 scroll-right ticks
+        val scroll = recognizer.processFrame(
+            listOf(finger(1, 140f, 100f), finger(2, 240f, 100f)),
+            3L
+        )
+        assertEquals(listOf(TouchpadAction.Scroll(2, 0)), scroll)
+    }
+
+    @Test
+    fun `long press starts a drag that moves with the button held`() {
+        // Finger down at t=0 with no movement
+        recognizer.processFrame(listOf(finger(1, 100f, 100f)), 0L)
+
+        // Still held at t=500 (past the 400ms threshold) -> DragStart
+        val dragStart = recognizer.processFrame(listOf(finger(1, 100f, 100f)), 500L)
+        assertEquals(listOf(TouchpadAction.DragStart(1)), dragStart)
+
+        // Moving while dragging -> Move (the caller keeps the button held)
+        val move = recognizer.processFrame(listOf(finger(1, 120f, 100f)), 501L)
+        assertEquals(listOf(TouchpadAction.Move(20f, 0f)), move)
+
+        // Release -> DragEnd, never a click
+        val release = recognizer.processFrame(listOf(finger(1, 120f, 100f, down = false)), 502L)
+        assertEquals(listOf(TouchpadAction.DragEnd), release)
+    }
+
+    @Test
+    fun `long press without movement never clicks on release`() {
+        recognizer.processFrame(listOf(finger(1, 100f, 100f)), 0L)
+        recognizer.processFrame(listOf(finger(1, 100f, 100f)), 500L) // DragStart
+
+        val release = recognizer.processFrame(listOf(finger(1, 100f, 100f, down = false)), 501L)
+        assertEquals(listOf(TouchpadAction.DragEnd), release)
+    }
+
+    @Test
+    fun `slow three-finger drag moves a window instead of swiping`() {
+        recognizer.processFrame(listOf(finger(1, 100f, 100f)), 1L)
+        recognizer.processFrame(listOf(finger(1, 100f, 100f), finger(2, 200f, 100f)), 2L)
+        recognizer.processFrame(listOf(finger(1, 100f, 100f), finger(2, 200f, 100f), finger(3, 300f, 100f)), 3L)
+
+        // Sustained movement crossing the threshold well after the flick window
+        val dragStart = recognizer.processFrame(
+            listOf(finger(1, 100f, 140f), finger(2, 200f, 140f), finger(3, 300f, 140f)),
+            1000L
+        )
+        assertEquals(listOf(TouchpadAction.DragStart(1)), dragStart)
+
+        // Continued movement drags the window
+        val move = recognizer.processFrame(
+            listOf(finger(1, 100f, 170f), finger(2, 200f, 170f), finger(3, 300f, 170f)),
+            1100L
+        )
+        assertEquals(listOf(TouchpadAction.Move(0f, 30f)), move)
+
+        // Release -> DragEnd, never a click or swipe
+        val release = recognizer.processFrame(
+            listOf(
+                finger(1, 100f, 170f, down = false),
+                finger(2, 200f, 170f, down = false),
+                finger(3, 300f, 170f, down = false)
+            ),
+            1200L
+        )
+        assertEquals(listOf(TouchpadAction.DragEnd), release)
+    }
+
+    @Test
+    fun `quick three-finger flick still fires task view`() {
+        recognizer.processFrame(listOf(finger(1, 100f, 100f)), 1L)
+        recognizer.processFrame(listOf(finger(1, 100f, 100f), finger(2, 200f, 100f)), 2L)
+        recognizer.processFrame(listOf(finger(1, 100f, 100f), finger(2, 200f, 100f), finger(3, 300f, 100f)), 3L)
+
+        // Quick flick (elapsed well under the flick window) -> task view swipe
+        val swipe = recognizer.processFrame(
+            listOf(finger(1, 100f, 140f), finger(2, 200f, 140f), finger(3, 300f, 140f)),
+            4L
+        )
+        assertEquals(listOf(TouchpadAction.Swipe(SwipeDirection.DOWN)), swipe)
+    }
+
+    @Test
+    fun `moving finger before long press is a normal drag not a button drag`() {
+        recognizer.processFrame(listOf(finger(1, 100f, 100f)), 0L)
+
+        // Real movement early -> regular cursor drag
+        val move = recognizer.processFrame(listOf(finger(1, 120f, 100f)), 100L)
+        assertEquals(listOf(TouchpadAction.Move(20f, 0f)), move)
+
+        // Held after movement: must NOT turn into a button drag
+        val held = recognizer.processFrame(listOf(finger(1, 120f, 100f)), 800L)
+        assertEquals(emptyList(), held)
+
+        val release = recognizer.processFrame(listOf(finger(1, 120f, 100f, down = false)), 801L)
+        assertEquals(emptyList(), release)
+    }
 }

@@ -61,6 +61,23 @@ data class GestureEntity(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+/**
+ * Pointer settings remembered per paired host. When a device is connected its
+ * row overrides the global pointer settings; app-level settings (theme,
+ * vibration, keep-awake, ...) stay global in [SettingsEntity].
+ */
+@Entity(tableName = "device_settings")
+data class DeviceSettingsEntity(
+    @PrimaryKey val deviceAddress: String,
+    val sensitivity: Float = 1.0f,
+    val smoothing: Float = 0.3f,
+    val deadZone: Float = 0.05f,
+    val acceleration: Float = 1.2f,
+    val scrollSpeed: Float = 1.0f,
+    val invertX: Boolean = false,
+    val invertY: Boolean = false
+)
+
 @Dao
 interface AirMouseDao {
     @Query("SELECT * FROM settings WHERE id = 1 LIMIT 1")
@@ -98,11 +115,29 @@ interface AirMouseDao {
 
     @Query("DELETE FROM gestures WHERE id = :id")
     suspend fun deleteGesture(id: Int)
+
+    @Query("SELECT * FROM device_settings WHERE deviceAddress = :address LIMIT 1")
+    fun getDeviceSettingsFlow(address: String): Flow<DeviceSettingsEntity?>
+
+    @Query("SELECT * FROM device_settings WHERE deviceAddress = :address LIMIT 1")
+    suspend fun getDeviceSettingsDirect(address: String): DeviceSettingsEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun updateDeviceSettings(deviceSettings: DeviceSettingsEntity)
+
+    @Query("DELETE FROM device_settings WHERE deviceAddress = :address")
+    suspend fun deleteDeviceSettings(address: String)
 }
 
 @Database(
-    entities = [SettingsEntity::class, ShortcutEntity::class, ConnectionHistoryEntity::class, GestureEntity::class],
-    version = 5,
+    entities = [
+        SettingsEntity::class,
+        ShortcutEntity::class,
+        ConnectionHistoryEntity::class,
+        GestureEntity::class,
+        DeviceSettingsEntity::class
+    ],
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -112,13 +147,13 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
+        internal val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE settings ADD COLUMN useDynamicColors INTEGER NOT NULL DEFAULT 0")
             }
         }
 
-        private val MIGRATION_2_3 = object : Migration(2, 3) {
+        internal val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS connection_history (
@@ -131,7 +166,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_3_4 = object : Migration(3, 4) {
+        internal val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS gestures (
@@ -147,12 +182,43 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_4_5 = object : Migration(4, 5) {
+        internal val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Rename themeDark to themeMode and convert: false(0) -> 0(System), true(2) -> 2(Dark)
                 db.execSQL("ALTER TABLE settings ADD COLUMN themeMode INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("UPDATE settings SET themeMode = CASE WHEN themeDark = 1 THEN 2 ELSE 0 END")
                 db.execSQL("ALTER TABLE settings DROP COLUMN themeDark")
+            }
+        }
+
+        internal val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Per-device pointer settings profiles
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `device_settings` (" +
+                        "`deviceAddress` TEXT NOT NULL, " +
+                        "`sensitivity` REAL NOT NULL, " +
+                        "`smoothing` REAL NOT NULL, " +
+                        "`deadZone` REAL NOT NULL, " +
+                        "`acceleration` REAL NOT NULL, " +
+                        "`scrollSpeed` REAL NOT NULL, " +
+                        "`invertX` INTEGER NOT NULL, " +
+                        "`invertY` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`deviceAddress`))"
+                )
+            }
+        }
+
+        /**
+         * Test hook: closes and clears the cached database instance so each
+         * test starts from a clean state (Robolectric recreates the app file
+         * system per test, so a stale singleton would point at a deleted file).
+         */
+        @androidx.annotation.VisibleForTesting
+        fun resetForTesting() {
+            synchronized(this) {
+                INSTANCE?.close()
+                INSTANCE = null
             }
         }
 
@@ -163,7 +229,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "air_mouse_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

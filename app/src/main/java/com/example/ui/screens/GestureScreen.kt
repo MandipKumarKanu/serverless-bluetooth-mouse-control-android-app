@@ -996,18 +996,17 @@ fun getQuickActions(): List<Triple<String, String, ImageVector>> {
 }
 
 fun getAssignableActions(): List<Pair<String, String>> {
+    // Every action supported by AirMouseViewModel.executeGestureAction is
+    // assignable, so the UI can never offer an action that doesn't work.
     return listOf(
-        "Copy (Ctrl+C)" to "copy",
-        "Paste (Ctrl+V)" to "paste",
-        "Undo (Ctrl+Z)" to "undo",
-        "Redo (Ctrl+Y)" to "redo",
-        "Select All" to "select_all",
-        "Volume Up" to "vol_up",
-        "Volume Down" to "vol_down",
-        "Play/Pause" to "play_pause",
-        "Next Track" to "next_track",
-        "Previous Track" to "prev_track",
-        "Left Click" to "left_click",
-        "Right Click" to "right_click"
-    )
+        // Keyboard
+        "copy", "paste", "undo", "redo", "select_all", "save", "close",
+        "tab", "enter", "esc", "delete", "backspace",
+        // Media
+        "play_pause", "next_track", "prev_track", "vol_up", "vol_down", "mute",
+        // Mouse
+        "left_click", "right_click", "middle_click", "scroll_up", "scroll_down",
+        // Presentation
+        "next_slide", "prev_slide", "fullscreen", "black_screen"
+    ).map { GestureActions.getActionLabel(it) to it }
 }

@@ -203,7 +203,10 @@ class BluetoothHidManager private constructor(context: Context) {
                 appContext,
                 bluetoothReceiver,
                 filter,
-                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+                // Protected system broadcasts are delivered regardless of the
+                // export flag; NOT_EXPORTED blocks other apps from spoofing
+                // Bluetooth state changes.
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error registering bluetoothReceiver", e)
@@ -303,15 +306,67 @@ class BluetoothHidManager private constructor(context: Context) {
             0x95.toByte(), 0x02.toByte(),       //     REPORT_COUNT (2)
             0x81.toByte(), 0x06.toByte(),       //     INPUT (Data,Var,Rel)
 
-            // Wheel scroll
+            // Wheel scroll (vertical) + horizontal wheel. Two Wheel usages in one
+            // report is the standard way Windows exposes horizontal scrolling
+            // (first usage = vertical, second = horizontal).
             0x09.toByte(), 0x38.toByte(),       //     USAGE (Wheel)
+            0x09.toByte(), 0x38.toByte(),       //     USAGE (Wheel) - horizontal
             0x15.toByte(), 0x81.toByte(),       //     LOGICAL_MINIMUM (-127)
             0x25.toByte(), 0x7f.toByte(),       //     LOGICAL_MAXIMUM (127)
             0x75.toByte(), 0x08.toByte(),       //     REPORT_SIZE (8)
-            0x95.toByte(), 0x01.toByte(),       //     REPORT_COUNT (1)
+            0x95.toByte(), 0x02.toByte(),       //     REPORT_COUNT (2)
             0x81.toByte(), 0x06.toByte(),       //     INPUT (Data,Var,Rel)
 
             0xc0.toByte(),                      //   END_COLLECTION
+            0xc0.toByte(),                      // END_COLLECTION
+
+            // =====================================================================
+            // GAMEPAD (Report ID 4) - Real HID game controller (joystick axes,
+            // hat switch, 12 buttons). Recognized by DirectInput games and
+            // emulators; keyboard mode remains available for XInput-only games.
+            // =====================================================================
+            0x05.toByte(), 0x01.toByte(),       // USAGE_PAGE (Generic Desktop)
+            0x09.toByte(), 0x05.toByte(),       // USAGE (Game Pad)
+            0xa1.toByte(), 0x01.toByte(),       // COLLECTION (Application)
+            0x85.toByte(), 0x04.toByte(),       //   REPORT_ID (4)
+
+            // Left stick X, Y + triggers Z, Rz (8-bit signed each)
+            0x09.toByte(), 0x30.toByte(),       //   USAGE (X)
+            0x09.toByte(), 0x31.toByte(),       //   USAGE (Y)
+            0x09.toByte(), 0x32.toByte(),       //   USAGE (Z)
+            0x09.toByte(), 0x35.toByte(),       //   USAGE (Rz)
+            0x15.toByte(), 0x81.toByte(),       //   LOGICAL_MINIMUM (-127)
+            0x25.toByte(), 0x7f.toByte(),       //   LOGICAL_MAXIMUM (127)
+            0x75.toByte(), 0x08.toByte(),       //   REPORT_SIZE (8)
+            0x95.toByte(), 0x04.toByte(),       //   REPORT_COUNT (4)
+            0x81.toByte(), 0x02.toByte(),       //   INPUT (Data,Var,Abs)
+
+            // Hat switch: 0-7 directions, 8 = released (null state)
+            0x09.toByte(), 0x39.toByte(),       //   USAGE (Hat Switch)
+            0x15.toByte(), 0x00.toByte(),       //   LOGICAL_MINIMUM (0)
+            0x25.toByte(), 0x07.toByte(),       //   LOGICAL_MAXIMUM (7)
+            0x35.toByte(), 0x00.toByte(),       //   PHYSICAL_MINIMUM (0)
+            0x46.toByte(), 0x3b.toByte(), 0x01.toByte(), //   PHYSICAL_MAXIMUM (315)
+            0x65.toByte(), 0x14.toByte(),       //   UNIT (Degrees)
+            0x75.toByte(), 0x08.toByte(),       //   REPORT_SIZE (8)
+            0x95.toByte(), 0x01.toByte(),       //   REPORT_COUNT (1)
+            0x81.toByte(), 0x42.toByte(),       //   INPUT (Data,Var,Abs,Null)
+
+            // Buttons 1-12
+            0x05.toByte(), 0x09.toByte(),       //   USAGE_PAGE (Button)
+            0x19.toByte(), 0x01.toByte(),       //   USAGE_MINIMUM (Button 1)
+            0x29.toByte(), 0x0c.toByte(),       //   USAGE_MAXIMUM (Button 12)
+            0x15.toByte(), 0x00.toByte(),       //   LOGICAL_MINIMUM (0)
+            0x25.toByte(), 0x01.toByte(),       //   LOGICAL_MAXIMUM (1)
+            0x75.toByte(), 0x01.toByte(),       //   REPORT_SIZE (1)
+            0x95.toByte(), 0x0c.toByte(),       //   REPORT_COUNT (12)
+            0x81.toByte(), 0x02.toByte(),       //   INPUT (Data,Var,Abs)
+
+            // 4 bits padding to byte-align the 12 buttons
+            0x75.toByte(), 0x01.toByte(),       //   REPORT_SIZE (1)
+            0x95.toByte(), 0x04.toByte(),       //   REPORT_COUNT (4)
+            0x81.toByte(), 0x03.toByte(),       //   INPUT (Cnst,Var,Abs)
+
             0xc0.toByte(),                      // END_COLLECTION
 
             // =====================================================================
@@ -471,8 +526,9 @@ class BluetoothHidManager private constructor(context: Context) {
             try {
                 val data = when (reportId) {
                     1.toByte() -> ByteArray(8) // Keyboard report
-                    2.toByte() -> ByteArray(4) // Mouse report
+                    2.toByte() -> ByteArray(5) // Mouse report (+ horizontal wheel)
                     3.toByte() -> ByteArray(1) // Consumer control
+                    4.toByte() -> ByteArray(7) // Gamepad report
                     else -> ByteArray(bufferSize.coerceAtLeast(1))
                 }
                 val success = profile.replyReport(device, type, reportId, data)
@@ -660,7 +716,8 @@ class BluetoothHidManager private constructor(context: Context) {
                 appContext,
                 discoveryReceiver,
                 filter,
-                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+                // Discovery broadcasts are protected system broadcasts; see above.
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
             )
             val success = adapter.startDiscovery()
             if (!success) {
@@ -852,10 +909,10 @@ class BluetoothHidManager private constructor(context: Context) {
     }
 
     // --- MOUSE TRANSMISSION ---
-    // Report ID 2: [buttons (1 byte), dx (1 byte), dy (1 byte), scroll (1 byte)]
-    // dx/dy: -127 to +127 relative movement
+    // Report ID 2: [buttons (1 byte), dx (1 byte), dy (1 byte), scroll (1 byte), hScroll (1 byte)]
+    // dx/dy: -127 to +127 relative movement; scroll: vertical wheel, hScroll: horizontal wheel
     @SuppressLint("NewApi")
-    fun sendMouseInput(buttons: Byte, dx: Byte, dy: Byte, scroll: Byte): Boolean {
+    fun sendMouseInput(buttons: Byte, dx: Byte, dy: Byte, scroll: Byte, hScroll: Byte = 0): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
         val profile = hidDeviceProfile ?: return false
         val device = _connectedDevice.value ?: return false
@@ -864,16 +921,37 @@ class BluetoothHidManager private constructor(context: Context) {
         val validDx = dx.coerceIn(-127, 127)
         val validDy = dy.coerceIn(-127, 127)
         val validScroll = scroll.coerceIn(-127, 127)
+        val validHScroll = hScroll.coerceIn(-127, 127)
         val validButtons = (buttons.toInt() and 0x1F).toByte() // Only lower 5 bits
 
-        val data = byteArrayOf(validButtons, validDx.toByte(), validDy.toByte(), validScroll.toByte())
-        Log.v(TAG, "sendMouseInput: buttons=$validButtons, dx=$validDx, dy=$validDy, scroll=$validScroll")
+        val data = byteArrayOf(validButtons, validDx.toByte(), validDy.toByte(), validScroll, validHScroll)
+        Log.v(TAG, "sendMouseInput: buttons=$validButtons, dx=$validDx, dy=$validDy, scroll=$validScroll, hScroll=$validHScroll")
 
         val result = profile.sendReport(device, 2, data)
         if (!result) {
             Log.w(TAG, "sendMouseInput: sendReport failed - device may be disconnected")
         }
         return result
+    }
+
+    // --- GAMEPAD TRANSMISSION ---
+    // Report ID 4: [x (1), y (1), z (1), rz (1), hat (1), buttons lo (1), buttons hi (1)]
+    // hat: 0=up, 2=right, 4=down, 6=left (and diagonals 1/3/5/7), 8 = released
+    // buttons: bitmask, bit 0 = button 1 (A), bit 1 = button 2 (B), ...
+    @SuppressLint("NewApi")
+    fun sendGamepadInput(buttons: Int, hat: Byte, x: Byte, y: Byte, z: Byte = 0, rz: Byte = 0): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
+        val profile = hidDeviceProfile ?: return false
+        val device = _connectedDevice.value ?: return false
+
+        val data = byteArrayOf(
+            x, y, z, rz,
+            hat,
+            (buttons and 0xFF).toByte(),
+            ((buttons shr 8) and 0xFF).toByte()
+        )
+        Log.v(TAG, "sendGamepadInput: buttons=0x${Integer.toHexString(buttons)}, hat=$hat")
+        return profile.sendReport(device, 4, data)
     }
 
     // --- KEYBOARD TRANSMISSION ---

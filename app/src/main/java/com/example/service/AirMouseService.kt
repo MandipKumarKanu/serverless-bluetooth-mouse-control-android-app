@@ -26,8 +26,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AirMouseService : Service() {
@@ -36,10 +34,8 @@ class AirMouseService : Service() {
     private var sensorManager: MotionSensorManager? = null
     private lateinit var batteryMonitor: BatteryMonitor
     private var batteryUpdateJob: Job? = null
-
-    // Service state
-    private val _isRunning = MutableStateFlow(false)
-    val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
+    // Coroutine scope for the air-mouse sensor settings load (cancelled on destroy).
+    private var sensorSettingsScope: CoroutineScope? = null
 
     // Tracks whether the service has entered the foreground. Used to avoid the
     // ForegroundServiceDidNotStartInTimeException when a startForegroundService()
@@ -49,7 +45,6 @@ class AirMouseService : Service() {
     private var isForeground = false
 
     private val _connectedDeviceName = MutableStateFlow<String?>(null)
-    val connectedDeviceName: StateFlow<String?> = _connectedDeviceName.asStateFlow()
 
     // Broadcast receiver for notification media actions
     private val mediaActionReceiver = object : BroadcastReceiver() {
@@ -66,6 +61,10 @@ class AirMouseService : Service() {
                 ACTION_MEDIA_PREV -> {
                     hidManager.sendConsumerInput(0x20)
                     Log.d(TAG, "Media: Previous Track")
+                }
+                ACTION_MEDIA_VOL_UP -> {
+                    hidManager.sendConsumerInput(0x01)
+                    Log.d(TAG, "Media: Volume Up")
                 }
                 ACTION_MEDIA_VOL_DOWN -> {
                     hidManager.sendConsumerInput(0x02)
@@ -89,6 +88,7 @@ class AirMouseService : Service() {
             addAction(ACTION_MEDIA_PLAY_PAUSE)
             addAction(ACTION_MEDIA_NEXT)
             addAction(ACTION_MEDIA_PREV)
+            addAction(ACTION_MEDIA_VOL_UP)
             addAction(ACTION_MEDIA_VOL_DOWN)
         }
         ContextCompat.registerReceiver(this, mediaActionReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
@@ -155,7 +155,7 @@ class AirMouseService : Service() {
             unregisterReceiver(mediaActionReceiver)
         } catch (_: Exception) {
         }
-        _isRunning.value = false
+        sensorSettingsScope?.cancel()
         Log.d(TAG, "AirMouseService destroyed")
     }
 
@@ -163,7 +163,10 @@ class AirMouseService : Service() {
         if (sensorManager == null) {
             sensorManager = MotionSensorManager(this)
         }
+        // Cancel any previous settings-load before starting a new one.
+        sensorSettingsScope?.cancel()
         val scope = CoroutineScope(Dispatchers.IO)
+        sensorSettingsScope = scope
         scope.launch {
             val db = AppDatabase.getDatabase(this@AirMouseService, scope)
             val settings = db.airMouseDao().getSettingsDirect() ?: SettingsEntity()
@@ -179,7 +182,6 @@ class AirMouseService : Service() {
     }
 
     private fun startForegroundService(deviceName: String?) {
-        _isRunning.value = true
         _connectedDeviceName.value = deviceName
 
         val notification = createNotification(deviceName)
@@ -204,7 +206,6 @@ class AirMouseService : Service() {
     private fun stopForegroundService() {
         isAirMouseActive = false
         stopAirMouseSensors()
-        _isRunning.value = false
         _connectedDeviceName.value = null
         isForeground = false
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -293,6 +294,14 @@ class AirMouseService : Service() {
             )
             builder.addAction(R.drawable.ic_app_logo, "Next", nextPending)
 
+            // Volume Up
+            val volUpIntent = Intent(ACTION_MEDIA_VOL_UP).apply { setPackage(packageName) }
+            val volUpPending = PendingIntent.getBroadcast(
+                this, 14, volUpIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(R.drawable.ic_app_logo, "Vol+", volUpPending)
+
             // Volume Down
             val volDownIntent = Intent(ACTION_MEDIA_VOL_DOWN).apply { setPackage(packageName) }
             val volDownPending = PendingIntent.getBroadcast(
@@ -333,6 +342,7 @@ class AirMouseService : Service() {
         const val ACTION_MEDIA_PLAY_PAUSE = "com.example.service.MEDIA_PLAY_PAUSE"
         const val ACTION_MEDIA_NEXT = "com.example.service.MEDIA_NEXT"
         const val ACTION_MEDIA_PREV = "com.example.service.MEDIA_PREV"
+        const val ACTION_MEDIA_VOL_UP = "com.example.service.MEDIA_VOL_UP"
         const val ACTION_MEDIA_VOL_DOWN = "com.example.service.MEDIA_VOL_DOWN"
 
         var isAirMouseActive = false

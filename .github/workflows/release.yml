@@ -30,12 +30,23 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ github.workspace }}/my-upload-key.jks
 
-      - name: Build Release APK
-        run: gradle assembleRelease
+      - name: Run unit tests, lint, and build Release APK
+        # lintRelease is a reporting step (abortOnError is off in the build
+        # script), so pre-existing warnings can't block a release; the report
+        # artifact is where to look before tightening lint later.
+        run: gradle testDebugUnitTest lintRelease assembleRelease
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-release.html
+        continue-on-error: true
 
       - name: Extract release notes
         id: release_notes

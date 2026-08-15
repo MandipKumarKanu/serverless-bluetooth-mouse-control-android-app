@@ -13,8 +13,8 @@ android {
     applicationId = "com.aistudio.airmouse.kxmpzq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 37
-    versionName = "1.9.91"
+    versionCode = 38
+    versionName = "1.10.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -28,17 +28,23 @@ android {
       keyPassword = System.getenv("KEY_PASSWORD")
     }
     create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
+      // Use the repo-local debug keystore when present; otherwise fall back to
+      // the standard debug keystore so debug builds (and CI unit tests) work
+      // on machines that don't have the file checked out.
+      val debugKeystore = file("${rootDir}/debug.keystore")
+      if (debugKeystore.exists()) {
+        storeFile = debugKeystore
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+      }
     }
   }
 
   buildTypes {
     release {
       isCrunchPngs = false
-      isMinifyEnabled = false
+      isMinifyEnabled = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }
@@ -53,6 +59,14 @@ android {
     buildConfig = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
+
+  // Lint runs in CI as a reporting step (see .github/workflows/release.yml).
+  // abortOnError stays false so pre-existing warnings never block a release;
+  // the report is the signal to clean up before tightening this later.
+  lint {
+    abortOnError = false
+    checkReleaseBuilds = true
+  }
 }
 
 dependencies {

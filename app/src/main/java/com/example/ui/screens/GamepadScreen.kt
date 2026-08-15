@@ -3,6 +3,9 @@ package com.example.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,9 +18,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -25,9 +29,93 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
 
+/**
+ * Press-and-hold modifier: invokes [onPress](true) on finger-down and
+ * [onPress](false) on release, giving gamepad buttons real press-hold
+ * semantics instead of tap-only. [rememberUpdatedState] keeps the callback
+ * fresh across recompositions.
+ */
+@Composable
+private fun Modifier.pressHold(onPress: (Boolean) -> Unit): Modifier = composed {
+    val currentOnPress by rememberUpdatedState(onPress)
+    pointerInput(Unit) {
+        awaitEachGesture {
+            awaitFirstDown()
+            currentOnPress(true)
+            waitForUpOrCancellation()
+            currentOnPress(false)
+        }
+    }
+}
+
+// HID gamepad button bits (report ID 4, button 1 = bit 0)
+private const val BTN_A = 0x01
+private const val BTN_B = 0x02
+private const val BTN_X = 0x04
+private const val BTN_Y = 0x08
+private const val BTN_L1 = 0x10
+private const val BTN_R1 = 0x20
+private const val BTN_SELECT = 0x40
+private const val BTN_START = 0x80
+private const val BTN_DPAD_CENTER = 0x100
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
+    var gamepadMode by remember { mutableStateOf(false) }
+
+    // Held D-pad directions; used to compute the HID hat switch (supports diagonals)
+    var dpadUp by remember { mutableStateOf(false) }
+    var dpadDown by remember { mutableStateOf(false) }
+    var dpadLeft by remember { mutableStateOf(false) }
+    var dpadRight by remember { mutableStateOf(false) }
+
+    fun releaseKeyboard() {
+        viewModel.hidManager.sendKeyboardInput(0, byteArrayOf(0))
+    }
+
+    fun hatFor(): Byte {
+        return when {
+            dpadUp && dpadLeft -> 7
+            dpadUp && dpadRight -> 1
+            dpadDown && dpadLeft -> 5
+            dpadDown && dpadRight -> 3
+            dpadUp -> 0
+            dpadRight -> 2
+            dpadDown -> 4
+            dpadLeft -> 6
+            else -> 8
+        }
+    }
+
+    fun dpadPress(direction: String, down: Boolean) {
+        when (direction) {
+            "up" -> dpadUp = down
+            "down" -> dpadDown = down
+            "left" -> dpadLeft = down
+            "right" -> dpadRight = down
+        }
+        if (gamepadMode) {
+            viewModel.gamepadHat(hatFor())
+        } else {
+            val key = when (direction) {
+                "up" -> 0x52
+                "down" -> 0x51
+                "left" -> 0x50
+                else -> 0x4F
+            }
+            if (down) viewModel.sendKeyboardKey(0, key.toByte()) else releaseKeyboard()
+        }
+    }
+
+    fun buttonPress(buttonBit: Int, modifiers: Int, keyCode: Int, down: Boolean) {
+        if (gamepadMode) {
+            viewModel.gamepadButton(buttonBit, down)
+        } else {
+            if (down) viewModel.sendKeyboardKey(modifiers.toByte(), keyCode.toByte()) else releaseKeyboard()
+        }
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -53,23 +141,40 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Mode selector: keyboard emulation (universal) vs real HID gamepad
+            // (recognized by DirectInput games and emulators).
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                GamepadModeChip("Keyboard Mode", !gamepadMode) {
+                    viewModel.vibrate(20)
+                    gamepadMode = false
+                }
+                GamepadModeChip("Gamepad Mode", gamepadMode) {
+                    viewModel.vibrate(20)
+                    gamepadMode = true
+                }
+            }
+
             // Top section: Shoulder buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // L1 Button
                 GamepadButton(
                     label = "L1",
                     modifier = Modifier.weight(1f).height(50.dp),
-                    onClick = { viewModel.sendKeyboardKey(0x02, 0x1D.toByte()) } // Shift + Z
+                    onPress = { down -> buttonPress(BTN_L1, 0x02, 0x1D, down) } // Shift + Z in keyboard mode
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                // R1 Button
                 GamepadButton(
                     label = "R1",
                     modifier = Modifier.weight(1f).height(50.dp),
-                    onClick = { viewModel.sendKeyboardKey(0x02, 0x1B.toByte()) } // Shift + X
+                    onPress = { down -> buttonPress(BTN_R1, 0x02, 0x1B, down) } // Shift + X in keyboard mode
                 )
             }
 
@@ -81,7 +186,6 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // D-Pad (Left side)
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -93,11 +197,11 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     DPad(
-                        onUp = { viewModel.sendKeyboardKey(0, 0x52.toByte()) },    // Up Arrow
-                        onDown = { viewModel.sendKeyboardKey(0, 0x51.toByte()) },  // Down Arrow
-                        onLeft = { viewModel.sendKeyboardKey(0, 0x50.toByte()) },  // Left Arrow
-                        onRight = { viewModel.sendKeyboardKey(0, 0x4F.toByte()) }, // Right Arrow
-                        onCenter = { viewModel.sendKeyboardKey(0, 0x28.toByte()) } // Enter
+                        onUp = { down -> dpadPress("up", down) },
+                        onDown = { down -> dpadPress("down", down) },
+                        onLeft = { down -> dpadPress("left", down) },
+                        onRight = { down -> dpadPress("right", down) },
+                        onCenter = { down -> buttonPress(BTN_DPAD_CENTER, 0, 0x28, down) } // Enter in keyboard mode
                     )
                 }
 
@@ -113,10 +217,10 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     ActionButtons(
-                        onTop = { viewModel.sendKeyboardKey(0, 0x1A.toByte()) },    // Y -> W
-                        onBottom = { viewModel.sendKeyboardKey(0, 0x07.toByte()) }, // A -> G
-                        onLeft = { viewModel.sendKeyboardKey(0, 0x04.toByte()) },   // X -> D
-                        onRight = { viewModel.sendKeyboardKey(0, 0x0D.toByte()) }   // B -> J
+                        onTop = { down -> buttonPress(BTN_Y, 0, 0x1A, down) },    // Y -> W
+                        onBottom = { down -> buttonPress(BTN_A, 0, 0x07, down) }, // A -> G
+                        onLeft = { down -> buttonPress(BTN_X, 0, 0x04, down) },   // X -> D
+                        onRight = { down -> buttonPress(BTN_B, 0, 0x0D, down) }   // B -> J
                     )
                 }
             }
@@ -127,14 +231,13 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Select Button
                 GamepadButton(
                     label = "SELECT",
                     modifier = Modifier.weight(0.8f).height(45.dp),
-                    onClick = { viewModel.sendKeyboardKey(0x04, 0x16.toByte()) } // Alt + S
+                    onPress = { down -> buttonPress(BTN_SELECT, 0x04, 0x16, down) } // Alt + S in keyboard mode
                 )
                 Spacer(modifier = Modifier.width(12.dp))
-                // Home Button
+                // Home button (media control in both modes)
                 IconButton(
                     onClick = { viewModel.sendMediaAction(0x80.toByte()) }, // Home/Menu
                     modifier = Modifier
@@ -150,17 +253,20 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                // Start Button
                 GamepadButton(
                     label = "START",
                     modifier = Modifier.weight(0.8f).height(45.dp),
-                    onClick = { viewModel.sendKeyboardKey(0, 0x28.toByte()) } // Enter
+                    onPress = { down -> buttonPress(BTN_START, 0, 0x28, down) } // Enter in keyboard mode
                 )
             }
 
             // Hint text
             Text(
-                text = "D-Pad: Arrow Keys | A: G | B: J | X: D | Y: W",
+                text = if (gamepadMode) {
+                    "HID Gamepad: D-Pad = Hat • A/B/X/Y/L1/R1 = Buttons (DirectInput & emulators)"
+                } else {
+                    "D-Pad: Arrow Keys | A: G | B: J | X: D | Y: W"
+                },
                 fontSize = 10.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -171,12 +277,32 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
 }
 
 @Composable
+private fun GamepadModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .height(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
 fun DPad(
-    onUp: () -> Unit,
-    onDown: () -> Unit,
-    onLeft: () -> Unit,
-    onRight: () -> Unit,
-    onCenter: () -> Unit
+    onUp: (Boolean) -> Unit,
+    onDown: (Boolean) -> Unit,
+    onLeft: (Boolean) -> Unit,
+    onRight: (Boolean) -> Unit,
+    onCenter: (Boolean) -> Unit
 ) {
     Box(
         modifier = Modifier.size(140.dp),
@@ -190,7 +316,7 @@ fun DPad(
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                .clickable { onUp() },
+                .pressHold(onUp),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -209,7 +335,7 @@ fun DPad(
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                .clickable { onDown() },
+                .pressHold(onDown),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -228,7 +354,7 @@ fun DPad(
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                .clickable { onLeft() },
+                .pressHold(onLeft),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -247,7 +373,7 @@ fun DPad(
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                .clickable { onRight() },
+                .pressHold(onRight),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -264,7 +390,7 @@ fun DPad(
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primary)
-                .clickable { onCenter() },
+                .pressHold(onCenter),
             contentAlignment = Alignment.Center
         ) {
             Box(
@@ -279,10 +405,10 @@ fun DPad(
 
 @Composable
 fun ActionButtons(
-    onTop: () -> Unit,
-    onBottom: () -> Unit,
-    onLeft: () -> Unit,
-    onRight: () -> Unit
+    onTop: (Boolean) -> Unit,
+    onBottom: (Boolean) -> Unit,
+    onLeft: (Boolean) -> Unit,
+    onRight: (Boolean) -> Unit
 ) {
     Box(
         modifier = Modifier.size(140.dp),
@@ -293,7 +419,7 @@ fun ActionButtons(
             label = "Y",
             color = Color(0xFFF59E0B),
             modifier = Modifier.align(Alignment.TopCenter),
-            onClick = onTop
+            onPress = onTop
         )
 
         // A (Bottom)
@@ -301,7 +427,7 @@ fun ActionButtons(
             label = "A",
             color = Color(0xFF10B981),
             modifier = Modifier.align(Alignment.BottomCenter),
-            onClick = onBottom
+            onPress = onBottom
         )
 
         // X (Left)
@@ -309,7 +435,7 @@ fun ActionButtons(
             label = "X",
             color = Color(0xFF3B82F6),
             modifier = Modifier.align(Alignment.CenterStart),
-            onClick = onLeft
+            onPress = onLeft
         )
 
         // B (Right)
@@ -317,7 +443,7 @@ fun ActionButtons(
             label = "B",
             color = Color(0xFFEF4444),
             modifier = Modifier.align(Alignment.CenterEnd),
-            onClick = onRight
+            onPress = onRight
         )
     }
 }
@@ -327,14 +453,14 @@ fun GamepadActionButton(
     label: String,
     color: Color,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onPress: (Boolean) -> Unit
 ) {
     Box(
         modifier = modifier
             .size(52.dp)
             .clip(CircleShape)
             .background(color)
-            .clickable { onClick() },
+            .pressHold(onPress),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -350,14 +476,14 @@ fun GamepadActionButton(
 fun GamepadButton(
     label: String,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onPress: (Boolean) -> Unit
 ) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-            .clickable { onClick() },
+            .pressHold(onPress),
         contentAlignment = Alignment.Center
     ) {
         Text(

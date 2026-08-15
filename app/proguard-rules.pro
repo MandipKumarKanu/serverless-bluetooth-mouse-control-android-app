@@ -1,21 +1,39 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
+# AirMouse release ProGuard/R8 rules.
 #
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# R8 (minify) is enabled for release builds. These rules keep the pieces that
+# are discovered reflectively or that must retain their structure for
+# serialization, and strip verbose logging from the shipped APK.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ---------------------------------------------------------------------------
+# Release logging toggle: debug/verbose Log calls are compiled out of release
+# builds entirely. Log.i/w/e (informational and error messages) are kept so
+# production issues remain diagnosable.
+# ---------------------------------------------------------------------------
+-assumenosideeffects class android.util.Log {
+    public static int d(java.lang.String, java.lang.String);
+    public static int v(java.lang.String, java.lang.String);
+    public static int d(java.lang.String, java.lang.String, java.lang.Throwable);
+    public static int v(java.lang.String, java.lang.String, java.lang.Throwable);
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ---------------------------------------------------------------------------
+# Stack traces: keep line numbers so crash logs are readable.
+# ---------------------------------------------------------------------------
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ---------------------------------------------------------------------------
+# ViewModels are instantiated reflectively by ViewModelProvider; keep their
+# constructors (AndroidViewModel takes an Application, plain ones take none).
+# ---------------------------------------------------------------------------
+-keep class * extends androidx.lifecycle.ViewModel {
+    <init>(android.app.Application);
+    <init>();
+}
+
+# ---------------------------------------------------------------------------
+# Moshi: GesturePoint is serialized with a generated JsonAdapter. The whole
+# gesture package is tiny, so keep it intact to cover the generated adapter,
+# its factory, and the model regardless of how the adapter is discovered.
+# ---------------------------------------------------------------------------
+-keep class com.example.gesture.** { *; }
