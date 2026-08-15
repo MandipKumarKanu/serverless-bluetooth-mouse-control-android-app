@@ -8,10 +8,8 @@ import com.example.data.SettingsEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -28,17 +26,27 @@ import org.robolectric.annotation.Config
  * Exercises the ViewModel's Room-backed flows and SharedPreferences-backed
  * settings. The Room database singleton is reset between tests so each test
  * observes a clean database.
+ *
+ * The test body runs with [runBlocking] on real dispatchers (Main is
+ * [Dispatchers.Unconfined]) instead of a virtual-time test dispatcher:
+ * Room 2.7's flow implementation hops to its query executor and emits from a
+ * real thread, and emissions resumed from a real thread are never delivered
+ * to a collector running on a virtual-time scheduler, which hangs the test.
+ * Real dispatchers + real-time flow collection avoid that (RoomDaoTest uses
+ * the same approach).
+ *
+ * [waitForDbSeed] additionally lets the database's onCreate seeding
+ * coroutine finish before a test writes, so the seed's default settings row
+ * can't overwrite the value a test just wrote.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class AirMouseViewModelTest {
 
-    private val testDispatcher = StandardTestDispatcher()
-
     @Before
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
+        Dispatchers.setMain(Dispatchers.Unconfined)
         AppDatabase.resetForTesting()
     }
 
@@ -53,9 +61,21 @@ class AirMouseViewModelTest {
         return AirMouseViewModel(app)
     }
 
+    /**
+     * Waits until the database's onCreate seeding is visible. The seed writes
+     * the default settings row followed by 9 standard shortcuts in one
+     * coroutine; once all 9 shortcuts are in the flow, the seed has finished
+     * and any subsequent write is the last writer.
+     */
+    private suspend fun waitForDbSeed(viewModel: AirMouseViewModel) {
+        viewModel.shortcutsState.first { it.size >= 9 }
+    }
+
     @Test
-    fun updateSettings_persistsThroughSettingsFlow() = runTest(testDispatcher) {
+    fun updateSettings_persistsThroughSettingsFlow() = runBlocking {
         val viewModel = newViewModel()
+        waitForDbSeed(viewModel)
+
         viewModel.updateSettings(SettingsEntity(sensitivity = 2.4f, smoothing = 0.6f, invertX = true))
 
         val settings = viewModel.settingsState.first { it.sensitivity == 2.4f }
@@ -64,12 +84,13 @@ class AirMouseViewModelTest {
         assertTrue(settings.invertX)
 
         viewModel.clearForTest()
-        advanceUntilIdle()
     }
 
     @Test
-    fun customShortcuts_addThenDelete() = runTest(testDispatcher) {
+    fun customShortcuts_addThenDelete() = runBlocking {
         val viewModel = newViewModel()
+        waitForDbSeed(viewModel)
+
         viewModel.addCustomShortcut("My Macro", 0x01, "6")
 
         val afterAdd = viewModel.shortcutsState.first { list -> list.any { it.name == "My Macro" } }
@@ -81,12 +102,13 @@ class AirMouseViewModelTest {
         viewModel.shortcutsState.first { list -> list.none { it.name == "My Macro" } }
 
         viewModel.clearForTest()
-        advanceUntilIdle()
     }
 
     @Test
-    fun gestures_saveThenDelete() = runTest(testDispatcher) {
+    fun gestures_saveThenDelete() = runBlocking {
         val viewModel = newViewModel()
+        waitForDbSeed(viewModel)
+
         viewModel.saveGesture(
             GestureEntity(
                 name = "Swipe Up",
@@ -105,17 +127,18 @@ class AirMouseViewModelTest {
         viewModel.gesturesState.first { list -> list.none { it.name == "Swipe Up" } }
 
         viewModel.clearForTest()
-        advanceUntilIdle()
     }
 
     @Test
-    fun clearConnectionHistory_doesNotThrow() = runTest(testDispatcher) {
+    fun clearConnectionHistory_doesNotThrow() = runBlocking {
         val viewModel = newViewModel()
+        waitForDbSeed(viewModel)
+
         viewModel.clearConnectionHistory()
         // History starts empty in a fresh DB; clearing must be a no-op, not a crash
         assertTrue(viewModel.connectionHistory.first().isEmpty())
+
         viewModel.clearForTest()
-        advanceUntilIdle()
     }
 
     @Test
@@ -134,8 +157,9 @@ class AirMouseViewModelTest {
     }
 
     @Test
-    fun connectHelpers_noCrashWhenDisconnected() = runTest(testDispatcher) {
+    fun connectHelpers_noCrashWhenDisconnected() = runBlocking {
         val viewModel = newViewModel()
+        waitForDbSeed(viewModel)
 
         // Nothing is bonded under Robolectric; these must be safe no-ops.
         viewModel.connectToDeviceByAddress(null)
@@ -152,6 +176,5 @@ class AirMouseViewModelTest {
         viewModel.sendText("hi")
 
         viewModel.clearForTest()
-        advanceUntilIdle()
     }
 }
