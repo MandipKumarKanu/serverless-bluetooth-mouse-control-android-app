@@ -129,7 +129,6 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     val connectedDevice: StateFlow<BluetoothDevice?> = hidManager.connectedDevice
     val targetDevice: StateFlow<BluetoothDevice?> = hidManager.targetDevice
     val isProfileReady: StateFlow<Boolean> = hidManager.isProfileReady
-    val isAppRegistered: StateFlow<Boolean> = hidManager.isAppRegistered
     val isBluetoothPowerOn: StateFlow<Boolean> = hidManager.isBluetoothEnabledFlow
 
     // Dynamic paired devices list
@@ -140,10 +139,10 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     val scannedDevices: StateFlow<List<ScannedDevice>> = hidManager.scannedDevices
     val isScanning: StateFlow<Boolean> = hidManager.isScanning
 
-    // Battery level (live, not one-shot)
+    // Battery level (live, not one-shot). The monitor feeds the BLE battery
+    // service so the host sees the phone battery; the foreground service runs
+    // its own monitor for the notification, so no UI state is exposed here.
     private val batteryMonitor = BatteryMonitor(application)
-    val batteryLevel: StateFlow<Int> = batteryMonitor.batteryLevel
-    val isCharging: StateFlow<Boolean> = batteryMonitor.isCharging
 
     // SharedPreferences for safe storage of auto-reconnect settings
     private val prefs = application.getSharedPreferences("air_mouse_prefs", Context.MODE_PRIVATE)
@@ -541,18 +540,25 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
 
     // Called when app goes to background - pause sensors but keep Bluetooth alive
     fun onAppBackground() {
+        // Stop the local listener FIRST, then hand off to the service. The old
+        // order (start service, then stop local) left a window where both
+        // MotionSensorManagers had a live gyro listener, doubling every report.
+        sensorManager.stop()
         if (AirMouseService.isAirMouseActive) {
             // Transfer sensors to service so they keep running in foreground service
             val serviceIntent = Intent(app, AirMouseService::class.java).apply {
                 action = AirMouseService.ACTION_START_AIR_MOUSE
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                app.startForegroundService(serviceIntent)
-            } else {
-                app.startService(serviceIntent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    app.startForegroundService(serviceIntent)
+                } else {
+                    app.startService(serviceIntent)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to transfer sensors to service on background: ${e.message}")
             }
         }
-        sensorManager.stop()
         Log.d(TAG, "App backgrounded - sensors paused in ViewModel, maintained in service if active")
     }
 
@@ -779,8 +785,10 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
             "left_click" -> sendMouseClick(1)
             "right_click" -> sendMouseClick(2)
             "middle_click" -> sendMouseClick(4)
-            "scroll_up" -> hidManager.sendMouseInput(0, 0, 0, 1)
-            "scroll_down" -> hidManager.sendMouseInput(0, 0, 0, -1)
+            // Route through sendScrollTicks so the user's scroll-speed setting
+            // applies, matching the touchpad scroll path.
+            "scroll_up" -> sendScrollTicks(1)
+            "scroll_down" -> sendScrollTicks(-1)
 
             // Presentation actions
             "next_slide" -> sendKeyboardKey(0, 0x4E.toByte()) // Page Down
@@ -809,6 +817,12 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         super.onCleared()
         autoReconnectJob?.cancel()
         batteryMonitor.stop()
+    }
+
+    /** Test hook: mirror the framework's onCleared() cleanup from unit tests. */
+    @androidx.annotation.VisibleForTesting
+    fun clearForTest() {
+        onCleared()
     }
 
     companion object {

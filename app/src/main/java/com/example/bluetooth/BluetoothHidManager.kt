@@ -163,11 +163,16 @@ class BluetoothHidManager private constructor(context: Context) {
                         _isAppRegistered.value = false
                         _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
                         _connectedDevice.value = null
+                        _targetDevice.value = null
+                        connectTimeoutJob?.cancel(true)
                         isConnecting = false
                         isRegistered = false
                         _isScanning.value = false
                         _scannedDevices.value = emptyList()
                         _bondedDevices.value = emptyList()
+                        // The BLE GATT server is invalidated by the stack while
+                        // Bluetooth is off; reset it so the next connect rebuilds it.
+                        bleBatteryService.onBluetoothTurnedOff()
                     }
                 }
                 BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
@@ -572,9 +577,20 @@ class BluetoothHidManager private constructor(context: Context) {
         override fun onVirtualCableUnplug(device: BluetoothDevice?) {
             super.onVirtualCableUnplug(device)
             Log.d(TAG, "onVirtualCableUnplug: device=${device?.getSafeName()}")
+            // Tear down everything a real disconnect would: the pending target,
+            // the connect timeout, and the BLE battery server (kept running on
+            // the old path, so the phone kept advertising battery after Windows
+            // unplugged the virtual cable).
+            connectTimeoutJob?.cancel(true)
+            _targetDevice.value = null
             _connectedDevice.value = null
             _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
             isConnecting = false
+            try {
+                bleBatteryService.stop()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error stopping bleBatteryService after virtual unplug", e)
+            }
         }
     }
 

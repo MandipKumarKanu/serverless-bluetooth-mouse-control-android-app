@@ -231,12 +231,17 @@ fun parseChangelog(changelog: String): List<String> {
         if (trimmed.isEmpty()) continue
 
         when {
-            // Headers: ## or ###
-            trimmed.startsWith("## ") -> {
-                result.add("HEADER:${trimmed.removePrefix("## ").trim()}")
+            // Sub-bullets first, checked on the RAW line: trim() already removed
+            // the indentation, so checking "  - " after trimming was dead code.
+            line.startsWith("  - ") || line.startsWith("  * ") -> {
+                result.add("SUBITEM:${line.trim().removePrefix("- ").removePrefix("* ").trim()}")
             }
+            // Headers: ## or ###
             trimmed.startsWith("### ") -> {
                 result.add("HEADER:${trimmed.removePrefix("### ").trim()}")
+            }
+            trimmed.startsWith("## ") -> {
+                result.add("HEADER:${trimmed.removePrefix("## ").trim()}")
             }
             // Bullet points: - or *
             trimmed.startsWith("- ") -> {
@@ -244,10 +249,6 @@ fun parseChangelog(changelog: String): List<String> {
             }
             trimmed.startsWith("* ") -> {
                 result.add("ITEM:${trimmed.removePrefix("* ").trim()}")
-            }
-            // Sub-bullets
-            trimmed.startsWith("  - ") || trimmed.startsWith("  * ") -> {
-                result.add("SUBITEM:${trimmed.trimStart().removePrefix("- ").removePrefix("* ").trim()}")
             }
             // Regular text
             else -> {

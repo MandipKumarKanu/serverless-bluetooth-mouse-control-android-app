@@ -214,6 +214,28 @@ class BleBatteryService(private val context: Context) {
         Log.d(TAG, "BLE Battery Service stopped")
     }
 
+    /**
+     * Tear down unconditionally when Bluetooth is turned off. Without this, the
+     * GATT server is silently invalidated by the stack while [isRunning] stays
+     * true, so a later [start] early-returns and the host never sees the phone
+     * battery again until the process restarts.
+     */
+    fun onBluetoothTurnedOff() {
+        try {
+            advertiser?.stopAdvertising(advertiseCallback)
+        } catch (_: Exception) {
+        }
+        try {
+            gattServer?.close()
+        } catch (_: Exception) {
+        }
+        gattServer = null
+        advertiser = null
+        connectedDevices.clear()
+        isRunning = false
+        Log.d(TAG, "BLE Battery Service reset for Bluetooth off")
+    }
+
     @SuppressLint("MissingPermission")
     fun updateBatteryLevel(level: Int) {
         currentBatteryLevel = level.coerceIn(0, 100)

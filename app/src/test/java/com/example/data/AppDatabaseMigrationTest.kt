@@ -16,12 +16,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Verifies the production migration chain (v1 -> v5) actually produces a
+ * Verifies the production migration chain (v1 -> v6) actually produces a
  * usable database. The v1 schema is built by hand from the entity history
  * (settings table with `themeDark`, before useDynamicColors/themeMode).
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
+// Run on both a pre-Android-13 SDK and a modern one: the v4->v5 migration must
+// not rely on SQLite features that only ship on Android 13+ (e.g. DROP COLUMN).
+@Config(sdk = [28, 33])
 class AppDatabaseMigrationTest {
 
     private val dbName = "migration_test.db"

@@ -62,7 +62,7 @@ class AirMouseViewModelTest {
         assertEquals(0.6f, settings.smoothing, 0.001f)
         assertTrue(settings.invertX)
 
-        viewModel.onCleared()
+        viewModel.clearForTest()
     }
 
     @Test
@@ -78,7 +78,7 @@ class AirMouseViewModelTest {
         viewModel.deleteShortcut(saved.id)
         viewModel.shortcutsState.first { list -> list.none { it.name == "My Macro" } }
 
-        viewModel.onCleared()
+        viewModel.clearForTest()
     }
 
     @Test
@@ -101,7 +101,7 @@ class AirMouseViewModelTest {
         viewModel.deleteGesture(saved.id)
         viewModel.gesturesState.first { list -> list.none { it.name == "Swipe Up" } }
 
-        viewModel.onCleared()
+        viewModel.clearForTest()
     }
 
     @Test
@@ -110,7 +110,7 @@ class AirMouseViewModelTest {
         viewModel.clearConnectionHistory()
         // History starts empty in a fresh DB; clearing must be a no-op, not a crash
         assertTrue(viewModel.connectionHistory.first().isEmpty())
-        viewModel.onCleared()
+        viewModel.clearForTest()
     }
 
     @Test
@@ -125,7 +125,7 @@ class AirMouseViewModelTest {
         viewModel.setLastConnectedDeviceAddress("AA:BB:CC:DD:EE:FF")
         assertEquals("AA:BB:CC:DD:EE:FF", viewModel.lastConnectedDeviceAddress.value)
 
-        viewModel.onCleared()
+        viewModel.clearForTest()
     }
 
     @Test
@@ -146,6 +146,6 @@ class AirMouseViewModelTest {
         viewModel.sendKeyboardKey(0x01, 0x06)
         viewModel.sendText("hi")
 
-        viewModel.onCleared()
+        viewModel.clearForTest()
     }
 }

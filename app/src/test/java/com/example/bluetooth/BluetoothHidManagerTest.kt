@@ -25,6 +25,16 @@ import org.robolectric.shadows.ShadowBluetoothDevice
 @Config(sdk = [33])
 class BluetoothHidManagerTest {
 
+    /**
+     * BluetoothClass's (int) constructor is package-private in the Android SDK,
+     * so unit tests can't call it directly; create instances reflectively.
+     */
+    private fun bluetoothClass(classValue: Int): BluetoothClass {
+        val constructor = BluetoothClass::class.java.getDeclaredConstructor(Int::class.java)
+        constructor.isAccessible = true
+        return constructor.newInstance(classValue)
+    }
+
     private fun device(name: String?, bluetoothClass: BluetoothClass? = null): BluetoothDevice {
         val d = ShadowBluetoothDevice.newInstance("AA:BB:CC:DD:EE:FF")
         if (name != null) shadowOf(d).setName(name)
@@ -49,13 +59,13 @@ class BluetoothHidManagerTest {
     @Test
     fun isComputer_trueForComputerMajorClass() {
         // 0x0100 = BluetoothClass.Device.Major.COMPUTER
-        assertTrue(device("Desktop", BluetoothClass(0x0100)).isComputer())
+        assertTrue(device("Desktop", bluetoothClass(0x0100)).isComputer())
     }
 
     @Test
     fun isComputer_falseForPhone() {
         // 0x0200 = BluetoothClass.Device.Major.PHONE
-        assertFalse(device("Phone", BluetoothClass(0x0200)).isComputer())
+        assertFalse(device("Phone", bluetoothClass(0x0200)).isComputer())
     }
 
     // --- isHidCompatibleHost ---
@@ -67,29 +77,29 @@ class BluetoothHidManagerTest {
 
     @Test
     fun hidHost_acceptsComputer() {
-        assertTrue(device("My Desktop", BluetoothClass(0x0100)).isHidCompatibleHost())
+        assertTrue(device("My Desktop", bluetoothClass(0x0100)).isHidCompatibleHost())
     }
 
     @Test
     fun hidHost_rejectsNonHostMajorClasses() {
-        assertFalse(device("Watch", BluetoothClass(0x0700)).isHidCompatibleHost()) // 1792 WEARABLE
-        assertFalse(device("Fitness Band", BluetoothClass(0x0900)).isHidCompatibleHost()) // 2304 HEALTH
-        assertFalse(device("Toy", BluetoothClass(0x0800)).isHidCompatibleHost()) // 2048 TOY
-        assertFalse(device("Camera", BluetoothClass(0x0600)).isHidCompatibleHost()) // 1536 IMAGING
+        assertFalse(device("Watch", bluetoothClass(0x0700)).isHidCompatibleHost()) // 1792 WEARABLE
+        assertFalse(device("Fitness Band", bluetoothClass(0x0900)).isHidCompatibleHost()) // 2304 HEALTH
+        assertFalse(device("Toy", bluetoothClass(0x0800)).isHidCompatibleHost()) // 2048 TOY
+        assertFalse(device("Camera", bluetoothClass(0x0600)).isHidCompatibleHost()) // 1536 IMAGING
     }
 
     @Test
     fun hidHost_filtersAudioDeviceClasses() {
         // 0x041C = PORTABLE_AUDIO (major AUDIO_VIDEO); excluded by device class
-        assertFalse(device("Bluetooth Speaker", BluetoothClass(0x041C)).isHidCompatibleHost())
+        assertFalse(device("Bluetooth Speaker", bluetoothClass(0x041C)).isHidCompatibleHost())
     }
 
     @Test
     fun hidHost_filtersAudioDevicesByNameFallback() {
         // Audio-video major class with an unknown minor class: the name filter
         // is the backstop for headsets/headphones/etc.
-        assertFalse(device("Sony Headphones", BluetoothClass(0x0400)).isHidCompatibleHost())
-        assertTrue(device("Living Room TV", BluetoothClass(0x0400)).isHidCompatibleHost())
+        assertFalse(device("Sony Headphones", bluetoothClass(0x0400)).isHidCompatibleHost())
+        assertTrue(device("Living Room TV", bluetoothClass(0x0400)).isHidCompatibleHost())
     }
 
     // --- connection guards / HID transmission while disconnected ---
@@ -102,7 +112,7 @@ class BluetoothHidManagerTest {
         // The HID profile never becomes ready under Robolectric, so the app is
         // never registered: connectHost must stash a pending connection and
         // report failure instead of crashing.
-        assertFalse(manager.connectHost(device("My PC", BluetoothClass(0x0100))))
+        assertFalse(manager.connectHost(device("My PC", bluetoothClass(0x0100))))
         assertFalse(manager.isConnected())
         assertFalse(manager.isCurrentlyConnecting())
     }

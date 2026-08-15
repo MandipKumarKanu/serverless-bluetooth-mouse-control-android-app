@@ -13,7 +13,7 @@ class TouchpadGestureRecognizerTest {
 
     @Test
     fun `single tap fires a left click on release`() {
-        assertEquals(emptyList(), recognizer.processFrame(listOf(finger(1, 100f, 100f)), 1000L))
+        assertEquals(emptyList<TouchpadAction>(), recognizer.processFrame(listOf(finger(1, 100f, 100f)), 1000L))
 
         val release = recognizer.processFrame(listOf(finger(1, 100f, 100f, down = false)), 1000L)
         assertEquals(listOf(TouchpadAction.Tap(1)), release)
@@ -27,7 +27,7 @@ class TouchpadGestureRecognizerTest {
         assertEquals(listOf(TouchpadAction.Move(15f, 0f)), move)
 
         val release = recognizer.processFrame(listOf(finger(1, 115f, 100f, down = false)), 3L)
-        assertEquals(emptyList(), release)
+        assertEquals(emptyList<TouchpadAction>(), release)
     }
 
     @Test
@@ -60,7 +60,7 @@ class TouchpadGestureRecognizerTest {
             listOf(finger(1, 100f, 140f, down = false), finger(2, 200f, 140f, down = false)),
             4L
         )
-        assertEquals(emptyList(), release)
+        assertEquals(emptyList<TouchpadAction>(), release)
     }
 
     @Test
@@ -95,7 +95,7 @@ class TouchpadGestureRecognizerTest {
             ),
             5L
         )
-        assertEquals(emptyList(), release)
+        assertEquals(emptyList<TouchpadAction>(), release)
     }
 
     @Test
@@ -139,18 +139,18 @@ class TouchpadGestureRecognizerTest {
             listOf(finger(1, 100f, 100f), finger(2, 200f, 100f), finger(3, 300f, 100f, down = false)),
             4L
         )
-        assertEquals(emptyList(), transition)
+        assertEquals(emptyList<TouchpadAction>(), transition)
 
         // Moving the remaining two fingers must NOT scroll (mode is locked to 3)
         val moved = recognizer.processFrame(listOf(finger(1, 100f, 140f), finger(2, 200f, 140f)), 5L)
-        assertEquals(emptyList(), moved)
+        assertEquals(emptyList<TouchpadAction>(), moved)
 
         // Release must not produce a click
         val release = recognizer.processFrame(
             listOf(finger(1, 100f, 140f, down = false), finger(2, 200f, 140f, down = false)),
             6L
         )
-        assertEquals(emptyList(), release)
+        assertEquals(emptyList<TouchpadAction>(), release)
     }
 
     @Test
@@ -258,9 +258,9 @@ class TouchpadGestureRecognizerTest {
 
         // Held after movement: must NOT turn into a button drag
         val held = recognizer.processFrame(listOf(finger(1, 120f, 100f)), 800L)
-        assertEquals(emptyList(), held)
+        assertEquals(emptyList<TouchpadAction>(), held)
 
         val release = recognizer.processFrame(listOf(finger(1, 120f, 100f, down = false)), 801L)
-        assertEquals(emptyList(), release)
+        assertEquals(emptyList<TouchpadAction>(), release)
     }
 }

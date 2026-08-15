@@ -3,8 +3,21 @@
 All notable changes to AirMouse will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
+
+## [1.10.1] - 2026-08-15
+
+### Fixed
+- **Upgrade crash on Android 7-12** — The v4→v5 database migration used `ALTER TABLE ... DROP COLUMN`, which requires SQLite 3.35+ (Android 13+) and crashed every upgrade from a pre-1.10 database on older devices. It is now a table rebuild, and the migration test runs at SDK 28 and 33.
+- **Phone battery no longer disappears after toggling Bluetooth** — the BLE battery GATT server is now reset when Bluetooth turns off, and torn down properly on a Windows virtual-cable unplug.
+- **Sleep shortcut removed** — the seeded "Sleep" macro actually pressed F12 (the HID System Sleep usage can't be sent in a keyboard report).
+- **Update dialog sub-bullets** — changelog sub-bullets (indented `-` items) now render as sub-items instead of being swallowed as top-level items.
+- **Gesture scroll actions** — `scroll up`/`scroll down` gestures now honor the scroll-speed setting like the touchpad.
+- **Sensor handoff ordering** — backgrounding the app now stops the in-app gyro listener before handing off to the foreground service, removing a window where both listeners ran and doubled every cursor report.
+- **Unit test sources compile under CI** — fixed `BluetoothClass` construction (package-private constructor → reflection helper), `assertEquals(emptyList(), …)` type inference in the touchpad tests, and protected `onCleared()` access in the ViewModel tests (via a `@VisibleForTesting` `clearForTest()` hook).
+
+### Changed
+- Removed unused public ViewModel flows (`isAppRegistered`, `batteryLevel`, `isCharging`) and ~580 unused imports across the screen files.
 
 ## [1.10.0] - 2026-08-15
 

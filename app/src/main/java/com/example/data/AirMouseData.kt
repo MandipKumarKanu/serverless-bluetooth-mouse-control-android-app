@@ -184,10 +184,36 @@ abstract class AppDatabase : RoomDatabase() {
 
         internal val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Rename themeDark to themeMode and convert: false(0) -> 0(System), true(2) -> 2(Dark)
-                db.execSQL("ALTER TABLE settings ADD COLUMN themeMode INTEGER NOT NULL DEFAULT 0")
-                db.execSQL("UPDATE settings SET themeMode = CASE WHEN themeDark = 1 THEN 2 ELSE 0 END")
-                db.execSQL("ALTER TABLE settings DROP COLUMN themeDark")
+                // Rename themeDark to themeMode and convert: false(0) -> 0(System), true(2) -> 2(Dark).
+                // This is a table rebuild instead of ALTER TABLE ... DROP COLUMN because
+                // DROP COLUMN requires SQLite >= 3.35 (Android 13+); minSdk is 24, so on
+                // Android 7-12 the DROP would throw and crash every upgrade from schema v4.
+                db.execSQL("ALTER TABLE settings RENAME TO settings_old")
+                db.execSQL(
+                    "CREATE TABLE settings (" +
+                        "id INTEGER NOT NULL, " +
+                        "sensitivity REAL NOT NULL, " +
+                        "smoothing REAL NOT NULL, " +
+                        "deadZone REAL NOT NULL, " +
+                        "acceleration REAL NOT NULL, " +
+                        "invertX INTEGER NOT NULL, " +
+                        "invertY INTEGER NOT NULL, " +
+                        "scrollSpeed REAL NOT NULL, " +
+                        "vibrationFeedback INTEGER NOT NULL, " +
+                        "soundFeedback INTEGER NOT NULL, " +
+                        "keepScreenAwake INTEGER NOT NULL, " +
+                        "themeMode INTEGER NOT NULL DEFAULT 0, " +
+                        "useDynamicColors INTEGER NOT NULL DEFAULT 0, " +
+                        "PRIMARY KEY(id))"
+                )
+                db.execSQL(
+                    "INSERT INTO settings (id, sensitivity, smoothing, deadZone, acceleration, invertX, invertY, " +
+                        "scrollSpeed, vibrationFeedback, soundFeedback, keepScreenAwake, themeMode, useDynamicColors) " +
+                        "SELECT id, sensitivity, smoothing, deadZone, acceleration, invertX, invertY, " +
+                        "scrollSpeed, vibrationFeedback, soundFeedback, keepScreenAwake, " +
+                        "CASE WHEN themeDark = 1 THEN 2 ELSE 0 END, useDynamicColors FROM settings_old"
+                )
+                db.execSQL("DROP TABLE settings_old")
             }
         }
 
@@ -246,8 +272,9 @@ abstract class AppDatabase : RoomDatabase() {
                             dao?.insertShortcut(ShortcutEntity(name = "Show Desktop (Win+D)", modifiers = 0x08, keyCodes = "7"))
                             dao?.insertShortcut(ShortcutEntity(name = "Lock Device (Win+L)", modifiers = 0x08, keyCodes = "15"))
                             dao?.insertShortcut(ShortcutEntity(name = "Task Manager (Ctrl+Alt+Del)", modifiers = 0x05, keyCodes = "76"))
-                            // System keys
-                            dao?.insertShortcut(ShortcutEntity(name = "Sleep", modifiers = 0, keyCodes = "68"))
+                            // System keys. (No Sleep shortcut: the HID System Sleep
+                            // usage 0x82 can't be sent in the keyboard report, and the
+                            // old "68" was really F12.)
                             dao?.insertShortcut(ShortcutEntity(name = "Browser Back", modifiers = 0, keyCodes = "161"))
                             dao?.insertShortcut(ShortcutEntity(name = "Browser Forward", modifiers = 0, keyCodes = "162"))
                         }
