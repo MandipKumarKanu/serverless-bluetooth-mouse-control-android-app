@@ -225,18 +225,13 @@ class BleBatteryService(private val context: Context) {
 
         val batteryValue = byteArrayOf(currentBatteryLevel.toByte())
 
-        // API 33 added offset-based overloads; prefer them when available.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            characteristic.setValue(batteryValue, 0)
-        } else {
-            @Suppress("DEPRECATION")
-            characteristic.setValue(batteryValue)
-        }
+        @Suppress("DEPRECATION")
+        characteristic.setValue(batteryValue)
 
         for (device in connectedDevices) {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    gattServer?.notifyCharacteristicChanged(device, characteristic, false, 0)
+                    gattServer?.notifyCharacteristicChanged(device, characteristic, false, batteryValue)
                 } else {
                     @Suppress("DEPRECATION")
                     gattServer?.notifyCharacteristicChanged(device, characteristic, false)

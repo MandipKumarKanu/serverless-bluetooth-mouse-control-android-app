@@ -277,7 +277,7 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
 }
 
 @Composable
-private fun GamepadModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun RowScope.GamepadModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .weight(1f)

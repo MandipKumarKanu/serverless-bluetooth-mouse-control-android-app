@@ -34,8 +34,8 @@ class AirMouseService : Service() {
     private var sensorManager: MotionSensorManager? = null
     private lateinit var batteryMonitor: BatteryMonitor
     private var batteryUpdateJob: Job? = null
-    // Coroutine scope for the air-mouse sensor settings load (cancelled on destroy).
-    private var sensorSettingsScope: CoroutineScope? = null
+    // Job for the air-mouse sensor settings load (cancelled on destroy).
+    private var sensorSettingsJob: Job? = null
 
     // Tracks whether the service has entered the foreground. Used to avoid the
     // ForegroundServiceDidNotStartInTimeException when a startForegroundService()
@@ -155,7 +155,7 @@ class AirMouseService : Service() {
             unregisterReceiver(mediaActionReceiver)
         } catch (_: Exception) {
         }
-        sensorSettingsScope?.cancel()
+        sensorSettingsJob?.cancel()
         Log.d(TAG, "AirMouseService destroyed")
     }
 
@@ -164,10 +164,9 @@ class AirMouseService : Service() {
             sensorManager = MotionSensorManager(this)
         }
         // Cancel any previous settings-load before starting a new one.
-        sensorSettingsScope?.cancel()
+        sensorSettingsJob?.cancel()
         val scope = CoroutineScope(Dispatchers.IO)
-        sensorSettingsScope = scope
-        scope.launch {
+        sensorSettingsJob = scope.launch {
             val db = AppDatabase.getDatabase(this@AirMouseService, scope)
             val settings = db.airMouseDao().getSettingsDirect() ?: SettingsEntity()
             sensorManager?.updateSettings(settings)

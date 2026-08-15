@@ -672,7 +672,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     // Tracks the current button mask + hat switch so multi-button holds and
     // diagonal hat directions are sent as complete, consistent reports.
     private val _gamepadButtons = MutableStateFlow(0)
-    private val _gamepadHat = MutableStateFlow(8)
+    private val _gamepadHat = MutableStateFlow(8.toByte())
 
     fun gamepadButton(buttonBit: Int, down: Boolean) {
         val next = if (down) {
