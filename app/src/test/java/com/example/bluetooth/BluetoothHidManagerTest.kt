@@ -13,7 +13,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowBluetoothDevice
+import android.bluetooth.BluetoothManager
 
 /**
  * Tests for the pure device-classification helpers and the connection-state
@@ -36,7 +36,12 @@ class BluetoothHidManagerTest {
     }
 
     private fun device(name: String?, bluetoothClass: BluetoothClass? = null): BluetoothDevice {
-        val d = ShadowBluetoothDevice.newInstance("AA:BB:CC:DD:EE:FF")
+        // BluetoothDevice has no public constructor; create a shadowed instance
+        // via the BluetoothManager adapter (ShadowBluetoothDevice.newInstance and
+        // BluetoothAdapter.getDefaultAdapter are deprecated).
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val adapter = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
+        val d = adapter.getRemoteDevice("AA:BB:CC:DD:EE:FF")
         if (name != null) shadowOf(d).setName(name)
         if (bluetoothClass != null) shadowOf(d).setBluetoothClass(bluetoothClass)
         return d

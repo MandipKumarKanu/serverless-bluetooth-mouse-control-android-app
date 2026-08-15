@@ -1,6 +1,6 @@
 package com.example
 
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.navigation.compose.rememberNavController
 import com.example.ui.screens.AboutScreen

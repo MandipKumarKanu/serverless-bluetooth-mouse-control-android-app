@@ -2,6 +2,14 @@
 
 All notable changes to AirMouse will be documented in this file.
 
+## [1.10.6] - 2026-08-15
+
+### Changed
+- **Dependency modernization** — upgraded the AndroidX stack about two years forward for better performance, fixes, and future-proofing:
+  - **Compose** BOM 2024.09 → 2026.06 — Compose UI 1.7.2 → 1.11.4 and Material 3 1.3.0 → 1.4.0 (newer components, bug fixes, faster lists/animations).
+  - **Navigation** Compose 2.8.9 → 2.9.8, **Room** 2.7.0 → 2.8.4, **Lifecycle** 2.8.7 → 2.10.0, **Activity** 1.10.1 → 1.13.0.
+  - The deprecated `material-icons-*` module is pinned at its final release (1.7.8) so all existing icons keep working now that newer Compose BOMs no longer manage it; upgrading to the Material Symbols successor remains an option for a future release.
+  - Note: the very latest Compose (1.12, BOM 2026.08) requires compileSdk 37, which isn't published yet — this release uses the newest compileSdk-36-compatible stack and can bump again once platform 37 is available.
 
 ## [1.10.5] - 2026-08-15
 

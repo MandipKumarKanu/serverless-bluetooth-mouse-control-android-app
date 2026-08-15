@@ -95,7 +95,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("AirMouse Console", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 20.sp) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
                 actions = {
                     IconButton(
                         onClick = {

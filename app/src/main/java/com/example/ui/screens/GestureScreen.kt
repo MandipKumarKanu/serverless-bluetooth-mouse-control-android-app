@@ -98,7 +98,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             fontSize = 18.sp
                         )
                     },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     ),
                     navigationIcon = {
