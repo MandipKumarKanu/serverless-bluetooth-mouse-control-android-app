@@ -71,7 +71,7 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
             modifier = Modifier.padding(innerPadding),
             horizontalPadding = 24.dp,
             scrollable = true,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 

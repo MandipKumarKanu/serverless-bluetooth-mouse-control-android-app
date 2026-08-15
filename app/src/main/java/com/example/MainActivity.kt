@@ -6,23 +6,31 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.delay
 import com.example.ui.screens.AboutScreen
 import com.example.ui.screens.AirMouseScreen
 import com.example.ui.screens.DashboardScreen
+import com.example.ui.screens.DeviceSettingsScreen
 import com.example.ui.screens.GamepadScreen
 import com.example.ui.screens.GestureScreen
 import com.example.ui.screens.KeyboardScreen
@@ -47,6 +55,13 @@ import androidx.navigation.NavController
 
 class MainActivity : ComponentActivity() {
     private val mainViewModel: AirMouseViewModel by viewModels()
+
+    // Navigation transition duration and the input-block window that covers it
+    // (slightly longer than the fade so taps can't land mid-animation).
+    private companion object {
+        const val NAV_TRANSITION_MS = 200 // tween() takes Int millis
+        const val NAV_INPUT_BLOCK_MS = 300L // delay() takes Long millis
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,6 +103,21 @@ class MainActivity : ComponentActivity() {
 
                 val navController = rememberNavController()
                 val lifecycleOwner = LocalLifecycleOwner.current
+
+                // While a navigation transition is playing, the outgoing screen
+                // stays composed (and tappable) until the animation ends, so a
+                // tap during the transition can hit a button that's already
+                // being left behind. We block all pointer input for the short
+                // duration of the transition, keyed on every destination change.
+                val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                var transitionInProgress by remember { mutableStateOf(false) }
+                LaunchedEffect(currentBackStackEntry?.destination?.route) {
+                    if (currentBackStackEntry != null) {
+                        transitionInProgress = true
+                        delay(NAV_INPUT_BLOCK_MS)
+                        transitionInProgress = false
+                    }
+                }
 
                 // Lifecycle observer for background/foreground transitions
                 DisposableEffect(lifecycleOwner) {
@@ -135,48 +165,76 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    NavHost(
-                        navController = navController,
-                        startDestination = Routes.SPLASH
-                    ) {
-                        composable(Routes.SPLASH) {
-                            SplashScreen(navController)
-                        }
-                        composable(Routes.PERMISSIONS) {
-                            PermissionsScreen(navController)
-                        }
-                        composable(Routes.DASHBOARD) {
-                            DashboardScreen(navController, viewModel)
-                        }
-                        composable(Routes.TOUCHPAD) {
-                            TouchpadScreen(navController, viewModel)
-                        }
-                        composable(Routes.AIR_MOUSE) {
-                            AirMouseScreen(navController, viewModel)
-                        }
-                        composable(Routes.KEYBOARD) {
-                            KeyboardScreen(navController, viewModel)
-                        }
-                        composable(Routes.MEDIA_REMOTE) {
-                            MediaRemoteScreen(navController, viewModel)
-                        }
-                        composable(Routes.PRESENTATION) {
-                            PresentationScreen(navController, viewModel)
-                        }
-                        composable(Routes.GAMEPAD) {
-                            GamepadScreen(navController, viewModel)
-                        }
-                        composable(Routes.GESTURE) {
-                            GestureScreen(navController, viewModel)
-                        }
-                        composable(Routes.SHORTCUTS) {
-                            ShortcutsScreen(navController, viewModel)
-                        }
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        NavHost(
+                            navController = navController,
+                            startDestination = Routes.SPLASH,
+                            // Short, snappy fades — the input guard below is
+                            // sized to cover exactly this window.
+                            enterTransition = { fadeIn(tween(NAV_TRANSITION_MS)) },
+                            exitTransition = { fadeOut(tween(NAV_TRANSITION_MS)) },
+                            popEnterTransition = { fadeIn(tween(NAV_TRANSITION_MS)) },
+                            popExitTransition = { fadeOut(tween(NAV_TRANSITION_MS)) }
+                        ) {
+                            composable(Routes.SPLASH) {
+                                SplashScreen(navController)
+                            }
+                            composable(Routes.PERMISSIONS) {
+                                PermissionsScreen(navController)
+                            }
+                            composable(Routes.DASHBOARD) {
+                                DashboardScreen(navController, viewModel)
+                            }
+                            composable(Routes.TOUCHPAD) {
+                                TouchpadScreen(navController, viewModel)
+                            }
+                            composable(Routes.AIR_MOUSE) {
+                                AirMouseScreen(navController, viewModel)
+                            }
+                            composable(Routes.KEYBOARD) {
+                                KeyboardScreen(navController, viewModel)
+                            }
+                            composable(Routes.MEDIA_REMOTE) {
+                                MediaRemoteScreen(navController, viewModel)
+                            }
+                            composable(Routes.PRESENTATION) {
+                                PresentationScreen(navController, viewModel)
+                            }
+                            composable(Routes.GAMEPAD) {
+                                GamepadScreen(navController, viewModel)
+                            }
+                            composable(Routes.GESTURE) {
+                                GestureScreen(navController, viewModel)
+                            }
+                            composable(Routes.SHORTCUTS) {
+                                ShortcutsScreen(navController, viewModel)
+                            }
                         composable(Routes.SETTINGS) {
                             SettingsScreen(navController, viewModel)
                         }
+                        composable(Routes.DEVICE_SETTINGS) {
+                            DeviceSettingsScreen(navController, viewModel)
+                        }
                         composable(Routes.ABOUT) {
-                            AboutScreen(navController)
+                                AboutScreen(navController)
+                            }
+                        }
+
+                        // Touch shield: swallows every pointer event while a
+                        // navigation transition is running so buttons on the
+                        // outgoing screen can't be pressed mid-animation.
+                        if (transitionInProgress) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .pointerInput(Unit) {
+                                        awaitPointerEventScope {
+                                            while (true) {
+                                                awaitPointerEvent().changes.forEach { it.consume() }
+                                            }
+                                        }
+                                    }
+                            )
                         }
                     }
                 }

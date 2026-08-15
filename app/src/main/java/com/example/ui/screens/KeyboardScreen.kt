@@ -56,6 +56,20 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
     val numLock by viewModel.numLockState.collectAsState()
     val scrollLock by viewModel.scrollLockState.collectAsState()
 
+    // Optimistic lock display: tapping a lock chip flips it immediately and
+    // sends the lock key; the override is cleared as soon as the host reports
+    // its real LED state back (so the chip always ends up matching the PC).
+    var capsOverride by remember { mutableStateOf<Boolean?>(null) }
+    var numOverride by remember { mutableStateOf<Boolean?>(null) }
+    var scrollOverride by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(Unit) {
+        viewModel.hidManager.hostLeds.collect {
+            capsOverride = null
+            numOverride = null
+            scrollOverride = null
+        }
+    }
+
     fun getModifierByte(): Byte {
         var mask = 0
         if (ctrlPressed) mask = mask or 0x01
@@ -168,7 +182,7 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 }
                             },
                             modifier = Modifier
-                                .weight(1.2f)
+                                .weight(1f)
                                 .height(48.dp)
                                 .testTag("send_text_button"),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -178,17 +192,21 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             Text("Send Text", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
 
+                        // Icon-only beam-clipboard button (sends the phone's
+                        // copied text to the host, char by char, over HID)
                         Button(
                             onClick = { beamClipboardText() },
                             modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
+                                .size(48.dp)
                                 .testTag("beam_clipboard_button"),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                            contentPadding = PaddingValues(0.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.ContentPaste, contentDescription = "Beam Clipboard", tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Beam Clip", color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Icon(
+                                imageVector = Icons.Default.ContentPaste,
+                                contentDescription = "Beam Clipboard",
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                         }
                     }
                 }
@@ -242,14 +260,24 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 }
             }
 
-            // Host lock indicators (Caps/Num/Scroll) mirrored from the PC
+            // Host lock indicators — tap to toggle the lock on the PC (the
+            // chip then mirrors the host's reported state back via HID LEDs)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                LockIndicator("CAPS", capsLock, Modifier.weight(1f))
-                LockIndicator("NUM", numLock, Modifier.weight(1f))
-                LockIndicator("SCROLL", scrollLock, Modifier.weight(1f))
+                LockIndicator("CAPS", capsOverride ?: capsLock, Modifier.weight(1f)) {
+                    capsOverride = !(capsOverride ?: capsLock)
+                    viewModel.sendKeyboardKey(0, 0x39.toByte()) // Caps Lock
+                }
+                LockIndicator("NUM", numOverride ?: numLock, Modifier.weight(1f)) {
+                    numOverride = !(numOverride ?: numLock)
+                    viewModel.sendKeyboardKey(0, 0x53.toByte()) // Num Lock
+                }
+                LockIndicator("SCROLL", scrollOverride ?: scrollLock, Modifier.weight(1f)) {
+                    scrollOverride = !(scrollOverride ?: scrollLock)
+                    viewModel.sendKeyboardKey(0, 0x47.toByte()) // Scroll Lock
+                }
             }
 
             // Modern Virtual QWERTY Keyboard
@@ -779,11 +807,16 @@ data class ModifierTile(
     val onClick: () -> Unit
 )
 
-/** Host lock-state indicator (Caps/Num/Scroll) mirrored from the PC via HID. */
+/**
+ * Host lock-state chip (Caps/Num/Scroll): shows the state mirrored from the
+ * PC via HID and toggles the lock on the host when tapped.
+ */
 @Composable
-private fun LockIndicator(label: String, active: Boolean, modifier: Modifier = Modifier) {
+private fun LockIndicator(label: String, active: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Card(
-        modifier = modifier.height(42.dp),
+        modifier = modifier
+            .height(42.dp)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface

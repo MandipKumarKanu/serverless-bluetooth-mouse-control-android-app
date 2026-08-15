@@ -245,21 +245,13 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         modifier = Modifier.padding(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Canvas Header Info
+                        // Pulsing REC Indicator (right-aligned; the canvas
+                        // itself carries the draw instruction)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = if (isRegistering) "📝 DRAW TO SAVE" else "⚡ DRAW TO TRIGGER",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (isRegistering) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
-                                letterSpacing = 1.sp
-                            )
-
-                            // Pulsing REC Indicator
                             AnimatedVisibility(
                                 visible = isRecording,
                                 enter = fadeIn() + expandHorizontally(),

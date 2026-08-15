@@ -2,11 +2,25 @@
 
 All notable changes to AirMouse will be documented in this file.
 
-## [Unreleased]
+## [1.10.4] - 2026-08-15
+
+### Added
+- **Device Specific Settings screen** — Settings now has a dedicated "Device Specific Settings" screen listing every host that has a saved pointer profile. Tap a host to edit its profile (sensitivity, smoothing, dead zone, acceleration, scroll speed, axis inversion) — changes save automatically to that host — and a "Reset to Global" button per host deletes the profile so it falls back to your global settings. The connected host is highlighted with a CONNECTED badge.
+- **Gamepad mode help** — a "?" button in the top-right of the Gamepad screen explains the difference between Keyboard Mode and Gamepad Mode.
+- **Gamepad mode haptics** — buttons and D-pad now vibrate on press in Gamepad Mode, matching Keyboard Mode's feedback (previously Gamepad Mode was silent).
+- **Measured signal strength on the connection bar** — when connected, the sticky bar now shows `CONNECTED: <device>` with a signal icon and the measured RSSI in dBm (captured from discovery scans; hidden when unknown).
+- **One entry per device in Recent Connections** — reconnecting the same host updates its timestamp instead of adding a duplicate row; pre-existing duplicates are cleaned up once on launch.
+
+### Changed
+- **Keyboard screen** — the CAPS/NUM/SCROLL lock indicators are now tappable toggles that flip the lock on the host PC (with instant optimistic feedback that syncs back to the host's real LED state), and the "Beam Clip" button is now a compact icon-only clipboard button.
+- **Media Remote** — the Back / Apps / Enter row is now text-only (icons removed from that row only).
+- **Every screen fills the window height** — screen bodies now enforce `min-height: 100vh` (the content column is at least the window height), so short content fills the screen and the controller screens (Air Mouse, Presentation, Media Remote, Gamepad) distribute their controls across the full height again, scrolling when they overflow.
+- **Gesture workspace** — removed the emoji note from the drawing-canvas header; the RECORDING indicator is right-aligned on its own.
+- **Snappier navigation with a transition guard** — screen transitions are now quick 200 ms fades and all touch input is blocked while a transition runs, so buttons on the screen you're leaving can no longer be pressed mid-animation.
 
 ## [1.10.3] - 2026-08-15
 
-### Added
+### Changed
 - **Fluid responsive UI on every screen** — screens now share adaptive layout helpers (`Responsive.kt`): content is centered within a comfortable max width on large displays (tablets, landscape phones, foldables) instead of stretching edge-to-edge, and every screen is vertically scrollable so nothing clips on short windows. The large circular controls (air-mouse activation pad, media-remote D-pad) scale with the window, and the dashboard's control-mode grid shows three tiles per row on wide screens (two on phones).
 
 ## [1.10.2] - 2026-08-15
@@ -18,9 +32,6 @@ All notable changes to AirMouse will be documented in this file.
 
 ### Fixed
 - **Unit test flake on release builds** — `AirMouseViewModelTest` hung (and leaked DB coroutines) because Room 2.7 flow emissions resumed from the query executor are never delivered to a virtual-time test dispatcher, and the DB seeding coroutine raced the tests' writes. Tests now run on real dispatchers and wait for the seed before writing.
-
-### Changed
-- **Fluid responsive UI on every screen** — screens now share adaptive layout helpers: content is centered within a comfortable max width on large displays (tablets, landscape phones, foldables) instead of stretching edge-to-edge, and every screen is vertically scrollable so nothing clips on short windows. The large circular controls (air-mouse activation pad, media-remote D-pad) scale with the window, and the dashboard's control-mode grid shows three tiles per row on wide screens (two on phones).
 
 ## [1.10.1] - 2026-08-15
 

@@ -11,6 +11,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -19,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -29,7 +31,6 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
-import com.example.bluetooth.getSafeName
 import com.example.ui.AdaptiveScreenBody
 import kotlinx.coroutines.launch
 
@@ -296,40 +297,31 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 )
             }
 
-            // Device-Specific Settings (per-device pointer profiles)
-            val connectedDevice by viewModel.connectedDevice.collectAsState()
-            val connectedAddress = connectedDevice?.address
-            if (connectedAddress != null) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            // Device-Specific Settings entry — opens the per-device profile
+            // manager (each host's pointer settings live there, not inline)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-                Text("Device-Specific Settings", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Pointer settings saved for ${connectedDevice?.getSafeName() ?: "this device"}",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "Sensitivity, smoothing, dead zone, acceleration, scroll speed and axis inversion apply only while this host is connected. Other hosts keep their own profiles.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp
-                        )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable {
+                        viewModel.vibrate(20)
+                        navController.navigate(Routes.DEVICE_SETTINGS)
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    OutlinedButton(
-                        onClick = { viewModel.resetDeviceSettings() },
-                        modifier = Modifier.testTag("setting_reset_device")
-                    ) {
-                        Text("Reset to Global", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Device Specific Settings", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Edit pointer profiles saved per host", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Open device settings",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)

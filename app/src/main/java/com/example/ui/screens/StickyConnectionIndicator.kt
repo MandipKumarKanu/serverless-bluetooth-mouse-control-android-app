@@ -27,6 +27,7 @@ import com.example.bluetooth.getSafeName
 fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavController? = null) {
     val connectionState by viewModel.bluetoothState.collectAsState()
     val connectedDevice by viewModel.connectedDevice.collectAsState()
+    val connectedRssi by viewModel.connectedRssi.collectAsState()
     val targetDevice by viewModel.targetDevice.collectAsState()
     val isBluetoothPowerOn by viewModel.isBluetoothPowerOn.collectAsState()
 
@@ -77,6 +78,22 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
                 )
+                if (connectedRssi != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Default.NetworkCell,
+                        contentDescription = "Signal Strength",
+                        tint = Color(0xFF10B981),
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "$connectedRssi dBm",
+                        color = Color(0xFF10B981),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             } else if (isConnecting) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,

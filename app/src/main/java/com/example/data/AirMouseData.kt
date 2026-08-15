@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.Transaction
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
@@ -104,6 +105,29 @@ interface AirMouseDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertConnection(connection: ConnectionHistoryEntity)
 
+    @Query("DELETE FROM connection_history WHERE deviceAddress = :address")
+    suspend fun deleteConnectionHistoryByAddress(address: String)
+
+    /**
+     * Records a connection, keeping only the most recent entry per device:
+     * any previous rows for the same host are removed first, so the history
+     * shows each device exactly once (at its latest connect time).
+     */
+    @Transaction
+    suspend fun upsertConnection(connection: ConnectionHistoryEntity) {
+        deleteConnectionHistoryByAddress(connection.deviceAddress)
+        insertConnection(connection)
+    }
+
+    /** Keep only the most recent row per device (cleanup for pre-fix data). */
+    @Query(
+        "DELETE FROM connection_history WHERE id NOT IN (" +
+            "SELECT c1.id FROM connection_history c1 " +
+            "WHERE c1.connectedAt = (SELECT MAX(c2.connectedAt) FROM connection_history c2 " +
+            "WHERE c2.deviceAddress = c1.deviceAddress))"
+    )
+    suspend fun dedupeConnectionHistory()
+
     @Query("DELETE FROM connection_history")
     suspend fun clearConnectionHistory()
 
@@ -115,6 +139,9 @@ interface AirMouseDao {
 
     @Query("DELETE FROM gestures WHERE id = :id")
     suspend fun deleteGesture(id: Int)
+
+    @Query("SELECT * FROM device_settings")
+    fun getAllDeviceSettingsFlow(): Flow<List<DeviceSettingsEntity>>
 
     @Query("SELECT * FROM device_settings WHERE deviceAddress = :address LIMIT 1")
     fun getDeviceSettingsFlow(address: String): Flow<DeviceSettingsEntity?>

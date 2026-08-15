@@ -101,7 +101,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
             horizontalPadding = 24.dp,
             verticalPadding = 24.dp,
             scrollable = true,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.SpaceEvenly,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 

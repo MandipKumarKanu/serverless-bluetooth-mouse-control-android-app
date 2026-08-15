@@ -3,9 +3,11 @@ package com.example.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -37,8 +39,11 @@ fun rememberContentMaxWidth(): Dp {
 /**
  * Standard screen body: fills the window and keeps content centered within
  * [rememberContentMaxWidth] on large screens, applying [horizontalPadding]
- * and optional vertical scrolling. Screens use this as their scrollable
- * content column so every screen gets the same fluid, centered layout.
+ * and optional vertical scrolling. The content column is always at least as
+ * tall as the window (CSS `min-height: 100vh`), so short content still fills
+ * the screen and vertical arrangements like [Arrangement.SpaceEvenly] or
+ * [Arrangement.SpaceBetween] distribute across the full height; when content
+ * overflows it scrolls instead of clipping.
  */
 @Composable
 fun AdaptiveScreenBody(
@@ -50,17 +55,32 @@ fun AdaptiveScreenBody(
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        // Visible content area height (window minus the scaffold's top/bottom
+        // bars, e.g. the app bar + sticky connection indicator, which are
+        // already subtracted from maxHeight via innerPadding). The content
+        // column is pinned to at least this height (CSS min-height: 100vh -
+        // bars) minus the body padding — which lives between fillMaxSize and
+        // the scroll modifier — so short content fills the screen without
+        // forcing an unnecessary scroll.
+        val minContentHeight = (maxHeight - verticalPadding * 2).coerceAtLeast(0.dp)
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .widthIn(max = rememberContentMaxWidth())
                 .padding(horizontal = horizontalPadding, vertical = verticalPadding)
-                .let { if (scrollable) it.verticalScroll(rememberScrollState()) else it },
-            verticalArrangement = verticalArrangement,
-            horizontalAlignment = horizontalAlignment,
-            content = content
-        )
+                .let { if (scrollable) it.verticalScroll(rememberScrollState()) else it }
+        ) {
+            // Inner column pinned to at least the window height so short
+            // content still fills the screen; the arrangement then
+            // distributes items across that full height.
+            Column(
+                modifier = Modifier.heightIn(min = minContentHeight),
+                verticalArrangement = verticalArrangement,
+                horizontalAlignment = horizontalAlignment,
+                content = content
+            )
+        }
     }
 }
 

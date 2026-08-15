@@ -152,6 +152,12 @@ class BluetoothHidManager private constructor(context: Context) {
     private val _connectedDevice = MutableStateFlow<BluetoothDevice?>(null)
     val connectedDevice: StateFlow<BluetoothDevice?> = _connectedDevice.asStateFlow()
 
+    // Measured signal strength (dBm) of the connected host, captured from
+    // discovery scans (classic Bluetooth doesn't expose a live RSSI of a
+    // connected device). Null until the host is seen in a scan.
+    private val _connectedRssi = MutableStateFlow<Int?>(null)
+    val connectedRssi: StateFlow<Int?> = _connectedRssi.asStateFlow()
+
     private val _targetDevice = MutableStateFlow<BluetoothDevice?>(null)
     val targetDevice: StateFlow<BluetoothDevice?> = _targetDevice.asStateFlow()
 
@@ -202,6 +208,7 @@ class BluetoothHidManager private constructor(context: Context) {
                         _isAppRegistered.value = false
                         _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
                         _connectedDevice.value = null
+                        _connectedRssi.value = null
                         _targetDevice.value = null
                         connectTimeoutJob?.cancel(true)
                         isConnecting = false
@@ -558,6 +565,7 @@ class BluetoothHidManager private constructor(context: Context) {
                     connectTimeoutJob?.cancel(true)
                     _targetDevice.value = null
                     _connectedDevice.value = null
+                    _connectedRssi.value = null
                     isConnecting = false
                     Log.d(TAG, "Disconnected from: ${device?.getSafeName()}")
                     // Stop BLE Battery Service
@@ -642,6 +650,7 @@ class BluetoothHidManager private constructor(context: Context) {
             connectTimeoutJob?.cancel(true)
             _targetDevice.value = null
             _connectedDevice.value = null
+            _connectedRssi.value = null
             _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
             isConnecting = false
             _hostLeds.value = 0
@@ -779,6 +788,11 @@ class BluetoothHidManager private constructor(context: Context) {
                         }
                         val rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt()
                         if (device != null && device.isHidCompatibleHost()) {
+                            // Keep the connected host's signal strength fresh
+                            // whenever it appears in a discovery scan.
+                            if (device.address == _connectedDevice.value?.address && rssi != Short.MIN_VALUE.toInt()) {
+                                _connectedRssi.value = rssi
+                            }
                             // Only add if not already in paired list
                             val paired = getBondedDevices()
                             val alreadyPaired = paired.any { it.address == device.address }
@@ -984,6 +998,7 @@ class BluetoothHidManager private constructor(context: Context) {
         }
         _connectionState.value = BluetoothProfile.STATE_DISCONNECTED
         _connectedDevice.value = null
+        _connectedRssi.value = null
         _targetDevice.value = null
         isConnecting = false
     }

@@ -12,6 +12,7 @@ object Routes {
     const val PRESENTATION = "presentation"
     const val SHORTCUTS = "shortcuts"
     const val SETTINGS = "settings"
+    const val DEVICE_SETTINGS = "device_settings"
     const val ABOUT = "about"
     const val GAMEPAD = "gamepad"
     const val GESTURE = "gesture"

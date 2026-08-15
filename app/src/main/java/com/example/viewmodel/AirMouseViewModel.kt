@@ -153,6 +153,15 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     // reports; 0 when the motors are off or no host is connected.
     val gamepadRumbleState: StateFlow<Int> = hidManager.gamepadRumble
 
+    // Measured signal strength (dBm) of the connected host, captured from
+    // discovery scans; null when unknown or disconnected.
+    val connectedRssi: StateFlow<Int?> = hidManager.connectedRssi
+
+    // All saved per-device pointer profiles (address -> profile), used by the
+    // Device Specific Settings screen to edit any host's saved profile.
+    val deviceProfiles: StateFlow<List<DeviceSettingsEntity>> = dao.getAllDeviceSettingsFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // Dynamic paired devices list
     private val _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val pairedDevices: StateFlow<List<BluetoothDevice>> = _pairedDevices.asStateFlow()
@@ -201,6 +210,12 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     }
 
     init {
+        // One-time cleanup of duplicate connection-history rows from before
+        // the per-device upsert (keeps only the latest row per host).
+        viewModelScope.launch(Dispatchers.IO) {
+            dao.dedupeConnectionHistory()
+        }
+
         // Start live battery monitoring
         batteryMonitor.start()
 
@@ -264,9 +279,10 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                             Toast.makeText(application, "Connected to $deviceName", Toast.LENGTH_SHORT).show()
                             currentDevice?.let {
                                 setLastConnectedDeviceAddress(it.address)
-                                // Save to connection history
+                                // Save to connection history (one row per
+                                // device — reconnecting updates the timestamp)
                                 viewModelScope.launch(Dispatchers.IO) {
-                                    dao.insertConnection(
+                                    dao.upsertConnection(
                                         ConnectionHistoryEntity(
                                             deviceName = deviceName,
                                             deviceAddress = it.address
@@ -521,12 +537,24 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    /** Forget the connected device's pointer profile and fall back to global settings. */
-    fun resetDeviceSettings() {
-        val address = hidManager.connectedDevice.value?.address ?: return
+    /** Save pointer fields to a specific device's profile (device settings screen). */
+    fun updateDeviceSettingsForDevice(deviceSettings: DeviceSettingsEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dao.updateDeviceSettings(deviceSettings)
+        }
+    }
+
+    /** Forget a specific device's pointer profile and fall back to global settings. */
+    fun resetDeviceSettingsForDevice(address: String) {
         viewModelScope.launch(Dispatchers.IO) {
             dao.deleteDeviceSettings(address)
         }
+    }
+
+    /** Forget the connected device's pointer profile and fall back to global settings. */
+    fun resetDeviceSettings() {
+        val address = hidManager.connectedDevice.value?.address ?: return
+        resetDeviceSettingsForDevice(address)
     }
 
     fun addCustomShortcut(name: String, modifiers: Int, keyCodes: String) {
@@ -717,11 +745,16 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
             _gamepadButtons.value and buttonBit.inv()
         }
         _gamepadButtons.value = next
+        // Haptic feedback on press, mirroring the keyboard-mode path
+        if (down) vibrate(20)
         sendGamepadReport(next, _gamepadHat.value)
     }
 
     fun gamepadHat(hat: Byte) {
+        val changed = hat != _gamepadHat.value
         _gamepadHat.value = hat
+        // Buzz when a direction is pressed (not when returning to center)
+        if (changed && hat != 8.toByte()) vibrate(15)
         sendGamepadReport(_gamepadButtons.value, hat)
     }
 

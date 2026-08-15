@@ -116,7 +116,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
             horizontalPadding = 24.dp,
             verticalPadding = 20.dp,
             scrollable = true,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 1. Top Quick Action Grid (Power, Home, Voice TV, Screen Mirror)
@@ -288,8 +288,6 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
                     Text("Back", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
 
@@ -307,8 +305,6 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(imageVector = Icons.Default.ViewArray, contentDescription = "App Switch", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
                     Text("Apps", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
 
@@ -322,8 +318,6 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardReturn, contentDescription = "Enter", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
                     Text("Enter", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }

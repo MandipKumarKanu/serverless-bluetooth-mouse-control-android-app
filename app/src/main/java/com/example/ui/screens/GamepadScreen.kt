@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -64,6 +65,7 @@ private const val BTN_DPAD_CENTER = 0x100
 @Composable
 fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
     var gamepadMode by remember { mutableStateOf(false) }
+    var showModeHelp by remember { mutableStateOf(false) }
 
     // Host force-feedback (rumble) intensity, 0 when motors are off
     val rumble by viewModel.gamepadRumbleState.collectAsState()
@@ -132,6 +134,16 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         IconButton(onClick = { navController.navigateUp() }) {
                             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                         }
+                    },
+                    actions = {
+                        // "?" help explaining the two input modes
+                        IconButton(onClick = { showModeHelp = true }) {
+                            Icon(
+                                imageVector = Icons.Outlined.HelpOutline,
+                                contentDescription = "Mode help",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
                     }
                 )
                 StickyConnectionIndicator(viewModel, navController)
@@ -142,8 +154,11 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
             modifier = Modifier.padding(innerPadding),
             horizontalPadding = 16.dp,
             scrollable = true,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Breathing room between the connection bar and the mode selector
+            Spacer(modifier = Modifier.height(8.dp))
+
             // Mode selector: keyboard emulation (universal) vs real HID gamepad
             // (recognized by DirectInput games and emulators).
             Row(
@@ -317,6 +332,29 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             )
         }
+    }
+
+    // "?" mode explanation dialog
+    if (showModeHelp) {
+        AlertDialog(
+            onDismissRequest = { showModeHelp = false },
+            title = { Text("Gamepad Modes", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Keyboard Mode — every button sends a real keyboard key (D-pad = arrow keys, A = G, B = J, X = D, Y = W). Works on any PC or app, but games see a keyboard, not a controller.",
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        text = "Gamepad Mode — sends a true HID gamepad report (joystick, hat switch, buttons). Recognized by DirectInput games and emulators; XInput-only titles won't respond.",
+                        fontSize = 13.sp
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showModeHelp = false }) { Text("Got it") }
+            }
+        )
     }
 }
 
