@@ -4,6 +4,11 @@ All notable changes to AirMouse will be documented in this file.
 
 ## [Unreleased]
 
+## [1.10.3] - 2026-08-15
+
+### Added
+- **Fluid responsive UI on every screen** — screens now share adaptive layout helpers (`Responsive.kt`): content is centered within a comfortable max width on large displays (tablets, landscape phones, foldables) instead of stretching edge-to-edge, and every screen is vertically scrollable so nothing clips on short windows. The large circular controls (air-mouse activation pad, media-remote D-pad) scale with the window, and the dashboard's control-mode grid shows three tiles per row on wide screens (two on phones).
+
 ## [1.10.2] - 2026-08-15
 
 ### Added
@@ -13,6 +18,9 @@ All notable changes to AirMouse will be documented in this file.
 
 ### Fixed
 - **Unit test flake on release builds** — `AirMouseViewModelTest` hung (and leaked DB coroutines) because Room 2.7 flow emissions resumed from the query executor are never delivered to a virtual-time test dispatcher, and the DB seeding coroutine raced the tests' writes. Tests now run on real dispatchers and wait for the seed before writing.
+
+### Changed
+- **Fluid responsive UI on every screen** — screens now share adaptive layout helpers: content is centered within a comfortable max width on large displays (tablets, landscape phones, foldables) instead of stretching edge-to-edge, and every screen is vertically scrollable so nothing clips on short windows. The large circular controls (air-mouse activation pad, media-remote D-pad) scale with the window, and the dashboard's control-mode grid shows three tiles per row on wide screens (two on phones).
 
 ## [1.10.1] - 2026-08-15
 

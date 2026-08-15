@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
+import com.example.ui.AdaptiveScreenBody
+import com.example.ui.responsiveControlDiameter
 
 // ==========================================
 // AIR MOUSE SCREEN
@@ -41,6 +43,9 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
     var showSensitivityDialog by remember { mutableStateOf(false) }
     var isFreeMode by remember { mutableStateOf(com.example.service.AirMouseService.isAirMouseActive) }
     var isFreeStreaming by remember { mutableStateOf(com.example.service.AirMouseService.isAirMouseActive) }
+
+    // Scales the activation pad with the window (bounded on tablets)
+    val padDiameter = responsiveControlDiameter()
 
     // Hold to Move detection
     val holdInteractionSource = remember { MutableInteractionSource() }
@@ -91,13 +96,13 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceEvenly
+        AdaptiveScreenBody(
+            modifier = Modifier.padding(innerPadding),
+            horizontalPadding = 24.dp,
+            verticalPadding = 24.dp,
+            scrollable = true,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             // Connection alert check
@@ -205,7 +210,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
-                        .size(220.dp)
+                        .size(padDiameter)
                         .clip(CircleShape)
                         .background(
                             Brush.sweepGradient(
@@ -229,7 +234,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(208.dp)
+                            .size(padDiameter - 12.dp)
                             .background(MaterialTheme.colorScheme.background, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {

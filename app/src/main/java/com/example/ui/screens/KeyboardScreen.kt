@@ -33,6 +33,7 @@ import android.widget.Toast
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
 import com.example.bluetooth.HidKeyMapper
+import com.example.ui.AdaptiveScreenBody
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -91,12 +92,11 @@ fun KeyboardScreen(navController: NavController, viewModel: AirMouseViewModel) {
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .verticalScroll(rememberScrollState()),
+        AdaptiveScreenBody(
+            modifier = Modifier.padding(innerPadding),
+            horizontalPadding = 16.dp,
+            verticalPadding = 8.dp,
+            scrollable = true,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Text Input Box for full string transmissions

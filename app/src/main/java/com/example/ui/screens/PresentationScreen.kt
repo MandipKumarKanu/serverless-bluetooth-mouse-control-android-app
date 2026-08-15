@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
+import com.example.ui.AdaptiveScreenBody
 import kotlinx.coroutines.delay
 
 // ==========================================
@@ -66,12 +67,11 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
+        AdaptiveScreenBody(
+            modifier = Modifier.padding(innerPadding),
+            horizontalPadding = 24.dp,
+            scrollable = true,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 

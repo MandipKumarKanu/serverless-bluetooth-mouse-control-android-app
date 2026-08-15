@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.sp
 import android.widget.Toast
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
+import com.example.ui.AdaptiveScreenBody
+import com.example.ui.responsiveControlDiameter
 import kotlinx.coroutines.launch
 
 // ==========================================
@@ -64,6 +66,9 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
             Toast.makeText(context, "Speech recognition not available", Toast.LENGTH_SHORT).show()
         }
     }
+
+    // Scales the D-pad with the window (bounded on tablets)
+    val dpadSize = responsiveControlDiameter()
 
     fun triggerScreenMirroring() {
         viewModel.vibrate(40)
@@ -106,12 +111,12 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.SpaceEvenly,
+        AdaptiveScreenBody(
+            modifier = Modifier.padding(innerPadding),
+            horizontalPadding = 24.dp,
+            verticalPadding = 20.dp,
+            scrollable = true,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 1. Top Quick Action Grid (Power, Home, Voice TV, Screen Mirror)
@@ -195,7 +200,7 @@ fun MediaRemoteScreen(navController: NavController, viewModel: AirMouseViewModel
             // 2. Circular D-Pad Controller
             Box(
                 modifier = Modifier
-                    .size(220.dp)
+                    .size(dpadSize)
                     .background(MaterialTheme.colorScheme.surface, CircleShape)
                     .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape),
                 contentAlignment = Alignment.Center

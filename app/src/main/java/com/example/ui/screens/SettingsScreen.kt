@@ -30,6 +30,7 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
 import com.example.bluetooth.getSafeName
+import com.example.ui.AdaptiveScreenBody
 import kotlinx.coroutines.launch
 
 // ==========================================
@@ -54,12 +55,10 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
+        AdaptiveScreenBody(
+            modifier = Modifier.padding(innerPadding),
+            horizontalPadding = 24.dp,
+            scrollable = true,
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text("Pointer Speeds & Calibration", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 15.sp)

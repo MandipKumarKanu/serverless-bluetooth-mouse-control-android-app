@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
+import com.example.ui.AdaptiveListBody
 
 // ==========================================
 // CUSTOM SHORTCUTS SCREEN
@@ -76,11 +77,7 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
             }
         }
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
+        AdaptiveListBody(modifier = Modifier.padding(innerPadding)) {
             if (shortcuts.isEmpty()) {
                 Column(
                     modifier = Modifier

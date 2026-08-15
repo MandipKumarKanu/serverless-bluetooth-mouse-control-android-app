@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.ui.rememberContentMaxWidth
 import kotlinx.coroutines.launch
 
 // ==========================================
@@ -73,6 +74,7 @@ fun PermissionsScreen(navController: NavController) {
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier
                 .fillMaxWidth()
+                .widthIn(max = rememberContentMaxWidth())
                 .padding(vertical = 16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {

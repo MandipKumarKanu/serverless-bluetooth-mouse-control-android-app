@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
+import com.example.ui.AdaptiveScreenBody
 
 /**
  * Press-and-hold modifier: invokes [onPress](true) on finger-down and
@@ -137,12 +138,11 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+        AdaptiveScreenBody(
+            modifier = Modifier.padding(innerPadding),
+            horizontalPadding = 16.dp,
+            scrollable = true,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Mode selector: keyboard emulation (universal) vs real HID gamepad
             // (recognized by DirectInput games and emulators).
@@ -226,9 +226,7 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
             // Middle section: D-Pad and Action Buttons
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {

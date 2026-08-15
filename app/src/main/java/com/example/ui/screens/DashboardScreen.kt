@@ -35,6 +35,8 @@ import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
 import com.example.bluetooth.getSafeName
 import com.example.bluetooth.isComputer
+import com.example.ui.AdaptiveListBody
+import com.example.ui.rememberContentMaxWidth
 
 // ==========================================
 // MAIN DASHBOARD (HOME SCREEN)
@@ -108,11 +110,11 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
             )
         }
     ) { innerPadding ->
+        AdaptiveListBody(modifier = Modifier.padding(innerPadding)) {
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -245,107 +247,32 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         ControlScreenTile(Routes.GESTURE, "Gestures", Icons.Outlined.Gesture, Color(0xFFFF6B35))
                     )
 
+                    // Two tiles per row on phones, three on wide screens
+                    val tileColumns = if (rememberContentMaxWidth() >= 600.dp) 3 else 2
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        for (i in screens.indices step 2) {
+                        for (i in screens.indices step tileColumns) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                val tile1 = screens[i]
-                                Card(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(100.dp)
-                                        .clickable {
-                                            viewModel.vibrate(30)
-                                            navController.navigate(tile1.route)
-                                        }
-                                        .testTag("tile_${tile1.route}"),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.cardColors(containerColor = if (useDynamicColors) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f) else MaterialTheme.colorScheme.surfaceVariant),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-                                ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(16.dp),
-                                        verticalArrangement = Arrangement.Center,
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        val iconColor = if (useDynamicColors) MaterialTheme.colorScheme.primary else tile1.color
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .background(iconColor.copy(alpha = 0.15f), CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = tile1.icon,
-                                                contentDescription = tile1.title,
-                                                tint = iconColor,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = tile1.title,
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                }
-
-                                if (i + 1 < screens.size) {
-                                    val tile2 = screens[i + 1]
-                                    Card(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(100.dp)
-                                            .clickable {
+                                for (j in 0 until tileColumns) {
+                                    val index = i + j
+                                    if (index < screens.size) {
+                                        ControlModeTile(
+                                            tile = screens[index],
+                                            useDynamicColors = useDynamicColors,
+                                            modifier = Modifier.weight(1f),
+                                            onClick = {
                                                 viewModel.vibrate(30)
-                                                navController.navigate(tile2.route)
+                                                navController.navigate(screens[index].route)
                                             }
-                                            .testTag("tile_${tile2.route}"),
-                                        shape = RoundedCornerShape(16.dp),
-                                        colors = CardDefaults.cardColors(containerColor = if (useDynamicColors) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f) else MaterialTheme.colorScheme.surfaceVariant),
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-                                    ) {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .padding(16.dp),
-                                            verticalArrangement = Arrangement.Center,
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            val iconColor2 = if (useDynamicColors) MaterialTheme.colorScheme.primary else tile2.color
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(40.dp)
-                                                    .background(iconColor2.copy(alpha = 0.15f), CircleShape),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = tile2.icon,
-                                                    contentDescription = tile2.title,
-                                                    tint = iconColor2,
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Text(
-                                                text = tile2.title,
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.weight(1f))
                                     }
-                                } else {
-                                    Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }
@@ -767,6 +694,61 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
             }
 
             item { Spacer(modifier = Modifier.height(24.dp)) }
+        }
+        }
+    }
+}
+
+@Composable
+private fun ControlModeTile(
+    tile: ControlScreenTile,
+    useDynamicColors: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(100.dp)
+            .clickable(onClick = onClick)
+            .testTag("tile_${tile.route}"),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (useDynamicColors) {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val iconColor = if (useDynamicColors) MaterialTheme.colorScheme.primary else tile.color
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(iconColor.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = tile.icon,
+                    contentDescription = tile.title,
+                    tint = iconColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = tile.title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

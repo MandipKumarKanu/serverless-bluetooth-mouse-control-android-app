@@ -42,6 +42,7 @@ import com.example.gesture.deserializeGesturePoints
 import com.example.gesture.gestureActionTypeFor
 import com.example.gesture.serializeGesturePoints
 import com.example.viewmodel.AirMouseViewModel
+import com.example.ui.AdaptiveListBody
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,10 +115,10 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
             }
         }
     ) { innerPadding ->
+        AdaptiveListBody(modifier = Modifier.padding(innerPadding)) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp)
@@ -822,6 +823,7 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     }
                 }
             }
+        }
         }
     }
 

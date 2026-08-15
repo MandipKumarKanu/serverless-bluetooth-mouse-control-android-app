@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.BuildConfig
+import com.example.ui.AdaptiveScreenBody
 
 // ==========================================
 // ABOUT & DOCUMENTATION SCREEN
@@ -42,12 +43,10 @@ fun AboutScreen(navController: NavController) {
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
+        AdaptiveScreenBody(
+            modifier = Modifier.padding(innerPadding),
+            horizontalPadding = 24.dp,
+            scrollable = true,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
