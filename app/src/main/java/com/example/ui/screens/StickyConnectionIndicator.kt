@@ -22,6 +22,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
 import com.example.bluetooth.getSafeName
+import com.example.ui.theme.StatusConnected
+import com.example.ui.theme.StatusConnectedContainer
+import com.example.ui.theme.StatusConnecting
+import com.example.ui.theme.StatusConnectingContainer
 
 @Composable
 fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavController? = null) {
@@ -36,15 +40,15 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
 
     val backgroundColor = when {
         !isBluetoothPowerOn -> MaterialTheme.colorScheme.errorContainer
-        isConnected -> Color(0xFF064E3B) // Dark green for connected
-        isConnecting -> Color(0xFF451A03) // Dark amber for connecting
+        isConnected -> StatusConnectedContainer
+        isConnecting -> StatusConnectingContainer
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
 
     val contentColor = when {
         !isBluetoothPowerOn -> MaterialTheme.colorScheme.onErrorContainer
-        isConnected -> Color(0xFF10B981) // Green for connected
-        isConnecting -> Color(0xFFF59E0B) // Amber for connecting
+        isConnected -> StatusConnected
+        isConnecting -> StatusConnecting
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
@@ -83,13 +87,13 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
                     Icon(
                         imageVector = Icons.Default.NetworkCell,
                         contentDescription = "Signal Strength",
-                        tint = Color(0xFF10B981),
+                        tint = StatusConnected,
                         modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "$connectedRssi dBm",
-                        color = Color(0xFF10B981),
+                        color = StatusConnected,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -98,13 +102,12 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.BluetoothSearching,
                     contentDescription = "Connecting",
-                    tint = Color(0xFFF59E0B),
+                    tint = StatusConnecting,
                     modifier = Modifier.size(15.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "CONNECTING TO ${targetDevice?.getSafeName() ?: "Host Device"}...",
-                    color = Color(0xFFF59E0B),
+                    text = "CONNECTING TO ${targetDevice?.getSafeName() ?: "Host Device"}...",                        color = StatusConnecting,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -117,7 +120,7 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Cancel Connection",
-                        tint = Color(0xFFF59E0B),
+                        tint = StatusConnecting,
                         modifier = Modifier.size(16.dp)
                     )
                 }

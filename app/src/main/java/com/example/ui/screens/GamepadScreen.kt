@@ -30,6 +30,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
 import com.example.ui.AdaptiveScreenBody
+import com.example.ui.theme.GamepadA
+import com.example.ui.theme.GamepadB
+import com.example.ui.theme.GamepadX
+import com.example.ui.theme.GamepadY
 
 /**
  * Press-and-hold modifier: invokes [onPress](true) on finger-down and
@@ -499,7 +503,7 @@ fun ActionButtons(
         // Y (Top)
         GamepadActionButton(
             label = "Y",
-            color = Color(0xFFF59E0B),
+            color = GamepadY,
             modifier = Modifier.align(Alignment.TopCenter),
             onPress = onTop
         )
@@ -507,7 +511,7 @@ fun ActionButtons(
         // A (Bottom)
         GamepadActionButton(
             label = "A",
-            color = Color(0xFF10B981),
+            color = GamepadA,
             modifier = Modifier.align(Alignment.BottomCenter),
             onPress = onBottom
         )
@@ -515,7 +519,7 @@ fun ActionButtons(
         // X (Left)
         GamepadActionButton(
             label = "X",
-            color = Color(0xFF3B82F6),
+            color = GamepadX,
             modifier = Modifier.align(Alignment.CenterStart),
             onPress = onLeft
         )
@@ -523,7 +527,7 @@ fun ActionButtons(
         // B (Right)
         GamepadActionButton(
             label = "B",
-            color = Color(0xFFEF4444),
+            color = GamepadB,
             modifier = Modifier.align(Alignment.CenterEnd),
             onPress = onRight
         )

@@ -2,6 +2,23 @@
 
 All notable changes to AirMouse will be documented in this file.
 
+## [1.10.7] - 2026-08-20
+
+### Added
+- **HidDeviceManager interface** — `BluetoothHidManager` now implements a clean `HidDeviceManager` interface, making the Bluetooth HID layer mockable and testable. The ViewModel and Service depend on the interface, not the concrete singleton.
+- **Repository layer** — Extracted `SettingsRepository`, `GestureRepository`, and `ConnectionHistoryRepository` from the ViewModel. The ViewModel no longer touches Room DAOs or SharedPreferences directly.
+- **SettingsViewModel & GestureViewModel** — Split the monolithic `AirMouseViewModel` into focused sub-ViewModels for settings CRUD and gesture/shortcut CRUD. The main ViewModel delegates to them.
+- **Type-safe navigation** — New `NavRoute` sealed class with compile-time-checked route definitions. All navigation calls now use `navController.navigateTo(NavRoute.Dashboard)` instead of raw strings.
+- **Connection error UI** — Failed connection attempts now show an inline error banner on the Dashboard with a dismiss button, replacing silent Toast-only feedback.
+- **Auto-install OTA updates** — Downloaded APKs now trigger the system package installer automatically via `DownloadCompleteReceiver`. The "Download & Install" button shows a progress indicator while downloading.
+- **Compose previews** — Added `@Preview` annotations to `AboutScreen` and `SplashScreen` for visual verification without running the app.
+- **Detekt static analysis** — Added detekt Gradle plugin with sensible rules (line length, function complexity, unused members). Run with `./gradlew detekt`.
+
+### Changed
+- **Centralized color tokens** — 26 semantic color constants (`StatusConnected`, `StatusConnecting`, `GamepadA`, `TileTouchpad`, etc.) replace 43 hardcoded `Color(0xFF...)` values across 6 screen files.
+- **Structured coroutine scope in AirMouseService** — Replaced 2 orphan `CoroutineScope` instances with a single `serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())`, cancelled in `onDestroy()`. No more coroutine leaks.
+- **Convenience overloads on BluetoothHidManager** — Added 4-arg `sendMouseInput` and 4-arg `sendGamepadInput` overloads for callers on the concrete type, preserving backward compatibility.
+
 ## [1.10.6] - 2026-08-15
 
 ### Changed

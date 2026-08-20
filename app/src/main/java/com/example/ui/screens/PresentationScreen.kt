@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
 import com.example.ui.AdaptiveScreenBody
+import com.example.ui.theme.StatusConnected
 import kotlinx.coroutines.delay
 
 // ==========================================
@@ -104,7 +105,7 @@ fun PresentationScreen(navController: NavController, viewModel: AirMouseViewMode
                             timerRunning = !timerRunning
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (timerRunning) MaterialTheme.colorScheme.error else Color(0xFF10B981)
+                            containerColor = if (timerRunning) MaterialTheme.colorScheme.error else StatusConnected
                         )
                     ) {
                         Text(if (timerRunning) "Pause" else "Start", fontWeight = FontWeight.Bold, color = Color.White)

@@ -32,10 +32,11 @@ fun UpdateDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    var isDownloading by remember { mutableStateOf(false) }
 
     Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = false)
+        onDismissRequest = { if (!isDownloading) onDismiss() },
+        properties = DialogProperties(dismissOnBackPress = !isDownloading, dismissOnClickOutside = false)
     ) {
         Card(
             modifier = Modifier
@@ -153,38 +154,57 @@ fun UpdateDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Download button
-                    Button(
-                        onClick = {
-                            val apkUrl = updateInfo.apkDownloadUrl
-                            if (apkUrl != null) {
-                                downloadApk(context, apkUrl)
-                            } else {
-                                // No APK asset attached to the release - open the page
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.downloadUrl))
-                                context.startActivity(intent)
-                            }
-                            onDismiss()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text("Download Update", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
+                    if (isDownloading) {
+                        // Downloading state
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Downloading update...",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        // Download button
+                        Button(
+                            onClick = {
+                                val apkUrl = updateInfo.apkDownloadUrl
+                                if (apkUrl != null) {
+                                    isDownloading = true
+                                    downloadApk(context, apkUrl)
+                                } else {
+                                    // No APK asset attached to the release - open the page
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo.downloadUrl))
+                                    context.startActivity(intent)
+                                    onDismiss()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("Download & Install", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
 
-                    // Later button
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = ButtonDefaults.outlinedButtonBorder(enabled = true)
-                    ) {
-                        Text("Later", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                        // Later button
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+                        ) {
+                            Text("Later", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                        }
                     }
                 }
             }

@@ -307,7 +307,7 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                     .clip(RoundedCornerShape(12.dp))
                     .clickable {
                         viewModel.vibrate(20)
-                        navController.navigate(Routes.DEVICE_SETTINGS)
+                        navController.navigateTo(NavRoute.DeviceSettings)
                     }
                     .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,

@@ -56,8 +56,8 @@ fun PermissionsScreen(navController: NavController) {
     ) { results ->
         val allGranted = results.values.all { it }
         if (allGranted) {
-            navController.navigate(Routes.DASHBOARD) {
-                popUpTo(Routes.PERMISSIONS) { inclusive = true }
+            navController.navigateTo(NavRoute.Dashboard) {
+                popUpTo(NavRoute.Permissions.path) { inclusive = true }
             }
         }
     }

@@ -3,6 +3,7 @@ plugins {
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.google.devtools.ksp)
   alias(libs.plugins.roborazzi)
+  alias(libs.plugins.detekt)
 }
 
 android {
@@ -13,8 +14,8 @@ android {
     applicationId = "com.aistudio.airmouse.kxmpzq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 44
-    versionName = "1.10.6"
+    versionCode = 45
+    versionName = "1.10.7"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

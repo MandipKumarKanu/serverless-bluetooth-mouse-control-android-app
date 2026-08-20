@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.viewmodel.AirMouseViewModel
 import com.example.ui.AdaptiveScreenBody
+import com.example.ui.theme.StatusConnected
 import com.example.ui.responsiveControlDiameter
 
 // ==========================================
@@ -215,9 +216,9 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .background(
                             Brush.sweepGradient(
                                 colors = listOf(
-                                    if (isStreaming) Color(0xFF10B981) else MaterialTheme.colorScheme.surfaceVariant,
+                                    if (isStreaming) StatusConnected else MaterialTheme.colorScheme.surfaceVariant,
                                     MaterialTheme.colorScheme.primary,
-                                    if (isStreaming) Color(0xFF10B981) else MaterialTheme.colorScheme.surfaceVariant
+                                    if (isStreaming) StatusConnected else MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
                         )
@@ -242,7 +243,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             Icon(
                                 imageVector = if (isFreeMode) Icons.Default.Mouse else Icons.Default.ScreenRotation,
                                 contentDescription = "Gyroscope Status",
-                                tint = if (isStreaming) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = if (isStreaming) StatusConnected else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(56.dp)
                             )
                             Spacer(modifier = Modifier.height(10.dp))
@@ -250,7 +251,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 text = if (isStreaming) "STREAMING" else if (isFreeMode) "TAP TO START" else "READY",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isStreaming) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isStreaming) StatusConnected else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -315,7 +316,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .testTag("air_mouse_free_toggle"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFreeStreaming) Color(0xFF10B981) else MaterialTheme.colorScheme.surface
+                            containerColor = if (isFreeStreaming) StatusConnected else MaterialTheme.colorScheme.surface
                         ),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
@@ -342,7 +343,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                             .testTag("air_mouse_hold_move"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isHoldPressed) Color(0xFF10B981) else MaterialTheme.colorScheme.surface
+                            containerColor = if (isHoldPressed) StatusConnected else MaterialTheme.colorScheme.surface
                         ),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {

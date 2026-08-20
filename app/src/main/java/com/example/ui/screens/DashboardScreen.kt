@@ -37,6 +37,7 @@ import com.example.bluetooth.getSafeName
 import com.example.bluetooth.isComputer
 import com.example.ui.AdaptiveListBody
 import com.example.ui.rememberContentMaxWidth
+import com.example.ui.theme.*
 
 // ==========================================
 // MAIN DASHBOARD (HOME SCREEN)
@@ -53,6 +54,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
     val isScanning by viewModel.isScanning.collectAsState()
     val isBluetoothPowerOn by viewModel.isBluetoothPowerOn.collectAsState()
     val settings by viewModel.settingsState.collectAsState()
+    val connectionError by viewModel.connectionError.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     // Check if Material You (dynamic colors) is enabled
@@ -96,12 +98,11 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
             CenterAlignedTopAppBar(
                 title = { Text("AirMouse Console", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 20.sp) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-                actions = {
-                    IconButton(
-                        onClick = {
-                            viewModel.vibrate(30)
-                            navController.navigate(Routes.SETTINGS)
-                        },
+                actions = {                        IconButton(
+                            onClick = {
+                                viewModel.vibrate(30)
+                                navController.navigateTo(NavRoute.Settings)
+                            },
                         modifier = Modifier.testTag("settings_button")
                     ) {
                         Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onBackground)
@@ -128,8 +129,8 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
 
                 val cardColor = when {
                     !isBluetoothPowerOn -> MaterialTheme.colorScheme.errorContainer
-                    isConnected -> Color(0xFF064E3B) // Dark green for connected
-                    isConnectingState -> Color(0xFF451A03) // Dark amber for connecting
+                    isConnected -> StatusConnectedContainer
+                    isConnectingState -> StatusConnectingContainer
                     else -> MaterialTheme.colorScheme.surfaceVariant
                 }
                 val statusText = when {
@@ -146,8 +147,8 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                 }
                 val tintColor = when {
                     !isBluetoothPowerOn -> MaterialTheme.colorScheme.error
-                    isConnected -> Color(0xFF10B981) // Green for connected
-                    isConnectingState -> Color(0xFFF59E0B) // Amber for connecting
+                    isConnected -> StatusConnected
+                    isConnectingState -> StatusConnecting
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
 
@@ -187,7 +188,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                 fontSize = 16.sp,
                                 color = when {
                                     isConnected -> Color.White
-                                    isConnectingState -> Color(0xFFF59E0B)
+                                    isConnectingState -> StatusConnecting
                                     !isBluetoothPowerOn -> MaterialTheme.colorScheme.onErrorContainer
                                     else -> MaterialTheme.colorScheme.onSurface
                                 },
@@ -214,8 +215,51 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Cancel Connection",
-                                    tint = Color(0xFFF59E0B),
+                                    tint = StatusConnecting,
                                     modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 1b. Connection error banner
+            if (connectionError != null) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = "Error",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = connectionError ?: "",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { viewModel.clearConnectionError() },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Dismiss",
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
                         }
@@ -237,14 +281,14 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
 
                 item {
                     val screens = listOf(
-                        ControlScreenTile(Routes.TOUCHPAD, "Touchpad", Icons.Outlined.TouchApp, Color(0xFF3B82F6)),
-                        ControlScreenTile(Routes.AIR_MOUSE, "Air Mouse", Icons.Outlined.Mouse, Color(0xFF10B981)),
-                        ControlScreenTile(Routes.KEYBOARD, "Keyboard", Icons.Outlined.Keyboard, Color(0xFFF59E0B)),
-                        ControlScreenTile(Routes.MEDIA_REMOTE, "Media Remote", Icons.Outlined.PlayCircle, Color(0xFFEF4444)),
-                        ControlScreenTile(Routes.PRESENTATION, "Presentation", Icons.Outlined.CoPresent, Color(0xFF8B5CF6)),
-                        ControlScreenTile(Routes.SHORTCUTS, "Shortcuts", Icons.Outlined.SettingsApplications, Color(0xFFEC4899)),
-                        ControlScreenTile(Routes.GAMEPAD, "Gamepad", Icons.Outlined.Gamepad, Color(0xFF06B6D4)),
-                        ControlScreenTile(Routes.GESTURE, "Gestures", Icons.Outlined.Gesture, Color(0xFFFF6B35))
+                        ControlScreenTile(NavRoute.Touchpad, "Touchpad", Icons.Outlined.TouchApp, TileTouchpad),
+                        ControlScreenTile(NavRoute.AirMouse, "Air Mouse", Icons.Outlined.Mouse, TileAirMouse),
+                        ControlScreenTile(NavRoute.Keyboard, "Keyboard", Icons.Outlined.Keyboard, TileKeyboard),
+                        ControlScreenTile(NavRoute.MediaRemote, "Media Remote", Icons.Outlined.PlayCircle, TileMediaRemote),
+                        ControlScreenTile(NavRoute.Presentation, "Presentation", Icons.Outlined.CoPresent, TilePresentation),
+                        ControlScreenTile(NavRoute.Shortcuts, "Shortcuts", Icons.Outlined.SettingsApplications, TileShortcuts),
+                        ControlScreenTile(NavRoute.Gamepad, "Gamepad", Icons.Outlined.Gamepad, TileGamepad),
+                        ControlScreenTile(NavRoute.Gesture, "Gestures", Icons.Outlined.Gesture, TileGestures)
                     )
 
                     // Two tiles per row on phones, three on wide screens
@@ -267,7 +311,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                             modifier = Modifier.weight(1f),
                                             onClick = {
                                                 viewModel.vibrate(30)
-                                                navController.navigate(screens[index].route)
+                                                navController.navigateTo(screens[index].route)
                                             }
                                         )
                                     } else {
@@ -402,13 +446,13 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                         colors = CardDefaults.cardColors(
                             containerColor = when {
                                 isThisConnected -> MaterialTheme.colorScheme.surface
-                                isConnectingThisDevice -> Color(0xFF451A03).copy(alpha = 0.5f)
+                                isConnectingThisDevice -> StatusConnectingContainer.copy(alpha = 0.5f)
                                 else -> MaterialTheme.colorScheme.surfaceVariant
                             }
                         ),
                         border = when {
                             isThisConnected -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-                            isConnectingThisDevice -> BorderStroke(1.dp, Color(0xFFF59E0B))
+                            isConnectingThisDevice -> BorderStroke(1.dp, StatusConnecting)
                             else -> null
                         }
                     ) {
@@ -423,7 +467,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                 contentDescription = "Device Type",
                                 tint = when {
                                     isThisConnected -> MaterialTheme.colorScheme.primary
-                                    isConnectingThisDevice -> Color(0xFFF59E0B)
+                                    isConnectingThisDevice -> StatusConnecting
                                     else -> MaterialTheme.colorScheme.onSurface
                                 },
                                 modifier = Modifier.size(24.dp)
@@ -439,7 +483,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                 Text(
                                     text = if (isConnectingThisDevice) "Connecting..." else device.address,
                                     fontSize = 12.sp,
-                                    color = if (isConnectingThisDevice) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (isConnectingThisDevice) StatusConnecting else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
                             }
@@ -448,7 +492,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(20.dp),
                                         strokeWidth = 2.dp,
-                                        color = Color(0xFFF59E0B)
+                                        color = StatusConnecting
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     IconButton(
@@ -458,7 +502,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                                         Icon(
                                             imageVector = Icons.Default.Close,
                                             contentDescription = "Cancel Connection",
-                                            tint = Color(0xFFF59E0B),
+                                            tint = StatusConnecting,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -672,7 +716,7 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { navController.navigate(Routes.ABOUT) },
+                        .clickable { navController.navigateTo(NavRoute.About) },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
@@ -710,7 +754,7 @@ private fun ControlModeTile(
         modifier = modifier
             .height(100.dp)
             .clickable(onClick = onClick)
-            .testTag("tile_${tile.route}"),
+            .testTag("tile_${tile.route.path}"),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (useDynamicColors) {
@@ -754,7 +798,7 @@ private fun ControlModeTile(
 }
 
 data class ControlScreenTile(
-    val route: String,
+    val route: NavRoute,
     val title: String,
     val icon: ImageVector,
     val color: Color

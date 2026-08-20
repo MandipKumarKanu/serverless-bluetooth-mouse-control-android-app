@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.BuildConfig
 import com.example.ui.AdaptiveScreenBody
+import com.example.ui.theme.MyApplicationTheme
+import androidx.compose.ui.tooling.preview.Preview
 
 // ==========================================
 // ABOUT & DOCUMENTATION SCREEN
@@ -302,5 +304,13 @@ fun AboutScreen(navController: NavController) {
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true, name = "About - Dark")
+@Composable
+private fun AboutScreenPreview() {
+    MyApplicationTheme(darkTheme = true) {
+        AboutScreen(navController = androidx.navigation.compose.rememberNavController())
     }
 }

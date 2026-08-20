@@ -40,3 +40,35 @@ val LightError = Color(0xFFDC2626)
 val LightErrorContainer = Color(0xFFFEE2E2)
 val LightSuccess = Color(0xFF059669)
 val LightSuccessContainer = Color(0xFFD1FAE5)
+
+// ── Semantic status colors (used across screens) ────────────────────
+// These replace the 43 hardcoded Color(0xFF...) values scattered
+// across DashboardScreen, AirMouseScreen, StickyConnectionIndicator,
+// GamepadScreen, TouchpadScreen, and PresentationScreen.
+
+// Connected state (green)
+val StatusConnected = Color(0xFF10B981)           // text / icon tint
+val StatusConnectedContainer = Color(0xFF064E3B)  // card background (dark)
+
+// Connecting state (amber)
+val StatusConnecting = Color(0xFFF59E0B)           // text / icon tint
+val StatusConnectingContainer = Color(0xFF451A03)  // card background (dark)
+
+// Error / disconnected state (red)
+val StatusError = Color(0xFFEF4444)
+
+// Gamepad button colors
+val GamepadA = Color(0xFF10B981)  // Green
+val GamepadB = Color(0xFFEF4444)  // Red
+val GamepadX = Color(0xFF3B82F6)  // Blue
+val GamepadY = Color(0xFFF59E0B)  // Amber
+
+// Control-mode tile accent colors
+val TileTouchpad = Color(0xFF3B82F6)   // Blue
+val TileAirMouse = Color(0xFF10B981)    // Green
+val TileKeyboard = Color(0xFFF59E0B)    // Amber
+val TileMediaRemote = Color(0xFFEF4444) // Red
+val TilePresentation = Color(0xFF8B5CF6) // Purple
+val TileShortcuts = Color(0xFFEC4899)    // Pink
+val TileGamepad = Color(0xFF06B6D4)      // Cyan
+val TileGestures = Color(0xFFFF6B35)     // Orange

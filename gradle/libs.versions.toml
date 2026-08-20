@@ -27,6 +27,7 @@ moshiKotlin = "1.15.2"
 moshiKotlinCodegen = "1.15.2"
 robolectric = "4.16.1"
 roborazzi = "1.59.0"
+detekt = "1.23.7"
 
 
 [libraries]
@@ -70,3 +71,4 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "googleDevtoolsKsp" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

@@ -15,6 +15,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bluetooth.BluetoothHidManager
+import com.example.bluetooth.HidDeviceManager
 import com.example.bluetooth.HidKeyMapper
 import com.example.bluetooth.LED_CAPS_LOCK
 import com.example.bluetooth.LED_NUM_LOCK
@@ -24,9 +25,11 @@ import com.example.bluetooth.getSafeName
 import com.example.data.AppDatabase
 import com.example.service.AirMouseService
 import com.example.data.ConnectionHistoryEntity
+import com.example.data.ConnectionHistoryRepository
 import com.example.data.DeviceSettingsEntity
 import com.example.data.GestureEntity
 import com.example.data.SettingsEntity
+import com.example.data.SettingsRepository
 import com.example.data.ShortcutEntity
 import com.example.sensor.BatteryMonitor
 import com.example.sensor.MotionSensorManager
@@ -41,10 +44,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -54,80 +55,50 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
 
     private val app = application
     private val db = AppDatabase.getDatabase(application, viewModelScope)
-    private val dao = db.airMouseDao()
 
-    val hidManager = BluetoothHidManager.getInstance(application)
+    val hidManager: HidDeviceManager = BluetoothHidManager.getInstance(application)
     private val sensorManager = MotionSensorManager(application)
 
-    // Global (app-level) settings row. Pointer fields here are the fallback
-    // used when no per-device profile exists for the connected host.
-    private val globalSettings: StateFlow<SettingsEntity> = dao.getSettingsFlow()
-        .map { it ?: SettingsEntity() }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = SettingsEntity()
-        )
+    // Sub-ViewModels for settings and gesture CRUD. Screens can access these
+    // via [settingsViewModel] and [gestureViewModel] instead of calling the
+    // corresponding methods on AirMouseViewModel directly.
+    val settingsViewModel = SettingsViewModel(application)
+    val gestureViewModel = GestureViewModel(application)
 
-    // Pointer settings of the currently connected device (null when
-    // disconnected or when the device has no saved profile yet).
-    private val currentDeviceSettings: StateFlow<DeviceSettingsEntity?> =
+    // SettingsRepository is still needed directly for auto-reconnect
+    // SharedPreferences and device-profile seeding on first connect.
+    // ConnectionHistoryRepo handles connection history lifecycle operations.
+    private val settingsRepo = SettingsRepository(db.airMouseDao(), application, viewModelScope)
+    private val connectionHistoryRepo = ConnectionHistoryRepository(db.airMouseDao())
+
+    // Effective settings: global settings with the connected device's pointer
+    // overrides applied. Delegates to [SettingsViewModel] and reactively
+    // switches when the connected device changes.
+    val settingsState: StateFlow<SettingsEntity> =
         hidManager.connectedDevice
             .map { it?.address }
             .distinctUntilChanged()
             .flatMapLatest { address ->
-                if (address == null) flowOf(null) else dao.getDeviceSettingsFlow(address)
+                settingsViewModel.settingsStateForDevice(address)
             }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
-                initialValue = null
+                initialValue = SettingsEntity()
             )
 
-    // Effective settings: global settings with the connected device's pointer
-    // overrides applied. Screens read/write this; updateSettings() routes the
-    // pointer fields to the device row while a device is connected.
-    val settingsState: StateFlow<SettingsEntity> =
-        combine(globalSettings, currentDeviceSettings) { global, device ->
-            if (device == null) {
-                global
-            } else {
-                global.copy(
-                    sensitivity = device.sensitivity,
-                    smoothing = device.smoothing,
-                    deadZone = device.deadZone,
-                    acceleration = device.acceleration,
-                    scrollSpeed = device.scrollSpeed,
-                    invertX = device.invertX,
-                    invertY = device.invertY
-                )
-            }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = SettingsEntity()
-        )
+    /** Delegates to [GestureViewModel.shortcuts]. */
+    val shortcutsState: StateFlow<List<ShortcutEntity>> = gestureViewModel.shortcuts
 
-    val shortcutsState: StateFlow<List<ShortcutEntity>> = dao.getAllShortcutsFlow()
+    val connectionHistory: StateFlow<List<ConnectionHistoryEntity>> = connectionHistoryRepo.recentConnections
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
 
-    val connectionHistory: StateFlow<List<ConnectionHistoryEntity>> = dao.getRecentConnectionsFlow()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-
-    val gesturesState: StateFlow<List<GestureEntity>> = dao.getAllGesturesFlow()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    /** Delegates to [GestureViewModel.gestures]. */
+    val gesturesState: StateFlow<List<GestureEntity>> = gestureViewModel.gestures
 
     // Bluetooth States from native service
     val bluetoothState: StateFlow<Int> = hidManager.connectionState
@@ -135,6 +106,10 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     val targetDevice: StateFlow<BluetoothDevice?> = hidManager.targetDevice
     val isProfileReady: StateFlow<Boolean> = hidManager.isProfileReady
     val isBluetoothPowerOn: StateFlow<Boolean> = hidManager.isBluetoothEnabledFlow
+
+    // Last connection error message (cleared when a new connection attempt starts)
+    private val _connectionError = MutableStateFlow<String?>(null)
+    val connectionError: StateFlow<String?> = _connectionError.asStateFlow()
 
     // Host-side keyboard lock indicators, mirrored from the host's HID LED
     // output reports (e.g. pressing Caps Lock on the PC lights the indicator
@@ -159,8 +134,8 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
 
     // All saved per-device pointer profiles (address -> profile), used by the
     // Device Specific Settings screen to edit any host's saved profile.
-    val deviceProfiles: StateFlow<List<DeviceSettingsEntity>> = dao.getAllDeviceSettingsFlow()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    /** Delegates to [SettingsViewModel.deviceProfiles]. */
+    val deviceProfiles: StateFlow<List<DeviceSettingsEntity>> = settingsViewModel.deviceProfiles
 
     // Dynamic paired devices list
     private val _pairedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
@@ -175,13 +150,10 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     // its own monitor for the notification, so no UI state is exposed here.
     private val batteryMonitor = BatteryMonitor(application)
 
-    // SharedPreferences for safe storage of auto-reconnect settings
-    private val prefs = application.getSharedPreferences("air_mouse_prefs", Context.MODE_PRIVATE)
-
-    private val _autoReconnectEnabled = MutableStateFlow(prefs.getBoolean("auto_reconnect_enabled", true))
+    private val _autoReconnectEnabled = MutableStateFlow(settingsRepo.autoReconnectEnabled)
     val autoReconnectEnabled: StateFlow<Boolean> = _autoReconnectEnabled.asStateFlow()
 
-    private val _lastConnectedDeviceAddress = MutableStateFlow(prefs.getString("last_connected_device_address", null))
+    private val _lastConnectedDeviceAddress = MutableStateFlow(settingsRepo.lastConnectedDeviceAddress)
     val lastConnectedDeviceAddress: StateFlow<String?> = _lastConnectedDeviceAddress.asStateFlow()
 
     // Auto-reconnect job to prevent multiple concurrent reconnect attempts
@@ -192,12 +164,12 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     private val autoReconnectDebounceMs = 3000L
 
     fun setAutoReconnectEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("auto_reconnect_enabled", enabled).apply()
+        settingsRepo.setAutoReconnectEnabled(enabled)
         _autoReconnectEnabled.value = enabled
     }
 
     fun setLastConnectedDeviceAddress(address: String?) {
-        prefs.edit().putString("last_connected_device_address", address).apply()
+        settingsRepo.setLastConnectedDeviceAddress(address)
         _lastConnectedDeviceAddress.value = address
     }
 
@@ -213,7 +185,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         // One-time cleanup of duplicate connection-history rows from before
         // the per-device upsert (keeps only the latest row per host).
         viewModelScope.launch(Dispatchers.IO) {
-            dao.dedupeConnectionHistory()
+            connectionHistoryRepo.dedupeConnectionHistory()
         }
 
         // Start live battery monitoring
@@ -282,7 +254,7 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                                 // Save to connection history (one row per
                                 // device — reconnecting updates the timestamp)
                                 viewModelScope.launch(Dispatchers.IO) {
-                                    dao.upsertConnection(
+                                    connectionHistoryRepo.upsertConnection(
                                         ConnectionHistoryEntity(
                                             deviceName = deviceName,
                                             deviceAddress = it.address
@@ -292,9 +264,9 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                                     // pointer profile from the current global
                                     // settings so per-device settings start
                                     // seamlessly instead of at defaults.
-                                    if (dao.getDeviceSettingsDirect(it.address) == null) {
-                                        val global = dao.getSettingsDirect() ?: SettingsEntity()
-                                        dao.updateDeviceSettings(
+                                    if (settingsRepo.getDeviceSettingsDirect(it.address) == null) {
+                                        val global = settingsRepo.getSettingsDirect() ?: SettingsEntity()
+                                        settingsRepo.updateDeviceSettings(
                                             DeviceSettingsEntity(
                                                 deviceAddress = it.address,
                                                 sensitivity = global.sensitivity,
@@ -317,9 +289,13 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                             }
                         }
                         BluetoothProfile.STATE_CONNECTING -> {
+                            _connectionError.value = null // Clear previous error
                             Toast.makeText(application, "Connecting to $deviceName...", Toast.LENGTH_SHORT).show()
                         }
                         BluetoothProfile.STATE_DISCONNECTED -> {
+                            if (lastState == BluetoothProfile.STATE_CONNECTING) {
+                                _connectionError.value = "Failed to connect to $deviceName"
+                            }
                             if (lastState == BluetoothProfile.STATE_CONNECTED || lastState == BluetoothProfile.STATE_CONNECTING) {
                                 Toast.makeText(application, "Disconnected from $deviceName", Toast.LENGTH_SHORT).show()
                                 // Stop foreground service safely
@@ -463,8 +439,12 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
 
     fun clearConnectionHistory() {
         viewModelScope.launch(Dispatchers.IO) {
-            dao.clearConnectionHistory()
+            connectionHistoryRepo.clear()
         }
+    }
+
+    fun clearConnectionError() {
+        _connectionError.value = null
     }
 
     fun isBluetoothEnabled(): Boolean = hidManager.isBluetoothEnabled()
@@ -503,52 +483,19 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     // app-level fields (theme, vibration, keep-awake, ...) always go to the
     // global row. The global pointer fields are left untouched while connected
     // so switching devices never leaks one device's settings into another.
+    /** Delegates to [SettingsViewModel.updateSettings]. */
     fun updateSettings(newSettings: SettingsEntity) {
-        val address = hidManager.connectedDevice.value?.address
-        viewModelScope.launch(Dispatchers.IO) {
-            if (address == null) {
-                dao.updateSettings(newSettings)
-            } else {
-                dao.updateDeviceSettings(
-                    DeviceSettingsEntity(
-                        deviceAddress = address,
-                        sensitivity = newSettings.sensitivity,
-                        smoothing = newSettings.smoothing,
-                        deadZone = newSettings.deadZone,
-                        acceleration = newSettings.acceleration,
-                        scrollSpeed = newSettings.scrollSpeed,
-                        invertX = newSettings.invertX,
-                        invertY = newSettings.invertY
-                    )
-                )
-                val global = dao.getSettingsDirect() ?: SettingsEntity()
-                dao.updateSettings(
-                    newSettings.copy(
-                        sensitivity = global.sensitivity,
-                        smoothing = global.smoothing,
-                        deadZone = global.deadZone,
-                        acceleration = global.acceleration,
-                        scrollSpeed = global.scrollSpeed,
-                        invertX = global.invertX,
-                        invertY = global.invertY
-                    )
-                )
-            }
-        }
+        settingsViewModel.updateSettings(newSettings, hidManager.connectedDevice.value?.address)
     }
 
-    /** Save pointer fields to a specific device's profile (device settings screen). */
+    /** Delegates to [SettingsViewModel.updateDeviceSettingsForDevice]. */
     fun updateDeviceSettingsForDevice(deviceSettings: DeviceSettingsEntity) {
-        viewModelScope.launch(Dispatchers.IO) {
-            dao.updateDeviceSettings(deviceSettings)
-        }
+        settingsViewModel.updateDeviceSettingsForDevice(deviceSettings)
     }
 
-    /** Forget a specific device's pointer profile and fall back to global settings. */
+    /** Delegates to [SettingsViewModel.resetDeviceSettingsForDevice]. */
     fun resetDeviceSettingsForDevice(address: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            dao.deleteDeviceSettings(address)
-        }
+        settingsViewModel.resetDeviceSettingsForDevice(address)
     }
 
     /** Forget the connected device's pointer profile and fall back to global settings. */
@@ -557,16 +504,14 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
         resetDeviceSettingsForDevice(address)
     }
 
+    /** Delegates to [GestureViewModel.addShortcut]. */
     fun addCustomShortcut(name: String, modifiers: Int, keyCodes: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            dao.insertShortcut(ShortcutEntity(name = name, modifiers = modifiers, keyCodes = keyCodes))
-        }
+        gestureViewModel.addShortcut(name, modifiers, keyCodes)
     }
 
+    /** Delegates to [GestureViewModel.deleteShortcut]. */
     fun deleteShortcut(id: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            dao.deleteShortcut(id)
-        }
+        gestureViewModel.deleteShortcut(id)
     }
 
     // --- SENSOR TRIGGER ---
@@ -807,16 +752,14 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     }
 
     // --- GESTURE ACTIONS ---
+    /** Delegates to [GestureViewModel.saveGesture]. */
     fun saveGesture(gesture: GestureEntity) {
-        viewModelScope.launch(Dispatchers.IO) {
-            dao.insertGesture(gesture)
-        }
+        gestureViewModel.saveGesture(gesture)
     }
 
+    /** Delegates to [GestureViewModel.deleteGesture]. */
     fun deleteGesture(id: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            dao.deleteGesture(id)
-        }
+        gestureViewModel.deleteGesture(id)
     }
 
     fun executeGestureAction(action: String) {

@@ -123,7 +123,7 @@ fun BluetoothDevice.isHidCompatibleHost(): Boolean {
 }
 
 @SuppressLint("MissingPermission")
-class BluetoothHidManager private constructor(context: Context) {
+class BluetoothHidManager private constructor(context: Context) : HidDeviceManager {
 
     private val appContext = context.applicationContext
     private val bluetoothManager = appContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -147,49 +147,49 @@ class BluetoothHidManager private constructor(context: Context) {
 
     // State flows for UI mapping
     private val _connectionState = MutableStateFlow(BluetoothProfile.STATE_DISCONNECTED)
-    val connectionState: StateFlow<Int> = _connectionState.asStateFlow()
+    override val connectionState: StateFlow<Int> = _connectionState.asStateFlow()
 
     private val _connectedDevice = MutableStateFlow<BluetoothDevice?>(null)
-    val connectedDevice: StateFlow<BluetoothDevice?> = _connectedDevice.asStateFlow()
+    override val connectedDevice: StateFlow<BluetoothDevice?> = _connectedDevice.asStateFlow()
 
     // Measured signal strength (dBm) of the connected host, captured from
     // discovery scans (classic Bluetooth doesn't expose a live RSSI of a
     // connected device). Null until the host is seen in a scan.
     private val _connectedRssi = MutableStateFlow<Int?>(null)
-    val connectedRssi: StateFlow<Int?> = _connectedRssi.asStateFlow()
+    override val connectedRssi: StateFlow<Int?> = _connectedRssi.asStateFlow()
 
     private val _targetDevice = MutableStateFlow<BluetoothDevice?>(null)
-    val targetDevice: StateFlow<BluetoothDevice?> = _targetDevice.asStateFlow()
+    override val targetDevice: StateFlow<BluetoothDevice?> = _targetDevice.asStateFlow()
 
     private var connectTimeoutJob: java.util.concurrent.ScheduledFuture<*>? = null
 
     private val _isProfileReady = MutableStateFlow(false)
-    val isProfileReady: StateFlow<Boolean> = _isProfileReady.asStateFlow()
+    override val isProfileReady: StateFlow<Boolean> = _isProfileReady.asStateFlow()
 
     private val _isAppRegistered = MutableStateFlow(false)
     val isAppRegistered: StateFlow<Boolean> = _isAppRegistered.asStateFlow()
 
     private val _isBluetoothEnabled = MutableStateFlow(bluetoothAdapter?.isEnabled ?: false)
-    val isBluetoothEnabledFlow: StateFlow<Boolean> = _isBluetoothEnabled.asStateFlow()
+    override val isBluetoothEnabledFlow: StateFlow<Boolean> = _isBluetoothEnabled.asStateFlow()
 
     // Host-side keyboard lock states (LED output report, Report ID 1).
     // Bitmask: LED_NUM_LOCK | LED_CAPS_LOCK | LED_SCROLL_LOCK
     private val _hostLeds = MutableStateFlow(0)
-    val hostLeds: StateFlow<Int> = _hostLeds.asStateFlow()
+    override val hostLeds: StateFlow<Int> = _hostLeds.asStateFlow()
 
     // Gamepad force feedback from the host (output report, Report ID 4).
     // 0 = motors off, 1-255 = intensity of the strongest motor.
     private val _gamepadRumble = MutableStateFlow(0)
-    val gamepadRumble: StateFlow<Int> = _gamepadRumble.asStateFlow()
+    override val gamepadRumble: StateFlow<Int> = _gamepadRumble.asStateFlow()
 
     private val _scannedDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
-    val scannedDevices: StateFlow<List<ScannedDevice>> = _scannedDevices.asStateFlow()
+    override val scannedDevices: StateFlow<List<ScannedDevice>> = _scannedDevices.asStateFlow()
 
     private val _isScanning = MutableStateFlow(false)
-    val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+    override val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
 
     private val _bondedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
-    val bondedDevices: StateFlow<List<BluetoothDevice>> = _bondedDevices.asStateFlow()
+    override val bondedDevices: StateFlow<List<BluetoothDevice>> = _bondedDevices.asStateFlow()
 
     private var discoveryReceiver: BroadcastReceiver? = null
 
@@ -690,7 +690,7 @@ class BluetoothHidManager private constructor(context: Context) {
     }
 
     @SuppressLint("NewApi")
-    fun registerApp() {
+    override fun registerApp() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
             Log.e(TAG, "registerApp: SDK too low (${Build.VERSION.SDK_INT})")
             return
@@ -753,20 +753,8 @@ class BluetoothHidManager private constructor(context: Context) {
         }
     }
 
-    fun getBondedDevices(): List<BluetoothDevice> {
-        return try {
-            bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
-        } catch (e: SecurityException) {
-            Log.e(TAG, "SecurityException: Missing BLUETOOTH_CONNECT permission to get bonded devices", e)
-            emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting bonded devices", e)
-            emptyList()
-        }
-    }
-
     @SuppressLint("MissingPermission")
-    fun startScanning() {
+    override fun startScanning() {
         val adapter = bluetoothAdapter ?: return
         if (!adapter.isEnabled) return
 
@@ -849,7 +837,7 @@ class BluetoothHidManager private constructor(context: Context) {
     }
 
     @SuppressLint("MissingPermission")
-    fun stopScanning() {
+    override fun stopScanning() {
         val adapter = bluetoothAdapter ?: return
         try {
             if (adapter.isDiscovering) {
@@ -874,7 +862,7 @@ class BluetoothHidManager private constructor(context: Context) {
     }
 
     @SuppressLint("MissingPermission")
-    fun bondDevice(device: BluetoothDevice): Boolean {
+    override fun bondDevice(device: BluetoothDevice): Boolean {
         return try {
             // Cancel discovery before initiating bond for better performance and reliability
             stopScanning()
@@ -886,7 +874,7 @@ class BluetoothHidManager private constructor(context: Context) {
     }
 
     @SuppressLint("NewApi")
-    fun connectHost(device: BluetoothDevice): Boolean {
+    override fun connectHost(device: BluetoothDevice): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
 
         val currentState = _connectionState.value
@@ -982,7 +970,7 @@ class BluetoothHidManager private constructor(context: Context) {
     }
 
     @SuppressLint("NewApi")
-    fun cancelConnection() {
+    override fun cancelConnection() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
         connectTimeoutJob?.cancel(true)
         val deviceToDisconnect = _targetDevice.value ?: _connectedDevice.value
@@ -1008,28 +996,44 @@ class BluetoothHidManager private constructor(context: Context) {
         cancelConnection()
     }
 
-    fun isBluetoothEnabled(): Boolean {
+    override fun isBluetoothEnabled(): Boolean {
         return bluetoothAdapter?.isEnabled ?: false
     }
 
-    fun updateBleBatteryLevel(level: Int) {
+    override fun updateBleBatteryLevel(level: Int) {
         lastBatteryLevel = level
         bleBatteryService.updateBatteryLevel(level)
     }
 
-    fun isConnected(): Boolean {
+    override fun isConnected(): Boolean {
         return _connectionState.value == BluetoothProfile.STATE_CONNECTED && _connectedDevice.value != null
     }
 
-    fun isCurrentlyConnecting(): Boolean {
+    override fun isCurrentlyConnecting(): Boolean {
         return _connectionState.value == BluetoothProfile.STATE_CONNECTING || isConnecting
     }
+
+    override fun getBondedDevices(): List<BluetoothDevice> {
+        return try {
+            bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
+        } catch (e: SecurityException) {
+            Log.e(TAG, "SecurityException: Missing BLUETOOTH_CONNECT permission to get bonded devices", e)
+            emptyList()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting bonded devices", e)
+            emptyList()
+        }
+    }
+
+    /** Convenience overload with default hScroll=0 for callers on the concrete type. */
+    fun sendMouseInput(buttons: Byte, dx: Byte, dy: Byte, scroll: Byte): Boolean =
+        sendMouseInput(buttons, dx, dy, scroll, 0)
 
     // --- MOUSE TRANSMISSION ---
     // Report ID 2: [buttons (1 byte), dx (1 byte), dy (1 byte), scroll (1 byte), hScroll (1 byte)]
     // dx/dy: -127 to +127 relative movement; scroll: vertical wheel, hScroll: horizontal wheel
     @SuppressLint("NewApi")
-    fun sendMouseInput(buttons: Byte, dx: Byte, dy: Byte, scroll: Byte, hScroll: Byte = 0): Boolean {
+    override fun sendMouseInput(buttons: Byte, dx: Byte, dy: Byte, scroll: Byte, hScroll: Byte): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
         val profile = hidDeviceProfile ?: return false
         val device = _connectedDevice.value ?: return false
@@ -1051,12 +1055,16 @@ class BluetoothHidManager private constructor(context: Context) {
         return result
     }
 
+    /** Convenience overload with default z=0, rz=0 for callers on the concrete type. */
+    fun sendGamepadInput(buttons: Int, hat: Byte, x: Byte, y: Byte): Boolean =
+        sendGamepadInput(buttons, hat, x, y, 0, 0)
+
     // --- GAMEPAD TRANSMISSION ---
     // Report ID 4: [x (1), y (1), z (1), rz (1), hat (1), buttons lo (1), buttons hi (1)]
     // hat: 0=up, 2=right, 4=down, 6=left (and diagonals 1/3/5/7), 8 = released
     // buttons: bitmask, bit 0 = button 1 (A), bit 1 = button 2 (B), ...
     @SuppressLint("NewApi")
-    fun sendGamepadInput(buttons: Int, hat: Byte, x: Byte, y: Byte, z: Byte = 0, rz: Byte = 0): Boolean {
+    override fun sendGamepadInput(buttons: Int, hat: Byte, x: Byte, y: Byte, z: Byte, rz: Byte): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
         val profile = hidDeviceProfile ?: return false
         val device = _connectedDevice.value ?: return false
@@ -1074,7 +1082,7 @@ class BluetoothHidManager private constructor(context: Context) {
     // --- KEYBOARD TRANSMISSION ---
     // Report ID 1: [modifiers (1 byte), reserved (1 byte), keyCodes (6 bytes)]
     @SuppressLint("NewApi")
-    fun sendKeyboardInput(modifiers: Byte, keyCodes: ByteArray): Boolean {
+    override fun sendKeyboardInput(modifiers: Byte, keyCodes: ByteArray): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
         val profile = hidDeviceProfile ?: return false
         val device = _connectedDevice.value ?: return false
@@ -1097,7 +1105,7 @@ class BluetoothHidManager private constructor(context: Context) {
     }
 
     // Sends a key press followed immediately by key release
-    fun sendKeyPress(modifiers: Byte, keyCode: Byte) {
+    override fun sendKeyPress(modifiers: Byte, keyCode: Byte) {
         sendKeyboardInput(modifiers, byteArrayOf(keyCode))
         sendKeyboardInput(0, byteArrayOf(0))
     }
@@ -1106,7 +1114,7 @@ class BluetoothHidManager private constructor(context: Context) {
     // Report ID 3: [keys (1 byte)]
     // Map: Bit 0: Vol Up, Bit 1: Vol Down, Bit 2: Mute, Bit 3: Play/Pause, Bit 4: Next, Bit 5: Prev, Bit 6: Power, Bit 7: Menu
     @SuppressLint("NewApi")
-    fun sendConsumerInput(keys: Byte): Boolean {
+    override fun sendConsumerInput(keys: Byte): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
         val profile = hidDeviceProfile ?: return false
         val device = _connectedDevice.value ?: return false

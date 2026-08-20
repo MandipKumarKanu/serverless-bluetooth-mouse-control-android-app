@@ -1,5 +1,9 @@
 package com.example
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
@@ -82,6 +86,8 @@ class MainActivity : ComponentActivity() {
                 if (info.isUpdateAvailable) {
                     updateInfo = info
                     showUpdateDialog = true
+                    // Ensure Install Unknown Apps permission is granted for auto-install
+                    ensureInstallPermission(this@MainActivity)
                 }
             }
 
@@ -300,5 +306,24 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         // Stop the foreground service when app is swiped away from recent apps
         AirMouseService.stopService(this)
+    }
+}
+
+/**
+ * On Android 8+ opening the "Install unknown apps" settings screen
+ * lets the user grant the permission so downloaded APKs can be
+ * installed automatically. On older versions this is a no-op.
+ */
+private fun ensureInstallPermission(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (!context.packageManager.canRequestPackageInstalls()) {
+            val intent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                data = Uri.parse("package:${context.packageName}")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            try {
+                context.startActivity(intent)
+            } catch (_: Exception) { }
+        }
     }
 }

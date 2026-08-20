@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import com.example.ui.theme.MyApplicationTheme
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
 import com.example.R
@@ -65,12 +67,12 @@ fun SplashScreen(navController: NavController) {
         }
 
         if (allGranted) {
-            navController.navigate(Routes.DASHBOARD) {
-                popUpTo(Routes.SPLASH) { inclusive = true }
+            navController.navigateTo(NavRoute.Dashboard) {
+                popUpTo(NavRoute.Splash.path) { inclusive = true }
             }
         } else {
-            navController.navigate(Routes.PERMISSIONS) {
-                popUpTo(Routes.SPLASH) { inclusive = true }
+            navController.navigateTo(NavRoute.Permissions) {
+                popUpTo(NavRoute.Splash.path) { inclusive = true }
             }
         }
     }
@@ -124,5 +126,13 @@ fun SplashScreen(navController: NavController) {
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true, name = "Splash - Dark")
+@Composable
+private fun SplashScreenPreview() {
+    MyApplicationTheme(darkTheme = true) {
+        SplashScreen(navController = androidx.navigation.compose.rememberNavController())
     }
 }

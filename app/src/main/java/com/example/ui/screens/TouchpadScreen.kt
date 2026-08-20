@@ -34,6 +34,8 @@ import com.example.gesture.PointerSample
 import com.example.gesture.TouchpadAction
 import com.example.gesture.TouchpadGestureRecognizer
 import com.example.viewmodel.AirMouseViewModel
+import com.example.ui.theme.StatusConnected
+import com.example.ui.theme.StatusConnected
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -496,9 +498,9 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         .testTag("drag_mode_toggle"),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isDragMode) Color(0xFF10B981) else MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = if (isDragMode) StatusConnected else MaterialTheme.colorScheme.surfaceVariant
                     ),
-                    border = BorderStroke(1.dp, if (isDragMode) Color(0xFF10B981) else MaterialTheme.colorScheme.outline)
+                    border = BorderStroke(1.dp, if (isDragMode) StatusConnected else MaterialTheme.colorScheme.outline)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxSize(),

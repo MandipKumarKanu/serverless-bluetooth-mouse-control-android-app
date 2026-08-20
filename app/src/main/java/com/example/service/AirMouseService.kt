@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import com.example.MainActivity
 import com.example.R
 import com.example.bluetooth.BluetoothHidManager
+import com.example.bluetooth.HidDeviceManager
 import com.example.bluetooth.getSafeName
 import com.example.sensor.BatteryMonitor
 import com.example.sensor.MotionSensorManager
@@ -24,18 +25,19 @@ import com.example.data.AppDatabase
 import com.example.data.SettingsEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 class AirMouseService : Service() {
 
-    private val hidManager by lazy { BluetoothHidManager.getInstance(this) }
+    private val hidManager: HidDeviceManager by lazy { BluetoothHidManager.getInstance(this) }
     private var sensorManager: MotionSensorManager? = null
     private lateinit var batteryMonitor: BatteryMonitor
-    private var batteryUpdateJob: Job? = null
-    // Job for the air-mouse sensor settings load (cancelled on destroy).
-    private var sensorSettingsJob: Job? = null
+    // Structured coroutine scope tied to the service lifecycle.
+    // All coroutines launched here are cancelled in onDestroy().
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
 
     // Tracks whether the service has entered the foreground. Used to avoid the
     // ForegroundServiceDidNotStartInTimeException when a startForegroundService()
@@ -94,7 +96,7 @@ class AirMouseService : Service() {
         ContextCompat.registerReceiver(this, mediaActionReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         // Update notification when battery level changes
-        batteryUpdateJob = CoroutineScope(Dispatchers.Main).launch {
+        serviceScope.launch {
             batteryMonitor.batteryLevel.collect {
                 updateNotification(_connectedDeviceName.value)
             }
@@ -149,13 +151,12 @@ class AirMouseService : Service() {
         isAirMouseActive = false
         isForeground = false
         stopAirMouseSensors()
-        batteryUpdateJob?.cancel()
+        serviceJob.cancel()
         batteryMonitor.stop()
         try {
             unregisterReceiver(mediaActionReceiver)
         } catch (_: Exception) {
         }
-        sensorSettingsJob?.cancel()
         Log.d(TAG, "AirMouseService destroyed")
     }
 
@@ -163,12 +164,9 @@ class AirMouseService : Service() {
         if (sensorManager == null) {
             sensorManager = MotionSensorManager(this)
         }
-        // Cancel any previous settings-load before starting a new one.
-        sensorSettingsJob?.cancel()
-        val scope = CoroutineScope(Dispatchers.IO)
-        sensorSettingsJob = scope.launch {
-            val db = AppDatabase.getDatabase(this@AirMouseService, scope)
-            val settings = db.airMouseDao().getSettingsDirect() ?: SettingsEntity()
+        serviceScope.launch {
+            val settings = AppDatabase.getDatabase(this@AirMouseService, this)
+                .airMouseDao().getSettingsDirect() ?: SettingsEntity()
             sensorManager?.updateSettings(settings)
             sensorManager?.start(0)
             Log.d(TAG, "Sensor manager started inside Service")
