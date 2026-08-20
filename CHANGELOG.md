@@ -4,6 +4,13 @@ All notable changes to AirMouse will be documented in this file.
 
 ## [Unreleased]
 
+## [1.10.9] - 2026-08-20
+
+### Fixed
+- **OTA update auto-install & progress** — the update dialog now displays live download percentage (e.g. `Downloading update... 65%`) and automatically launches the system package installer when complete. Set `android:exported="true"` on `DownloadCompleteReceiver` so system `DownloadManager` broadcasts fire reliably on Android 12+, and added Android 8.0+ `canRequestPackageInstalls()` check for unknown app sources.
+- **Last connected device name resolution** — fixed race condition in `BluetoothHidManager` where connection state changed to `STATE_CONNECTED` before `_connectedDevice` was assigned, ensuring the correct host device name and address are stored in connection history.
+- **Connection failure feedback** — failed connection attempts now display purely as a Toast instead of sticking an error card to the top of the Dashboard.
+
 ## [1.10.8] - 2026-08-20
 
 ### Changed

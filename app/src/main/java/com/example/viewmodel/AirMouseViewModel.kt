@@ -242,12 +242,13 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
             var lastDevice: BluetoothDevice? = null
 
             bluetoothState.collect { state ->
-                val currentDevice = connectedDevice.value
-                val deviceName = currentDevice?.getSafeName() ?: lastDevice?.getSafeName() ?: "Device"
+                val currentDevice = connectedDevice.value ?: targetDevice.value ?: lastDevice
+                val deviceName = currentDevice?.getSafeName() ?: "Device"
 
                 if (lastState != null && lastState != state) {
                     when (state) {
                         BluetoothProfile.STATE_CONNECTED -> {
+                            currentDevice?.let { lastDevice = it }
                             Toast.makeText(application, "Connected to $deviceName", Toast.LENGTH_SHORT).show()
                             currentDevice?.let {
                                 setLastConnectedDeviceAddress(it.address)
@@ -289,14 +290,14 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                             }
                         }
                         BluetoothProfile.STATE_CONNECTING -> {
-                            _connectionError.value = null // Clear previous error
+                            _connectionError.value = null
+                            currentDevice?.let { lastDevice = it }
                             Toast.makeText(application, "Connecting to $deviceName...", Toast.LENGTH_SHORT).show()
                         }
                         BluetoothProfile.STATE_DISCONNECTED -> {
                             if (lastState == BluetoothProfile.STATE_CONNECTING) {
-                                _connectionError.value = "Failed to connect to $deviceName"
-                            }
-                            if (lastState == BluetoothProfile.STATE_CONNECTED || lastState == BluetoothProfile.STATE_CONNECTING) {
+                                Toast.makeText(application, "Failed to connect to $deviceName", Toast.LENGTH_LONG).show()
+                            } else if (lastState == BluetoothProfile.STATE_CONNECTED) {
                                 Toast.makeText(application, "Disconnected from $deviceName", Toast.LENGTH_SHORT).show()
                                 // Stop foreground service safely
                                 try {
@@ -309,9 +310,6 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
                     }
                 }
                 lastState = state
-                if (currentDevice != null) {
-                    lastDevice = currentDevice
-                }
             }
         }
 

@@ -6,4 +6,10 @@
     <external-path
         name="downloads"
         path="Download/" />
+    <external-files-path
+        name="ext_downloads"
+        path="Download/" />
+    <external-cache-path
+        name="ext_cache"
+        path="/" />
 </paths>

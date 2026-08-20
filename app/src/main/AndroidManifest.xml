@@ -102,7 +102,7 @@
         <!-- Download-complete receiver for OTA auto-install -->
         <receiver
             android:name=".update.DownloadCompleteReceiver"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
             </intent-filter>

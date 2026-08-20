@@ -538,13 +538,12 @@ class BluetoothHidManager private constructor(context: Context) : HidDeviceManag
             }
             Log.d(TAG, "onConnectionStateChanged: device=${device?.getSafeName()} [${device?.address}], state=$stateStr")
 
-            _connectionState.value = state
-
             when (state) {
                 BluetoothProfile.STATE_CONNECTED -> {
                     connectTimeoutJob?.cancel(true)
                     _targetDevice.value = null
                     _connectedDevice.value = device
+                    _connectionState.value = state
                     isConnecting = false
                     Log.d(TAG, "=== CONNECTION ESTABLISHED ===")
                     Log.d(TAG, "Device: ${device?.getSafeName()}")
@@ -559,6 +558,7 @@ class BluetoothHidManager private constructor(context: Context) : HidDeviceManag
                 }
                 BluetoothProfile.STATE_CONNECTING -> {
                     isConnecting = true
+                    _connectionState.value = state
                     Log.d(TAG, "Connecting to: ${device?.getSafeName()}")
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
@@ -566,6 +566,7 @@ class BluetoothHidManager private constructor(context: Context) : HidDeviceManag
                     _targetDevice.value = null
                     _connectedDevice.value = null
                     _connectedRssi.value = null
+                    _connectionState.value = state
                     isConnecting = false
                     Log.d(TAG, "Disconnected from: ${device?.getSafeName()}")
                     // Stop BLE Battery Service
@@ -575,6 +576,7 @@ class BluetoothHidManager private constructor(context: Context) : HidDeviceManag
                     _gamepadRumble.value = 0
                 }
                 BluetoothProfile.STATE_DISCONNECTING -> {
+                    _connectionState.value = state
                     Log.d(TAG, "Disconnecting from: ${device?.getSafeName()}")
                 }
             }

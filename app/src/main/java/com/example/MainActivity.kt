@@ -47,6 +47,7 @@ import com.example.ui.screens.ShortcutsScreen
 import com.example.ui.screens.SplashScreen
 import com.example.ui.screens.TouchpadScreen
 import com.example.ui.screens.UpdateDialog
+import com.example.ui.screens.UpdateSuccessfulDialog
 import com.example.ui.theme.MyApplicationTheme
 import com.example.service.AirMouseService
 import com.example.update.UpdateChecker
@@ -79,9 +80,30 @@ class MainActivity : ComponentActivity() {
             var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
             var showUpdateDialog by remember { mutableStateOf(false) }
 
-            // Check for updates on launch
+            // Update successful dialog state
+            var showUpdateSuccessDialog by remember { mutableStateOf(false) }
+            var updateSuccessVersion by remember { mutableStateOf("") }
+            var updateSuccessChangelog by remember { mutableStateOf("") }
+
+            // Check for updates AND detect post-update on launch
             LaunchedEffect(Unit) {
                 val currentVersion = BuildConfig.VERSION_NAME
+                val prefs = getSharedPreferences("air_mouse_prefs", MODE_PRIVATE)
+                val lastSeenVersion = prefs.getString("last_seen_version", null)
+
+                // Detect if we just updated: current version differs from last seen
+                if (lastSeenVersion != null && lastSeenVersion != currentVersion) {
+                    // Fetch changelog for the new version from GitHub
+                    val info = UpdateChecker.checkForUpdate(currentVersion)
+                    updateSuccessVersion = currentVersion
+                    updateSuccessChangelog = info.changelog
+                    showUpdateSuccessDialog = true
+                }
+
+                // Always save current version as last seen
+                prefs.edit().putString("last_seen_version", currentVersion).apply()
+
+                // Check for newer updates
                 val info = UpdateChecker.checkForUpdate(currentVersion)
                 if (info.isUpdateAvailable) {
                     updateInfo = info
@@ -106,6 +128,15 @@ class MainActivity : ComponentActivity() {
                     UpdateDialog(
                         updateInfo = updateInfo!!,
                         onDismiss = { showUpdateDialog = false }
+                    )
+                }
+
+                // Show update successful dialog after app update
+                if (showUpdateSuccessDialog) {
+                    UpdateSuccessfulDialog(
+                        version = updateSuccessVersion,
+                        changelog = updateSuccessChangelog,
+                        onDismiss = { showUpdateSuccessDialog = false }
                     )
                 }
 
