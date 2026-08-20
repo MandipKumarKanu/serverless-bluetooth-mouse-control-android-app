@@ -342,6 +342,9 @@ fun GamepadScreen(navController: NavController, viewModel: AirMouseViewModel) {
     if (showModeHelp) {
         AlertDialog(
             onDismissRequest = { showModeHelp = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = { Text("Gamepad Modes", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

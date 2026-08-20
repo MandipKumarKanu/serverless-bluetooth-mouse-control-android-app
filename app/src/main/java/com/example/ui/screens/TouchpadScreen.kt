@@ -92,6 +92,9 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
 
             AlertDialog(
                 onDismissRequest = { showTouchpadSettings = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(

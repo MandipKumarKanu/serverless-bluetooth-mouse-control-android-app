@@ -2,6 +2,14 @@
 
 All notable changes to AirMouse will be documented in this file.
 
+## [Unreleased]
+
+## [1.10.8] - 2026-08-20
+
+### Changed
+- **Settings screen cleanup** — streamlined global Settings to focus on app-level preferences (theme, notification, keep awake, auto reconnect) while per-device pointer settings live cleanly in Device Specific Settings.
+- **Dialog theming & contrast** — fixed dialog background and text colors in Touchpad and Shortcuts screens for consistent dark/light theme rendering.
+
 ## [1.10.7] - 2026-08-20
 
 ### Added

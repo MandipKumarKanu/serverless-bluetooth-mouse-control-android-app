@@ -62,80 +62,6 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
             scrollable = true,
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Text("Pointer Speeds & Calibration", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-
-            // Cursor Sensitivity Slider
-            Column {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Cursor Sensitivity", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-                    Text(String.format("%.1fx", settings.sensitivity), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-                Slider(
-                    value = settings.sensitivity,
-                    onValueChange = { viewModel.updateSettings(settings.copy(sensitivity = it)) },
-                    valueRange = 0.2f..3.0f,
-                    modifier = Modifier.testTag("setting_sensitivity")
-                )
-            }
-
-            // Scroll Speed Slider
-            Column {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Scroll Speed", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-                    Text(String.format("%.1fx", settings.scrollSpeed), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-                Slider(
-                    value = settings.scrollSpeed,
-                    onValueChange = { viewModel.updateSettings(settings.copy(scrollSpeed = it)) },
-                    valueRange = 0.2f..3.0f,
-                    modifier = Modifier.testTag("setting_scroll_speed")
-                )
-            }
-
-            // Motion Smoothing Slider
-            Column {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Motion Smoothing (Low Pass)", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-                    Text(String.format("%.1fx", settings.smoothing), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-                Slider(
-                    value = settings.smoothing,
-                    onValueChange = { viewModel.updateSettings(settings.copy(smoothing = it)) },
-                    valueRange = 0.05f..0.9f,
-                    modifier = Modifier.testTag("setting_smoothing")
-                )
-            }
-
-            // Gyro Dead Zone Slider
-            Column {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Gyro Dead Zone", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-                    Text(String.format("%.2f", settings.deadZone), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-                Slider(
-                    value = settings.deadZone,
-                    onValueChange = { viewModel.updateSettings(settings.copy(deadZone = it)) },
-                    valueRange = 0.01f..0.2f,
-                    modifier = Modifier.testTag("setting_deadzone")
-                )
-            }
-
-            // Pointer Acceleration Slider
-            Column {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Pointer Acceleration", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-                    Text(String.format("%.1f", settings.acceleration), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-                Slider(
-                    value = settings.acceleration,
-                    onValueChange = { viewModel.updateSettings(settings.copy(acceleration = it)) },
-                    valueRange = 0.0f..3.0f,
-                    modifier = Modifier.testTag("setting_acceleration")
-                )
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-
             Text("Feedback & Device", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 15.sp)
 
             // Persistent Notification & Media Controls Toggle
@@ -223,52 +149,6 @@ fun SettingsScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                     ),
                     modifier = Modifier.testTag("setting_vibrate")
-                )
-            }
-
-            // Invert X
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("Invert Horizontal (X) Motion", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Inverts mouse left and right pointer actions", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                }
-                Switch(
-                    checked = settings.invertX,
-                    onCheckedChange = { viewModel.updateSettings(settings.copy(invertX = it)) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = Color.White,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    modifier = Modifier.testTag("setting_invert_x")
-                )
-            }
-
-            // Invert Y
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("Invert Vertical (Y) Motion", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Inverts mouse up and down pointer actions", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                }
-                Switch(
-                    checked = settings.invertY,
-                    onCheckedChange = { viewModel.updateSettings(settings.copy(invertY = it)) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = Color.White,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    modifier = Modifier.testTag("setting_invert_y")
                 )
             }
 

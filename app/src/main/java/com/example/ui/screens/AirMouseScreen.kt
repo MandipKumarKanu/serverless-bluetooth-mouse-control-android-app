@@ -381,11 +381,13 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
         }
     }
 
-    // Sensitivity Settings Dialog
+    // Air Mouse Settings Dialog
     if (showSensitivityDialog) {
         AlertDialog(
             onDismissRequest = { showSensitivityDialog = false },
             containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -398,7 +400,7 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Gyro Sensitivity",
+                        text = "Air Mouse Settings",
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
@@ -407,45 +409,99 @@ fun AirMouseScreen(navController: NavController, viewModel: AirMouseViewModel) {
             },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Adjust the speed of the Air Mouse cursor pointer motion relative to physical device rotation.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
-                    )
+                    // Sensitivity
+                    Column {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Cursor Sensitivity", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text(String.format("%.1fx", settings.sensitivity), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Slider(
+                            value = settings.sensitivity,
+                            onValueChange = { viewModel.updateSettings(settings.copy(sensitivity = it)) },
+                            valueRange = 0.2f..3.0f,
+                            modifier = Modifier.testTag("air_mouse_gyro_sensitivity")
+                        )
+                    }
 
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    // Motion Smoothing
+                    Column {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Motion Smoothing", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text(String.format("%.2f", settings.smoothing), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Slider(
+                            value = settings.smoothing,
+                            onValueChange = { viewModel.updateSettings(settings.copy(smoothing = it)) },
+                            valueRange = 0.05f..0.9f
+                        )
+                    }
+
+                    // Gyro Dead Zone
+                    Column {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Gyro Dead Zone", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text(String.format("%.2f", settings.deadZone), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Slider(
+                            value = settings.deadZone,
+                            onValueChange = { viewModel.updateSettings(settings.copy(deadZone = it)) },
+                            valueRange = 0.01f..0.2f
+                        )
+                    }
+
+                    // Pointer Acceleration
+                    Column {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Pointer Acceleration", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text(String.format("%.1f", settings.acceleration), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Slider(
+                            value = settings.acceleration,
+                            onValueChange = { viewModel.updateSettings(settings.copy(acceleration = it)) },
+                            valueRange = 0.0f..3.0f
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    // Invert X
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Current Value",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = String.format("%.1fx", settings.sensitivity),
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
+                        Column {
+                            Text("Invert Horizontal (X)", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Reverse left/right motion", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                        }
+                        Switch(
+                            checked = settings.invertX,
+                            onCheckedChange = { viewModel.updateSettings(settings.copy(invertX = it)) }
                         )
                     }
 
-                    Slider(
-                        value = settings.sensitivity,
-                        onValueChange = { viewModel.updateSettings(settings.copy(sensitivity = it)) },
-                        valueRange = 0.2f..3.0f,
-                        colors = SliderDefaults.colors(
-                            thumbColor = MaterialTheme.colorScheme.primary,
-                            activeTrackColor = MaterialTheme.colorScheme.primary,
-                            inactiveTrackColor = MaterialTheme.colorScheme.outline
-                        ),
-                        modifier = Modifier.testTag("air_mouse_gyro_sensitivity")
-                    )
+                    // Invert Y
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Invert Vertical (Y)", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Reverse up/down motion", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                        }
+                        Switch(
+                            checked = settings.invertY,
+                            onCheckedChange = { viewModel.updateSettings(settings.copy(invertY = it)) }
+                        )
+                    }
                 }
             },
             confirmButton = {

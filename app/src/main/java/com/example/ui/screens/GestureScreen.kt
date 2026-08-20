@@ -824,6 +824,9 @@ fun GestureScreen(navController: NavController, viewModel: AirMouseViewModel) {
         AlertDialog(
             onDismissRequest = { showAssignDialog = false },
             shape = RoundedCornerShape(24.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(

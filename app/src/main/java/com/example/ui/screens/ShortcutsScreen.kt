@@ -172,6 +172,8 @@ fun ShortcutsScreen(navController: NavController, viewModel: AirMouseViewModel) 
                 AlertDialog(
                     onDismissRequest = { showAddDialog = false },
                     containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     title = { Text("Add Shortcut Macro", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp) },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
