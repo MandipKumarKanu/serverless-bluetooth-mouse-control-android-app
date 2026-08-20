@@ -28,6 +28,7 @@ import com.example.data.ConnectionHistoryEntity
 import com.example.data.ConnectionHistoryRepository
 import com.example.data.DeviceSettingsEntity
 import com.example.data.GestureEntity
+import com.example.data.GestureRepository
 import com.example.data.SettingsEntity
 import com.example.data.SettingsRepository
 import com.example.data.ShortcutEntity
@@ -57,19 +58,19 @@ class AirMouseViewModel(application: Application) : AndroidViewModel(application
     private val db = AppDatabase.getDatabase(application, viewModelScope)
 
     val hidManager: HidDeviceManager = BluetoothHidManager.getInstance(application)
-    private val sensorManager = MotionSensorManager(application)
+    private val sensorManager = MotionSensorManager(application, hidManager)
+
+    // Repositories — created once here and shared with sub-ViewModels
+    // to avoid duplicate DB connections.
+    private val settingsRepo = SettingsRepository(db.airMouseDao(), application, viewModelScope)
+    private val connectionHistoryRepo = ConnectionHistoryRepository(db.airMouseDao())
+    private val gestureRepo = GestureRepository(db.airMouseDao())
 
     // Sub-ViewModels for settings and gesture CRUD. Screens can access these
     // via [settingsViewModel] and [gestureViewModel] instead of calling the
     // corresponding methods on AirMouseViewModel directly.
-    val settingsViewModel = SettingsViewModel(application)
-    val gestureViewModel = GestureViewModel(application)
-
-    // SettingsRepository is still needed directly for auto-reconnect
-    // SharedPreferences and device-profile seeding on first connect.
-    // ConnectionHistoryRepo handles connection history lifecycle operations.
-    private val settingsRepo = SettingsRepository(db.airMouseDao(), application, viewModelScope)
-    private val connectionHistoryRepo = ConnectionHistoryRepository(db.airMouseDao())
+    val settingsViewModel = SettingsViewModel(application, settingsRepo, connectionHistoryRepo)
+    val gestureViewModel = GestureViewModel(application, gestureRepo)
 
     // Effective settings: global settings with the connected device's pointer
     // overrides applied. Delegates to [SettingsViewModel] and reactively

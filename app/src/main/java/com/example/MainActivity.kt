@@ -20,12 +20,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.activity.viewModels
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -41,7 +40,7 @@ import com.example.ui.screens.KeyboardScreen
 import com.example.ui.screens.MediaRemoteScreen
 import com.example.ui.screens.PermissionsScreen
 import com.example.ui.screens.PresentationScreen
-import com.example.ui.screens.Routes
+import com.example.ui.screens.NavRoute
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.ShortcutsScreen
 import com.example.ui.screens.SplashScreen
@@ -55,7 +54,6 @@ import com.example.update.UpdateInfo
 import com.example.viewmodel.AirMouseViewModel
 import kotlinx.coroutines.launch
 
-import androidx.activity.viewModels
 import androidx.navigation.NavController
 
 class MainActivity : ComponentActivity() {
@@ -72,8 +70,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val viewModel: AirMouseViewModel = viewModel()
-            val settings by viewModel.settingsState.collectAsState()
+            val settings by mainViewModel.settingsState.collectAsState()
             val coroutineScope = rememberCoroutineScope()
 
             // Update check state
@@ -164,12 +161,12 @@ class MainActivity : ComponentActivity() {
                         when (event) {
                             Lifecycle.Event.ON_STOP -> {
                                 // App went to background - pause sensors
-                                viewModel.onAppBackground()
+                                mainViewModel.onAppBackground()
                                 Log.d("MainActivity", "App backgrounded - sensors paused")
                             }
                             Lifecycle.Event.ON_START -> {
                                 // App came to foreground - ready to resume
-                                viewModel.onAppForeground()
+                                mainViewModel.onAppForeground()
                                 Log.d("MainActivity", "App foregrounded")
                             }
                             else -> {}
@@ -192,7 +189,7 @@ class MainActivity : ComponentActivity() {
 
                 DisposableEffect(navController) {
                     val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
-                        viewModel.currentRoute.value = destination.route
+                        mainViewModel.currentRoute.value = destination.route
                     }
                     navController.addOnDestinationChangedListener(listener)
                     onDispose {
@@ -207,7 +204,7 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.fillMaxSize()) {
                         NavHost(
                             navController = navController,
-                            startDestination = Routes.SPLASH,
+                            startDestination = NavRoute.Splash.path,
                             // Short, snappy fades — the input guard below is
                             // sized to cover exactly this window.
                             enterTransition = { fadeIn(tween(NAV_TRANSITION_MS)) },
@@ -215,46 +212,46 @@ class MainActivity : ComponentActivity() {
                             popEnterTransition = { fadeIn(tween(NAV_TRANSITION_MS)) },
                             popExitTransition = { fadeOut(tween(NAV_TRANSITION_MS)) }
                         ) {
-                            composable(Routes.SPLASH) {
+                            composable(NavRoute.Splash.path) {
                                 SplashScreen(navController)
                             }
-                            composable(Routes.PERMISSIONS) {
+                            composable(NavRoute.Permissions.path) {
                                 PermissionsScreen(navController)
                             }
-                            composable(Routes.DASHBOARD) {
-                                DashboardScreen(navController, viewModel)
+                            composable(NavRoute.Dashboard.path) {
+                                DashboardScreen(navController, mainViewModel)
                             }
-                            composable(Routes.TOUCHPAD) {
-                                TouchpadScreen(navController, viewModel)
+                            composable(NavRoute.Touchpad.path) {
+                                TouchpadScreen(navController, mainViewModel)
                             }
-                            composable(Routes.AIR_MOUSE) {
-                                AirMouseScreen(navController, viewModel)
+                            composable(NavRoute.AirMouse.path) {
+                                AirMouseScreen(navController, mainViewModel)
                             }
-                            composable(Routes.KEYBOARD) {
-                                KeyboardScreen(navController, viewModel)
+                            composable(NavRoute.Keyboard.path) {
+                                KeyboardScreen(navController, mainViewModel)
                             }
-                            composable(Routes.MEDIA_REMOTE) {
-                                MediaRemoteScreen(navController, viewModel)
+                            composable(NavRoute.MediaRemote.path) {
+                                MediaRemoteScreen(navController, mainViewModel)
                             }
-                            composable(Routes.PRESENTATION) {
-                                PresentationScreen(navController, viewModel)
+                            composable(NavRoute.Presentation.path) {
+                                PresentationScreen(navController, mainViewModel)
                             }
-                            composable(Routes.GAMEPAD) {
-                                GamepadScreen(navController, viewModel)
+                            composable(NavRoute.Gamepad.path) {
+                                GamepadScreen(navController, mainViewModel)
                             }
-                            composable(Routes.GESTURE) {
-                                GestureScreen(navController, viewModel)
+                            composable(NavRoute.Gesture.path) {
+                                GestureScreen(navController, mainViewModel)
                             }
-                            composable(Routes.SHORTCUTS) {
-                                ShortcutsScreen(navController, viewModel)
+                            composable(NavRoute.Shortcuts.path) {
+                                ShortcutsScreen(navController, mainViewModel)
                             }
-                        composable(Routes.SETTINGS) {
-                            SettingsScreen(navController, viewModel)
+                        composable(NavRoute.Settings.path) {
+                            SettingsScreen(navController, mainViewModel)
                         }
-                        composable(Routes.DEVICE_SETTINGS) {
-                            DeviceSettingsScreen(navController, viewModel)
+                        composable(NavRoute.DeviceSettings.path) {
+                            DeviceSettingsScreen(navController, mainViewModel)
                         }
-                        composable(Routes.ABOUT) {
+                        composable(NavRoute.About.path) {
                                 AboutScreen(navController)
                             }
                         }
@@ -286,7 +283,7 @@ class MainActivity : ComponentActivity() {
         val route = mainViewModel.currentRoute.value
 
         if (isConnected) {
-            if (route == Routes.PRESENTATION) {
+            if (route == NavRoute.Presentation.path) {
                 when (keyCode) {
                     android.view.KeyEvent.KEYCODE_VOLUME_UP -> {
                         mainViewModel.sendKeyboardKey(0, 0x4B.toByte()) // Page Up (Prev Slide)
@@ -301,7 +298,7 @@ class MainActivity : ComponentActivity() {
                         return true
                     }
                 }
-            } else if (route == Routes.MEDIA_REMOTE || route == Routes.AIR_MOUSE || route == Routes.TOUCHPAD) {
+            } else if (route == NavRoute.MediaRemote.path || route == NavRoute.AirMouse.path || route == NavRoute.Touchpad.path) {
                 when (keyCode) {
                     android.view.KeyEvent.KEYCODE_VOLUME_UP -> {
                         mainViewModel.sendMediaAction(0x01) // Volume Up
@@ -325,7 +322,7 @@ class MainActivity : ComponentActivity() {
         val isConnected = mainViewModel.bluetoothState.value == android.bluetooth.BluetoothProfile.STATE_CONNECTED
         val route = mainViewModel.currentRoute.value
 
-        if (isConnected && (route == Routes.PRESENTATION || route == Routes.MEDIA_REMOTE || route == Routes.AIR_MOUSE || route == Routes.TOUCHPAD)) {
+        if (isConnected && (route == NavRoute.Presentation.path || route == NavRoute.MediaRemote.path || route == NavRoute.AirMouse.path || route == NavRoute.Touchpad.path)) {
             if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP || keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) {
                 return true
             }

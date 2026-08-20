@@ -119,6 +119,13 @@ class AirMouseWidgetReceiver : AppWidgetProvider() {
         const val ACTION_START_MOUSE = "com.example.widget.ACTION_START_MOUSE"
         const val ACTION_STOP_MOUSE = "com.example.widget.ACTION_STOP_MOUSE"
 
+        // Widget text colors (RemoteViews doesn't support Compose/MaterialTheme,
+        // so we reference the same hex values as the theme's semantic colors).
+        private const val COLOR_ERROR = 0xFFEF4444.toInt()      // matches DarkError / StatusError
+        private const val COLOR_DISCONNECTED = 0xFF94A3B8.toInt() // slate-400
+        private const val COLOR_CONNECTED = 0xFF10B981.toInt()    // matches StatusConnected
+        private const val COLOR_ACTIVE = 0xFF06B6D4.toInt()       // matches CyanAccent
+
         fun updateAllWidgets(context: Context) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val thisWidget = ComponentName(context, AirMouseWidgetReceiver::class.java)
@@ -153,7 +160,7 @@ class AirMouseWidgetReceiver : AppWidgetProvider() {
             if (!isBluetoothOn) {
                 // State 1: Bluetooth OFF
                 views.setTextViewText(R.id.widget_status, "Bluetooth is OFF")
-                views.setTextColor(R.id.widget_status, 0xFFEF4444.toInt()) // Red (Tailwind slate-500 equivalent/error red)
+                views.setTextColor(R.id.widget_status, COLOR_ERROR)
                 
                 views.setTextViewText(R.id.widget_button, "Turn ON")
                 
@@ -172,7 +179,7 @@ class AirMouseWidgetReceiver : AppWidgetProvider() {
             } else if (!isConnected) {
                 // State 2: Bluetooth ON, but not connected
                 views.setTextViewText(R.id.widget_status, "Not Connected")
-                views.setTextColor(R.id.widget_status, 0xFF94A3B8.toInt()) // Gray
+                views.setTextColor(R.id.widget_status, COLOR_DISCONNECTED)
                 
                 views.setTextViewText(R.id.widget_button, "Connect Device")
                 
@@ -194,7 +201,7 @@ class AirMouseWidgetReceiver : AppWidgetProvider() {
                 
                 if (isAirMouseActive) {
                     views.setTextViewText(R.id.widget_status, "Active • $connectedDeviceName")
-                    views.setTextColor(R.id.widget_status, 0xFF06B6D4.toInt()) // Cyan
+                    views.setTextColor(R.id.widget_status, COLOR_ACTIVE)
                     
                     views.setTextViewText(R.id.widget_button, "Deactivate")
                     
@@ -211,7 +218,7 @@ class AirMouseWidgetReceiver : AppWidgetProvider() {
                     views.setOnClickPendingIntent(R.id.widget_button, stopPendingIntent)
                 } else {
                     views.setTextViewText(R.id.widget_status, "Connected • $connectedDeviceName")
-                    views.setTextColor(R.id.widget_status, 0xFF10B981.toInt()) // Green
+                    views.setTextColor(R.id.widget_status, COLOR_CONNECTED)
                     
                     views.setTextViewText(R.id.widget_button, "Start Air Mouse")
                     

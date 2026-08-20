@@ -3,7 +3,6 @@ package com.example.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.AppDatabase
 import com.example.data.ConnectionHistoryRepository
 import com.example.data.DeviceSettingsEntity
 import com.example.data.SettingsEntity
@@ -12,9 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -24,12 +21,14 @@ import kotlinx.coroutines.launch
  * Extracted from [AirMouseViewModel] to follow the Single Responsibility
  * Principle. Screens that only need settings should depend on this ViewModel
  * instead of the full [AirMouseViewModel].
+ *
+ * Accepts pre-built repositories to avoid creating duplicate instances.
  */
-class SettingsViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application, viewModelScope)
-    private val settingsRepo = SettingsRepository(db.airMouseDao(), application, viewModelScope)
-    private val connectionHistoryRepo = ConnectionHistoryRepository(db.airMouseDao())
+class SettingsViewModel(
+    application: Application,
+    private val settingsRepo: SettingsRepository,
+    private val connectionHistoryRepo: ConnectionHistoryRepository
+) : AndroidViewModel(application) {
 
     // ── Global settings ───────────────────────────────────────────────
 

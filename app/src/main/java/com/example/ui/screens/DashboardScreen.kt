@@ -123,7 +123,6 @@ fun DashboardScreen(navController: NavController, viewModel: AirMouseViewModel) 
 
             // 1. Connection Status Card
             item {
-                val isBluetoothPowerOn by viewModel.isBluetoothPowerOn.collectAsState()
                 val targetDevice by viewModel.targetDevice.collectAsState()
                 val isConnectingState = connectionState == BluetoothProfile.STATE_CONNECTING
 

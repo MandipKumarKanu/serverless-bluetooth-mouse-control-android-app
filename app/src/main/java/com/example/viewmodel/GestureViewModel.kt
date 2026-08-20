@@ -3,7 +3,6 @@ package com.example.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.AppDatabase
 import com.example.data.GestureEntity
 import com.example.data.GestureRepository
 import com.example.data.ShortcutEntity
@@ -20,14 +19,16 @@ import kotlinx.coroutines.launch
  * Principle. Screens that only need gestures/shortcuts should depend on this
  * ViewModel instead of the full [AirMouseViewModel].
  *
+ * Accepts a pre-built repository to avoid creating duplicate instances.
+ *
  * Note: [executeGestureAction] stays in [AirMouseViewModel] because it
  * dispatches HID transmission calls (keyboard, media, mouse) that require
  * the Bluetooth connection.
  */
-class GestureViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application, viewModelScope)
-    private val gestureRepo = GestureRepository(db.airMouseDao())
+class GestureViewModel(
+    application: Application,
+    private val gestureRepo: GestureRepository
+) : AndroidViewModel(application) {
 
     // ── Shortcuts ─────────────────────────────────────────────────────
 

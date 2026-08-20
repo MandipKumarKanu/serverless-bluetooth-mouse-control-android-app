@@ -60,8 +60,8 @@ fun StickyConnectionIndicator(viewModel: AirMouseViewModel, navController: NavCo
                 if (!isBluetoothPowerOn) {
                     viewModel.enableBluetooth()
                 } else if (!isConnected && !isConnecting) {
-                    navController?.navigate(Routes.DASHBOARD) {
-                        popUpTo(Routes.DASHBOARD) { inclusive = false }
+                    navController?.navigate(NavRoute.Dashboard.path) {
+                        popUpTo(NavRoute.Dashboard.path) { inclusive = false }
                     }
                 }
             },

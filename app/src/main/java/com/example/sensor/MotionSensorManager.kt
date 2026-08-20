@@ -6,17 +6,19 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.util.Log
-import com.example.bluetooth.BluetoothHidManager
+import com.example.bluetooth.HidDeviceManager
 import com.example.data.SettingsEntity
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.sqrt
 
-class MotionSensorManager(context: Context) : SensorEventListener {
+class MotionSensorManager(
+    context: Context,
+    private val hidManager: HidDeviceManager
+) : SensorEventListener {
 
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
-    private val hidManager = BluetoothHidManager.getInstance(context)
 
     private var isRunning = false
 

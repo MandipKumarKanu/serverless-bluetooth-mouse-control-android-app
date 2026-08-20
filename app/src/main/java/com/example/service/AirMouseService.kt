@@ -81,7 +81,7 @@ class AirMouseService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        sensorManager = MotionSensorManager(this)
+        sensorManager = MotionSensorManager(this, hidManager)
         batteryMonitor = BatteryMonitor(this)
         batteryMonitor.start()
 
@@ -162,7 +162,7 @@ class AirMouseService : Service() {
 
     private fun startAirMouseSensors() {
         if (sensorManager == null) {
-            sensorManager = MotionSensorManager(this)
+            sensorManager = MotionSensorManager(this, hidManager)
         }
         serviceScope.launch {
             val settings = AppDatabase.getDatabase(this@AirMouseService, this)

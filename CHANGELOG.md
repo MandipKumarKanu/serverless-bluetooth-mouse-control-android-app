@@ -4,6 +4,15 @@ All notable changes to AirMouse will be documented in this file.
 
 ## [Unreleased]
 
+## [1.10.11] - 2026-08-20
+
+### Added
+- **Dedicated Sub-ViewModel Unit Tests** — Added `SettingsViewModelTest` and `GestureViewModelTest` suites covering per-device settings inheritance, fallback profile deletion, shortcut macros, and custom gesture recording.
+
+### Changed
+- **Compose UI Modularization** — Extracted `GestureHelpers.kt` and `KeyboardComposables.kt` from large screen files for faster compile times and cleaner recompositions.
+- **Route Cleanup** — Removed legacy string route file in favor of type-safe `NavRoute` architecture.
+
 ## [1.10.10] - 2026-08-20
 
 ### Changed
