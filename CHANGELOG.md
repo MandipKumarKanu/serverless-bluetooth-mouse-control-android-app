@@ -4,6 +4,11 @@ All notable changes to AirMouse will be documented in this file.
 
 ## [Unreleased]
 
+## [1.10.10] - 2026-08-20
+
+### Changed
+- **Touchpad sensitivity & scroll sliders** — switched sensitivity and scroll speed sliders in Touchpad settings to smooth continuous value ranges for precise tuning.
+
 ## [1.10.9] - 2026-08-20
 
 ### Fixed

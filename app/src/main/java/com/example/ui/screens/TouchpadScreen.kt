@@ -141,8 +141,7 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 onValueChangeFinished = {
                                     viewModel.updateSettings(settings.copy(sensitivity = currentSensitivity))
                                 },
-                                valueRange = 0.2f..3.0f,
-                                steps = 27
+                                valueRange = 0.2f..3.0f
                             )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -182,8 +181,7 @@ fun TouchpadScreen(navController: NavController, viewModel: AirMouseViewModel) {
                                 onValueChangeFinished = {
                                     viewModel.updateSettings(settings.copy(scrollSpeed = currentScrollSpeed))
                                 },
-                                valueRange = 0.2f..3.0f,
-                                steps = 27
+                                valueRange = 0.2f..3.0f
                             )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
